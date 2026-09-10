@@ -105,7 +105,32 @@ class _CarHomeState extends State<CarHome> {
 
   @override Widget build(BuildContext context) {
     if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator(color: lime)));
-    return Scaffold(drawer: _drawer(context), appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, title: const Text('Finanza  /  Carro', style: TextStyle(fontSize: 13, color: Color(0xffa4aab7))), actions: [if (MediaQuery.sizeOf(context).width > 700) Padding(padding: const EdgeInsets.only(right: 28), child: Center(child: Text('${events.length} registros locais', style: const TextStyle(fontSize: 12, color: Color(0xff737b8b)))))]), body: LayoutBuilder(builder: (context, constraints) => Center(child: ConstrainedBox(constraints: BoxConstraints(maxWidth: 1440), child: SingleChildScrollView(padding: EdgeInsets.fromLTRB(constraints.maxWidth < 600 ? 15 : 42, 20, constraints.maxWidth < 600 ? 15 : 42, 30), child: _content(constraints.maxWidth)))));
+    return Scaffold(
+      drawer: _drawer(context),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('Finanza  /  Carro', style: TextStyle(fontSize: 13, color: Color(0xffa4aab7))),
+        actions: [
+          if (MediaQuery.sizeOf(context).width > 700)
+            Padding(
+              padding: const EdgeInsets.only(right: 28),
+              child: Center(child: Text('${events.length} registros locais', style: const TextStyle(fontSize: 12, color: Color(0xff737b8b)))),
+            ),
+        ],
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1440),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(constraints.maxWidth < 600 ? 15 : 42, 20, constraints.maxWidth < 600 ? 15 : 42, 30),
+              child: _content(constraints.maxWidth),
+            ),
+          ),
+        ),
+      ),
+    );
   }
   Widget _drawer(BuildContext context) => Drawer(backgroundColor: const Color(0xff0d0f16), child: SafeArea(child: Padding(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_brand(), const SizedBox(height: 48), const Text('MÓDULO', style: TextStyle(color: Color(0xff626979), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.5)), const SizedBox(height: 12), _nav(Icons.directions_car_outlined, 'Carro', true), _nav(Icons.build_outlined, 'Manutenção', false), _nav(Icons.insights_outlined, 'Evolução', false), _nav(Icons.receipt_long_outlined, 'Histórico', false), const Spacer(), const Divider(color: Color(0x1affffff)), const SizedBox(height: 12), Text('Dados locais', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)), const SizedBox(height: 5), const Text('salvos neste dispositivo', style: TextStyle(color: Color(0xff626979), fontSize: 11))])));
   Widget _brand() => Row(children: [Container(width: 30, height: 30, alignment: Alignment.center, decoration: BoxDecoration(color: lime, borderRadius: BorderRadius.circular(10)), child: const Text('F', style: TextStyle(color: Color(0xff10150a), fontWeight: FontWeight.w800, fontSize: 17)),), const SizedBox(width: 10), const Text('finanza.', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 21))]);
