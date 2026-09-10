@@ -1,16 +1,18 @@
-const STORAGE_KEY = 'finanza-auto-state-v1';
-
-const vehicles = {
+const realData = window.FINANZA_AUTO_REAL_DATA || null;
+const STORAGE_KEY = 'finanza-auto-real-state-v1';
+const importedVehicle = realData?.vehicles?.[0];
+const vehicles = realData ? {
+  [importedVehicle.id]: { name: importedVehicle.name || 'Meu carro', year: '', details: 'Histórico importado do Drivvo', plate: importedVehicle.plate || '', mileage: Number(importedVehicle.odometer || 0).toLocaleString('pt-BR'), service: realData.summary?.latestDate || '—' }
+} : {
   hrv: { name: 'Honda HR-V', year: '2022', details: 'Touring · Automático · Flex', plate: 'RBT 4E21', mileage: '28.420', service: '14' },
   corolla: { name: 'Toyota Corolla', year: '2021', details: 'Altis Premium · Automático · Flex', plate: 'ECO 7B83', mileage: '46.180', service: '29' }
 };
 
-const charts = {
-  6: { months: ['Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set'], current: [820, 940, 680, 1180, 950, 1186], previous: [900, 780, 720, 910, 1020, 1080], total: 'R$ 6.842,20' },
-  12: { months: ['Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set'], current: [760, 880, 1040, 710, 620, 790, 820, 940, 680, 1180, 950, 1186], previous: [680, 740, 860, 900, 780, 720, 900, 780, 720, 910, 1020, 1080], total: 'R$ 11.276,80' }
-};
-
-const defaultTransactions = [
+const defaultTransactions = realData ? realData.events.map(event => ({
+  description: event.type === 'fuel' ? `Abastecimento · ${event.fuelType}` : event.title,
+  category: event.type === 'fuel' ? 'Abastecimento' : 'Outro',
+  place: event.place || '', date: event.date, value: event.amount
+})) : [
   { description: 'Abastecimento', category: 'Abastecimento', place: 'Posto Ipiranga', date: '2026-09-08', value: 248.60 },
   { description: 'Troca de óleo', category: 'Manutenção', place: 'Auto Center Prime', date: '2026-09-01', value: 380.00 },
   { description: 'Seguro auto', category: 'Seguro', place: 'Porto Seguro', date: '2026-08-12', value: 557.80 }
@@ -59,22 +61,73 @@ function showToast(message) {
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
 }
 
+function chartData(period) {
+  const source = state.transactions.filter(transaction => transaction.date);
+  const latest = realData?.summary?.latestDate || source.map(transaction => transaction.date).sort().at(-1) || todayISO();
+  const end = new Date(`${latest.slice(0, 7)}-01T12:00:00`);
+  const keys = [];
+  for (let offset = Number(period) - 1; offset >= 0; offset -= 1) {
+    const month = new Date(end);
+    month.setMonth(month.getMonth() - offset);
+    keys.push(`${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`);
+  }
+  const totalFor = key => source.filter(transaction => transaction.date.slice(0, 7) === key).reduce((sum, transaction) => sum + Number(transaction.value), 0);
+  return {
+    months: keys.map(key => new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(new Date(`${key}-01T12:00:00`)).replace(/\./g, '')),
+    current: keys.map(totalFor),
+    previous: keys.map(key => totalFor(`${Number(key.slice(0, 4)) - 1}${key.slice(4)}`)),
+    total: keys.reduce((sum, key) => sum + totalFor(key), 0)
+  };
+}
+
 function renderChart(period = '6') {
-  const chart = charts[period];
-  const max = 1500;
+  const chart = chartData(period);
+  const max = Math.max(1500, ...chart.current, ...chart.previous) * 1.08;
   $('#bars').innerHTML = chart.months.map((month, index) => `
     <div class="bar-group" title="${month}: ${formatCurrency(chart.current[index])}">
       <span class="bar previous" style="height:${Math.max(5, chart.previous[index] / max * 100)}%"></span>
       <span class="bar current" style="height:${Math.max(5, chart.current[index] / max * 100)}%"></span>
     </div>`).join('');
   $('#chartMonths').innerHTML = chart.months.map(month => `<span>${month}</span>`).join('');
-  $('#periodTotal').textContent = chart.total;
+  $('#periodTotal').textContent = formatCurrency(chart.total);
 }
 
 function renderSummary() {
   const total = state.transactions.reduce((sum, transaction) => sum + Number(transaction.value), 0);
   $('#monthTotal').textContent = formatCurrency(total);
-  $('#costPerKm').textContent = `R$ ${(total / 2800).toFixed(2).replace('.', ',')}`;
+  const summary = realData?.summary;
+  const consumption = summary?.averageConsumption || 0;
+  const distance = summary?.distance || 0;
+  $('#avgConsumption').innerHTML = consumption ? `${consumption.toFixed(2).replace('.', ',')} <small>km/L</small>` : '— <small>km/L</small>';
+  $('#costPerKm').textContent = distance ? formatCurrency(total / distance) : 'R$ 0,00';
+  $('#totalFoot').innerHTML = `${state.transactions.length} <span>registros importados</span>`;
+  if (summary) {
+    const latest = state.transactions[0]?.date || summary.latestDate;
+    const healthItems = $$('.health-item');
+    const healthCopy = healthItems.map(item => item.querySelector('.health-info span'));
+    const healthTitles = healthItems.map(item => item.querySelector('.health-info strong'));
+    if (healthTitles[0]) healthTitles[0].textContent = 'Último abastecimento';
+    if (healthTitles[1]) healthTitles[1].textContent = 'Combustível';
+    if (healthTitles[2]) healthTitles[2].textContent = 'Manutenções';
+    if (healthCopy[0]) healthCopy[0].textContent = latest ? `Em ${formatDate(latest)}` : 'Sem registros';
+    if (healthCopy[1]) healthCopy[1].textContent = `${summary.refuels} abastecimentos · ${summary.liters.toLocaleString('pt-BR')} L`;
+    $('.route-number strong').textContent = summary.distance.toLocaleString('pt-BR');
+    $('.route-number span').textContent = 'km registrados';
+    $('.route-progress span').style.width = '100%';
+    $('.route-caption span').textContent = `${formatDate(summary.earliestDate)} a ${formatDate(summary.latestDate)}`;
+    $('.route-caption strong').textContent = `${summary.refuels + summary.expenses} registros`;
+    const routeStats = $$('.route-stats strong');
+    if (routeStats[0]) routeStats[0].textContent = summary.refuels;
+    if (routeStats[1]) routeStats[1].textContent = `${Math.max(...(realData.events || []).map(event => event.distance || 0)).toLocaleString('pt-BR')} km`;
+    const routeLabels = $$('.route-stats span');
+    if (routeLabels[0]) routeLabels[0].textContent = 'Abastecimentos';
+    if (routeLabels[1]) routeLabels[1].textContent = 'Maior trecho';
+    $('.route-year').textContent = 'Drivvo';
+    $('#maintenanceButton').textContent = 'Ver histórico importado →';
+    $('#docCount').innerHTML = '0 <small>disponíveis</small>';
+    $('#docFoot').textContent = 'Nenhum documento no CSV';
+    $('.document-list').innerHTML = '<div class="empty-state">O CSV trouxe abastecimentos e despesas, mas nenhum documento. Você pode adicionar arquivos depois.</div>';
+  }
 }
 
 function categoryMeta(category) {
@@ -104,10 +157,10 @@ function updateVehicle(vehicleKey, notify = true) {
   const vehicle = vehicles[vehicleKey] || vehicles.hrv;
   state.vehicle = vehicles[vehicleKey] ? vehicleKey : 'hrv';
   $('#vehicleSelect').value = state.vehicle;
-  $('#heroCarName').innerHTML = `${vehicle.name} <span>${vehicle.year}</span>`;
+  $('#heroCarName').innerHTML = vehicle.year ? `${vehicle.name} <span>${vehicle.year}</span>` : vehicle.name;
   $('#heroCarDetails').textContent = vehicle.details;
   $('#heroMileage').innerHTML = `${vehicle.mileage} <small>km</small>`;
-  $('#heroService').innerHTML = `${vehicle.service} <small>dias</small>`;
+  $('#heroService').innerHTML = realData ? `${formatDate(vehicle.service)} <small>último</small>` : `${vehicle.service} <small>dias</small>`;
   $('#sideCarName').textContent = vehicle.name;
   $('#sideCarPlate').textContent = vehicle.plate;
   saveState();
@@ -151,6 +204,13 @@ function addTransaction(form) {
 // The icon helper lives in index.html so the page stays dependency-free.
 document.body.innerHTML = document.body.innerHTML.replace(/\$\{icon\('([^']+)'\)\}/g, (_, name) => icon(name));
 
+function prepareVehicleSelect() {
+  const select = $('#vehicleSelect');
+  const options = Object.entries(vehicles).map(([id, vehicle]) => `<option value="${id}">${escapeHtml(vehicle.name)}</option>`).join('');
+  select.innerHTML = options;
+  $('.select-car-dot').title = realData ? 'Dados importados do Drivvo' : 'Veículo ativo';
+}
+
 $('#vehicleSelect').addEventListener('change', event => updateVehicle(event.target.value));
 $('#periodSelect').addEventListener('change', event => renderChart(event.target.value));
 $('#openExpense').addEventListener('click', () => openModal());
@@ -177,7 +237,11 @@ $('#maintenanceButton').addEventListener('click', () => showToast('Plano de manu
 $('#helpButton').addEventListener('click', () => showToast('Suporte online — responderemos em breve'));
 $('#notificationButton').addEventListener('click', () => showToast('Você não tem novas notificações'));
 $('#allActivity').addEventListener('click', () => showToast(`${state.transactions.length} lançamento(s) no histórico`));
-$('#sideCarButton').addEventListener('click', () => updateVehicle(state.vehicle === 'hrv' ? 'corolla' : 'hrv'));
+$('#sideCarButton').addEventListener('click', () => {
+  const keys = Object.keys(vehicles);
+  if (keys.length < 2) return showToast('Apenas um veículo foi encontrado no CSV');
+  updateVehicle(keys[(keys.indexOf(state.vehicle) + 1) % keys.length]);
+});
 $('#addDocumentButton').addEventListener('click', () => showToast('Selecione um arquivo para guardar no carro'));
 $('#tripButton').addEventListener('click', () => openModal('Viagem', ''));
 $$('.document-more').forEach(button => button.addEventListener('click', () => showToast(`${button.dataset.document}: opções disponíveis em breve`)));
@@ -189,6 +253,7 @@ $$('.nav-item').forEach(item => item.addEventListener('click', () => {
 $('.mobile-menu').addEventListener('click', () => $('.sidebar').classList.toggle('open'));
 document.addEventListener('click', event => { if (window.innerWidth <= 900 && !event.target.closest('.sidebar') && !event.target.closest('.mobile-menu')) $('.sidebar').classList.remove('open'); });
 
+prepareVehicleSelect();
 $('input[name="date"]').value = todayISO();
 updateVehicle(state.vehicle, false);
 renderActivity();
