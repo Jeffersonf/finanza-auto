@@ -343,7 +343,7 @@ class _CarHomeState extends State<CarHome> {
       const SizedBox(width: 11),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('finanza.', style: TextStyle(color: textMain, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -.5)), Text(_tabTitle, style: const TextStyle(color: textMuted, fontSize: 11, fontWeight: FontWeight.w500))]),
       const Spacer(),
-      PopupMenuButton<String>(tooltip: 'Mais opções', color: panelRaised, icon: const Icon(Icons.more_horiz_rounded, color: textMuted), onSelected: (value) { if (value == 'backup') _copyBackup(); if (value == 'vehicle') _vehicleSheet(); }, itemBuilder: (context) => const [PopupMenuItem(value: 'backup', child: Text('Copiar backup local')), PopupMenuItem(value: 'vehicle', child: Text('Adicionar veículo'))]),
+      PopupMenuButton<String>(tooltip: 'Mais opções', color: panelRaised, icon: const Icon(Icons.more_horiz_rounded, color: textMuted), onSelected: (value) { if (value == 'backup') _copyBackup(); if (value == 'restore') _restoreBackup(); if (value == 'vehicle') _vehicleSheet(); }, itemBuilder: (context) => const [PopupMenuItem(value: 'backup', child: Text('Copiar backup local')), PopupMenuItem(value: 'restore', child: Text('Restaurar backup')), PopupMenuItem(value: 'vehicle', child: Text('Adicionar veículo'))]),
     ]));
   }
 
@@ -537,7 +537,7 @@ class _CarHomeState extends State<CarHome> {
       const SizedBox(height: 19),
       _sectionTitle('Dados e backup', 'Tudo fica salvo localmente no aparelho'),
       const SizedBox(height: 9),
-      Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(children: [Row(children: [Container(width: 36, height: 36, alignment: Alignment.center, decoration: BoxDecoration(color: mint.withOpacity(.12), borderRadius: BorderRadius.circular(11)), child: const Icon(Icons.lock_outline_rounded, color: mint, size: 19)), const SizedBox(width: 10), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Dados somente neste dispositivo', style: TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w800)), SizedBox(height: 3), Text('Sem sincronização externa ou conta obrigatória.', style: TextStyle(color: textMuted, fontSize: 10))])), const Icon(Icons.verified_user_outlined, color: mint, size: 18)]), const SizedBox(height: 13), SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: _copyBackup, icon: const Icon(Icons.content_copy_rounded, size: 16), label: const Text('Copiar backup em JSON'), style: OutlinedButton.styleFrom(foregroundColor: textMain, side: const BorderSide(color: Color(0x25ffffff)), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))) ])),
+      Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(children: [Row(children: [Container(width: 36, height: 36, alignment: Alignment.center, decoration: BoxDecoration(color: mint.withOpacity(.12), borderRadius: BorderRadius.circular(11)), child: const Icon(Icons.lock_outline_rounded, color: mint, size: 19)), const SizedBox(width: 10), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Dados somente neste dispositivo', style: TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w800)), SizedBox(height: 3), Text('Sem sincronização externa ou conta obrigatória.', style: TextStyle(color: textMuted, fontSize: 10))])), const Icon(Icons.verified_user_outlined, color: mint, size: 18)]), const SizedBox(height: 13), Row(children: [Expanded(child: OutlinedButton.icon(onPressed: _copyBackup, icon: const Icon(Icons.content_copy_rounded, size: 16), label: const Text('Copiar JSON'), style: OutlinedButton.styleFrom(foregroundColor: textMain, side: const BorderSide(color: Color(0x25ffffff)), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))), const SizedBox(width: 9), Expanded(child: OutlinedButton.icon(onPressed: _restoreBackup, icon: const Icon(Icons.restore_rounded, size: 16), label: const Text('Restaurar'), style: OutlinedButton.styleFrom(foregroundColor: mint, side: BorderSide(color: mint.withOpacity(.35)), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)))))]) ])),
       const SizedBox(height: 13),
       Center(child: Text('Fonte: CSV Drivvo · ${events.length} registros importados', style: const TextStyle(color: textSoft, fontSize: 10))),
     ]);
@@ -579,6 +579,55 @@ class _CarHomeState extends State<CarHome> {
     final backup = const JsonEncoder.withIndent('  ').convert({'app': 'Finanza Auto', 'version': '2.0', 'car': {'vehicles': vehicles.map((vehicle) => vehicle.toMap()).toList(), 'events': events.map((event) => event.toMap()).toList(), 'activeVehicleId': activeVehicle}});
     await Clipboard.setData(ClipboardData(text: backup));
     _snack('Backup copiado. Cole em um arquivo seguro para guardar.');
+  }
+
+  Future<void> _restoreBackup() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final raw = data?.text?.trim() ?? '';
+    if (raw.isEmpty) {
+      _snack('Nenhum JSON encontrado na área de transferência.');
+      return;
+    }
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final car = (decoded['car'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+      final loadedVehicles = <CarVehicle>[];
+      final loadedEvents = <CarEvent>[];
+      for (final item in (car['vehicles'] as List?) ?? const []) {
+        if (item is Map) loadedVehicles.add(CarVehicle.fromMap(item.cast<String, dynamic>()));
+      }
+      for (final item in (car['events'] as List?) ?? const []) {
+        if (item is Map) loadedEvents.add(CarEvent.fromMap(item.cast<String, dynamic>()));
+      }
+      if (loadedVehicles.isEmpty) loadedVehicles.add(CarVehicle(id: 'vehicle-1', name: 'Meu carro'));
+      final validIds = loadedVehicles.map((vehicle) => vehicle.id).toSet();
+      for (final event in loadedEvents) {
+        if (!validIds.contains(event.vehicleId)) event.vehicleId = loadedVehicles.first.id;
+      }
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: panelRaised,
+          title: const Text('Restaurar backup?'),
+          content: Text('${loadedEvents.length} registros e ${loadedVehicles.length} veículo(s) substituirão os dados atuais.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Restaurar')),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      final savedActive = '${car['activeVehicleId'] ?? ''}';
+      setState(() {
+        vehicles = loadedVehicles;
+        events = loadedEvents;
+        activeVehicle = validIds.contains(savedActive) ? savedActive : loadedVehicles.first.id;
+      });
+      await _save();
+      _snack('Backup restaurado com sucesso.');
+    } catch (_) {
+      _snack('O conteúdo copiado não é um backup válido do Finanza Auto.');
+    }
   }
 
   Future<void> _deleteEvent(CarEvent event) async {
