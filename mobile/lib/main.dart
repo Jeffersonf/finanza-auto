@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const lime = Color(0xffc8f55a);
@@ -10,7 +11,11 @@ const page = Color(0xff08090d);
 const surface = Color(0xff12151e);
 const surface2 = Color(0xff1c202e);
 
-void main() => runApp(const FinanzaAutoApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('pt_BR');
+  runApp(const FinanzaAutoApp());
+}
 
 class FinanzaAutoApp extends StatelessWidget {
   const FinanzaAutoApp({super.key});
