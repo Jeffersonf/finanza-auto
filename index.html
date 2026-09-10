@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4f6f3" />
+    <title>Finanza Auto — seu carro em dia</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#inicio" aria-label="Finanza Auto início">
+          <span class="brand-mark">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16.5h14M7 16.5v1.25A1.25 1.25 0 0 1 5.75 19h-.5A1.25 1.25 0 0 1 4 17.75V14l2.2-5.25A2 2 0 0 1 8.05 7.5h7.9a2 2 0 0 1 1.85 1.25L20 14v3.75A1.25 1.25 0 0 1 18.75 19h-.5A1.25 1.25 0 0 1 17 17.75V16.5M4 13.5h16M7 13.5h2m6 0h2"/></svg>
+          </span>
+          <span>finanza<span class="brand-accent">auto</span></span>
+        </a>
+
+        <div class="sidebar-label">MENU PRINCIPAL</div>
+        <nav class="side-nav" aria-label="Navegação principal">
+          <a class="nav-item active" href="#inicio" data-view="Visão geral"><span class="nav-icon">${icon('grid')}</span><span>Visão geral</span></a>
+          <a class="nav-item" href="#gastos" data-view="Gastos"><span class="nav-icon">${icon('wallet')}</span><span>Gastos</span></a>
+          <a class="nav-item" href="#manutencao" data-view="Manutenção"><span class="nav-icon">${icon('wrench')}</span><span>Manutenção</span></a>
+          <a class="nav-item" href="#documentos" data-view="Documentos"><span class="nav-icon">${icon('file')}</span><span>Documentos</span></a>
+        </nav>
+
+        <div class="sidebar-label sidebar-label-spaced">SEU CARRO</div>
+        <div class="car-mini-card">
+          <div class="mini-car-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 21h18M9 21v2m14-2v2M7 21v-5l2.2-5h13.6l2.2 5v5M7 17h18M11 15h3m4 0h3"/></svg></div>
+          <div><strong id="sideCarName">Honda HR-V</strong><span id="sideCarPlate">RBT 4E21</span></div>
+          <button class="icon-button small" id="sideCarButton" aria-label="Trocar carro">${icon('chevron')}</button>
+        </div>
+
+        <div class="sidebar-bottom">
+          <div class="support-card">
+            <div class="support-orb">${icon('spark')}</div>
+            <strong>Precisa de ajuda?</strong>
+            <span>Fale com a gente</span>
+            <button class="text-button" id="helpButton">Abrir suporte <span>→</span></button>
+          </div>
+          <a class="profile-row" href="#perfil"><span class="avatar">RC</span><span class="profile-copy"><strong>Rafael Costa</strong><small>Conta pessoal</small></span><span class="profile-more">•••</span></a>
+        </div>
+      </aside>
+
+      <main class="main-content" id="inicio">
+        <header class="topbar">
+          <button class="mobile-menu icon-button" aria-label="Abrir menu">${icon('menu')}</button>
+          <div class="breadcrumb"><span>Finanza Auto</span><span class="slash">/</span><strong>Visão geral</strong></div>
+          <div class="top-actions">
+            <button class="icon-button notification-button" aria-label="Notificações" id="notificationButton">${icon('bell')}<i></i></button>
+            <span class="top-divider"></span>
+            <span class="top-date">Quinta, 10 de setembro</span>
+          </div>
+        </header>
+
+        <div class="page-wrap">
+          <section class="welcome-row">
+            <div><p class="eyebrow">SEU PAINEL</p><h1>Olá, Rafael <span class="wave">✦</span></h1><p class="welcome-subtitle">Tudo sob controle por aqui.</p></div>
+            <div class="header-actions"><div class="vehicle-select-wrap"><span class="select-car-dot"></span><select id="vehicleSelect" aria-label="Selecionar veículo"><option value="hrv">Honda HR-V</option><option value="corolla">Toyota Corolla</option></select>${icon('chevron')}</div><button class="primary-button" id="openExpense">${icon('plus')}<span>Novo lançamento</span></button></div>
+          </section>
+
+          <section class="hero-card" aria-label="Resumo do veículo">
+            <div class="hero-copy"><span class="status-pill"><i></i> Tudo em dia</span><h2 id="heroCarName">Honda HR-V <span>2022</span></h2><p id="heroCarDetails">Touring · Automático · Flex</p><div class="hero-divider"></div><div class="hero-meta"><div><span>Quilometragem</span><strong id="heroMileage">28.420 <small>km</small></strong></div><div><span>Próxima revisão</span><strong id="heroService">14 <small>dias</small></strong></div></div></div>
+            <div class="hero-visual"><div class="sun-glow"></div><div class="road-line"></div><svg class="car-illustration" viewBox="0 0 520 230" role="img" aria-label="Ilustração de um Honda HR-V"><defs><linearGradient id="carPaint" x1="0" x2="1"><stop offset="0" stop-color="#b9d443"/><stop offset="1" stop-color="#83a819"/></linearGradient><linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#42595f"/><stop offset="1" stop-color="#21353a"/></linearGradient></defs><ellipse cx="270" cy="200" rx="181" ry="16" fill="#1e3032" opacity=".25"/><path d="M90 164c3-26 20-45 50-55l45-16 30-43c8-12 20-18 35-18h83c22 0 39 7 51 24l24 35 42 14c20 7 34 22 36 46l4 18H86z" fill="url(#carPaint)" stroke="#6c8f13" stroke-width="3"/><path d="M227 47h78c18 0 31 6 41 20l22 30H183l30-42c4-5 8-8 14-8z" fill="url(#glass)" stroke="#648081" stroke-width="3"/><path d="M235 52l-29 40h61V52zm40 0v40h85l-20-27c-7-9-17-13-31-13z" fill="#91b3af" opacity=".28"/><path d="M97 143h32m258 0h34M176 115h171" stroke="#d5ec67" stroke-width="3" opacity=".7"/><path d="M88 167h358" stroke="#4a5d23" stroke-width="5"/><rect x="111" y="127" width="46" height="18" rx="5" fill="#e9f4d9" opacity=".7"/><rect x="399" y="127" width="38" height="19" rx="4" fill="#f5ad71" opacity=".8"/><circle cx="151" cy="171" r="30" fill="#213336"/><circle cx="151" cy="171" r="16" fill="#a2b0a0"/><circle cx="151" cy="171" r="7" fill="#3c504d"/><circle cx="391" cy="171" r="30" fill="#213336"/><circle cx="391" cy="171" r="16" fill="#a2b0a0"/><circle cx="391" cy="171" r="7" fill="#3c504d"/><path d="M115 149q4-11 17-11h31M369 138h45q11 0 17 11" fill="none" stroke="#556d14" stroke-width="3"/></svg></div>
+            <div class="hero-quick"><div class="quick-icon">${icon('shield')}</div><div><strong>Proteção ativa</strong><span>Seguro renovado em<br>12 de agosto de 2026</span></div><button class="icon-button inverse" aria-label="Ver detalhes">${icon('arrow-up-right')}</button></div>
+          </section>
+
+          <section class="stats-grid" aria-label="Indicadores do carro">
+            <article class="stat-card"><div class="stat-head"><span class="stat-label">CUSTO ESTE MÊS</span><span class="stat-icon green">${icon('trend')}</span></div><div class="stat-value" id="monthTotal">R$ 1.186,40</div><div class="stat-foot positive">↓ 8,4% <span>vs. mês passado</span></div></article>
+            <article class="stat-card"><div class="stat-head"><span class="stat-label">CONSUMO MÉDIO</span><span class="stat-icon amber">${icon('fuel')}</span></div><div class="stat-value">11,8 <small>km/L</small></div><div class="stat-foot neutral">↑ 0,6 km/L <span>vs. mês passado</span></div></article>
+            <article class="stat-card"><div class="stat-head"><span class="stat-label">CUSTO POR KM</span><span class="stat-icon blue">${icon('route')}</span></div><div class="stat-value" id="costPerKm">R$ 0,42</div><div class="stat-foot positive">↓ 3,1% <span>vs. mês passado</span></div></article>
+            <article class="stat-card"><div class="stat-head"><span class="stat-label">DOCUMENTOS</span><span class="stat-icon purple">${icon('file-check')}</span></div><div class="stat-value">3 <small>ativos</small></div><div class="stat-foot warning">1 vence em 42 dias</div></article>
+          </section>
+
+          <section class="content-grid">
+            <article class="panel spending-panel" id="gastos"><div class="panel-heading"><div><h3>Despesas do carro</h3><p>Acompanhe para onde seu dinheiro está indo.</p></div><select class="period-select" id="periodSelect" aria-label="Período do gráfico"><option value="6">Últimos 6 meses</option><option value="12">Últimos 12 meses</option></select></div><div class="chart-area"><div class="chart-y"><span>R$ 1.500</span><span>R$ 1.000</span><span>R$ 500</span><span>R$ 0</span></div><div class="chart"><div class="grid-line line-1"></div><div class="grid-line line-2"></div><div class="grid-line line-3"></div><div class="grid-line line-4"></div><div class="bars" id="bars"></div><div class="chart-months" id="chartMonths"></div></div></div><div class="chart-legend"><span><i class="legend-dot current"></i>Este ano</span><span><i class="legend-dot previous"></i>Ano passado</span><span class="chart-total">Total no período <strong id="periodTotal">R$ 6.842,20</strong></span></div></article>
+            <article class="panel health-panel" id="manutencao"><div class="panel-heading"><div><h3>Saúde do carro</h3><p>Próximos cuidados e indicadores.</p></div><button class="more-button" aria-label="Mais opções">•••</button></div><div class="health-list"><div class="health-item"><div class="health-icon oil">${icon('droplet')}</div><div class="health-info"><strong>Troca de óleo</strong><span>Revisar em 1.580 km</span></div><div class="health-status ok">Em dia</div></div><div class="health-item"><div class="health-icon tire">${icon('circle')}</div><div class="health-info"><strong>Calibragem</strong><span>Última: há 8 dias</span></div><div class="health-status ok">Normal</div></div><div class="health-item"><div class="health-icon belt">${icon('settings')}</div><div class="health-info"><strong>Correia dentada</strong><span>Troca em 12.000 km</span></div><div class="health-status watch">Atenção</div></div></div><button class="outline-button full" id="maintenanceButton">Ver plano de manutenção <span>→</span></button></article>
+          </section>
+
+          <section class="bottom-grid">
+            <article class="panel activity-panel"><div class="panel-heading"><div><h3>Atividade recente</h3><p>Últimos lançamentos do seu carro.</p></div><button class="link-button" id="allActivity">Ver tudo <span>→</span></button></div><div class="activity-list" id="activityList"><div class="activity-item"><div class="activity-icon fuel-bg">${icon('fuel')}</div><div class="activity-copy"><strong>Abastecimento</strong><span>Posto Ipiranga · 08 set, 2026</span></div><strong class="activity-value">− R$ 248,60</strong></div><div class="activity-item"><div class="activity-icon wrench-bg">${icon('wrench')}</div><div class="activity-copy"><strong>Troca de óleo</strong><span>Auto Center Prime · 01 set, 2026</span></div><strong class="activity-value">− R$ 380,00</strong></div><div class="activity-item"><div class="activity-icon insurance-bg">${icon('shield')}</div><div class="activity-copy"><strong>Seguro auto</strong><span>Porto Seguro · 12 ago, 2026</span></div><strong class="activity-value">− R$ 557,80</strong></div></div></article>
+            <article class="panel actions-panel"><div class="panel-heading"><div><h3>Acesso rápido</h3><p>O que você quer registrar?</p></div></div><div class="action-grid"><button class="action-card" data-action="Abastecimento"><span class="action-icon fuel-bg">${icon('fuel')}</span><strong>Abastecimento</strong><small>Registrar agora</small><span class="action-arrow">↗</span></button><button class="action-card" data-action="Manutenção"><span class="action-icon wrench-bg">${icon('wrench')}</span><strong>Manutenção</strong><small>Adicionar serviço</small><span class="action-arrow">↗</span></button><button class="action-card" data-action="Documento"><span class="action-icon doc-bg">${icon('file')}</span><strong>Documento</strong><small>Guardar arquivo</small><span class="action-arrow">↗</span></button><button class="action-card" data-action="Viagem"><span class="action-icon route-bg">${icon('route')}</span><strong>Viagem</strong><small>Ver quilometragem</small><span class="action-arrow">↗</span></button></div></article>
+          </section>
+
+          <section class="utility-grid" id="documentos">
+            <article class="panel documents-panel">
+              <div class="panel-heading"><div><h3>Documentos do carro</h3><p>Arquivos importantes sempre à mão.</p></div><button class="outline-button" id="addDocumentButton">${icon('plus')} Adicionar</button></div>
+              <div class="document-list">
+                <div class="document-item"><div class="document-icon doc-bg">${icon('file')}</div><div class="document-copy"><strong>CRLV digital 2026</strong><span>PDF · atualizado em 05 jan, 2026</span></div><span class="document-badge valid">Válido</span><button class="document-more" data-document="CRLV digital 2026" aria-label="Opções do CRLV">•••</button></div>
+                <div class="document-item"><div class="document-icon insurance-bg">${icon('shield')}</div><div class="document-copy"><strong>Apólice do seguro</strong><span>PDF · vence em 12 ago, 2027</span></div><span class="document-badge valid">Válido</span><button class="document-more" data-document="Apólice do seguro" aria-label="Opções da apólice">•••</button></div>
+                <div class="document-item"><div class="document-icon fuel-bg">${icon('file-check')}</div><div class="document-copy"><strong>Nota da última revisão</strong><span>Imagem · 01 set, 2026</span></div><span class="document-badge archive">Arquivo</span><button class="document-more" data-document="Nota da última revisão" aria-label="Opções da nota">•••</button></div>
+              </div>
+            </article>
+            <article class="panel route-panel">
+              <div class="panel-heading"><div><h3>Resumo de rodagem</h3><p>Seu carro na estrada este ano.</p></div><span class="route-year">2026</span></div>
+              <div class="route-number"><strong>8.642</strong><span>km rodados</span></div>
+              <div class="route-progress"><span style="width:68%"></span></div><div class="route-caption"><span>Meta anual: 12.700 km</span><strong>68%</strong></div>
+              <div class="route-stats"><div><span>Viagens</span><strong>42</strong></div><div><span>Maior trajeto</span><strong>318 km</strong></div></div>
+              <button class="outline-button full" id="tripButton">Registrar uma viagem <span>→</span></button>
+            </article>
+          </section>
+
+          <footer class="footer"><span>Finanza Auto · Seu carro em dia.</span><span>Dados atualizados agora mesmo <i></i></span></footer>
+        </div>
+      </main>
+    </div>
+
+    <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="modal-close icon-button" id="closeModal" aria-label="Fechar">${icon('close')}</button><div class="modal-kicker">NOVO LANÇAMENTO</div><h2 id="modalTitle">Adicionar despesa</h2><p>Registre um gasto para manter o histórico do seu carro atualizado.</p><form id="expenseForm"><label>Descrição<input name="description" type="text" placeholder="Ex.: Abastecimento" required /></label><div class="form-row"><label>Categoria<select name="category"><option>Abastecimento</option><option>Manutenção</option><option>Seguro</option><option>Outro</option></select></label><label>Valor<input name="value" type="number" min="0.01" step="0.01" placeholder="0,00" required /></label></div><label>Data<input name="date" type="date" value="2026-09-10" /></label><div class="modal-actions"><button type="button" class="outline-button" id="cancelModal">Cancelar</button><button type="submit" class="primary-button">Salvar lançamento</button></div></form></section></div>
+    <div class="toast" id="toast" role="status"></div>
+    <script>
+      function icon(name) { const icons = { grid:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>', wallet:'<svg viewBox="0 0 24 24"><path d="M4 7.5h15a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 7.5V6a1 1 0 0 1 1-1h12M15 13h5"/><circle cx="15" cy="13" r=".7"/></svg>', wrench:'<svg viewBox="0 0 24 24"><path d="M14.5 6.5a4 4 0 0 0-5.1 5.1L4.6 16.4a2 2 0 1 0 2.8 2.8l5.2-4.8a4 4 0 0 0 5.1-5.1l-2.4 2.4-2.3-.6-.6-2.3z"/></svg>', file:'<svg viewBox="0 0 24 24"><path d="M6 3.5h8l4 4V20H6z"/><path d="M14 3.5V8h4M9 12h6M9 15h6"/></svg>', chevron:'<svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>', spark:'<svg viewBox="0 0 24 24"><path d="m12 3 1.2 5.8L19 10l-5.8 1.2L12 17l-1.2-5.8L5 10l5.8-1.2zM19 16l.5 2.5L22 19l-2.5.5L19 22l-.5-2.5L16 19l2.5-.5z"/></svg>', bell:'<svg viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>', plus:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>', shield:'<svg viewBox="0 0 24 24"><path d="M12 3 19 6v5c0 4.4-3 8.3-7 10-4-1.7-7-5.6-7-10V6z"/><path d="m9 12 2 2 4-4"/></svg>', 'arrow-up-right':'<svg viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></svg>', trend:'<svg viewBox="0 0 24 24"><path d="M4 17 10 11l4 4 6-8M15 7h5v5"/></svg>', fuel:'<svg viewBox="0 0 24 24"><path d="M6 20V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15M4 20h13M8 8h5M18 8l2 2v6a1 1 0 0 1-2 0v-3h-3"/></svg>', route:'<svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h3a3 3 0 0 0 3-3v-3a3 3 0 0 1 3-3h0"/></svg>', 'file-check':'<svg viewBox="0 0 24 24"><path d="M6 3.5h8l4 4V20H6z"/><path d="M14 3.5V8h4m-9 6 2 2 4-4"/></svg>', droplet:'<svg viewBox="0 0 24 24"><path d="M12 3S6 10 6 14a6 6 0 0 0 12 0c0-4-6-11-6-11z"/><path d="M9 15a3 3 0 0 0 3 3"/></svg>', circle:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="m12 5 1 3m6 4-3 1m-4 6-1-3m-6-4 3-1"/></svg>', settings:'<svg viewBox="0 0 24 24"><path d="m12 3 1.2 2.4 2.6.4 1.8-1.7 1.6 1.6-1.7 1.8.4 2.6L20.3 11v2l-2.4 1.2-.4 2.6 1.7 1.8-1.6 1.6-1.8-1.7-2.6.4L12 21l-2.4-2.4-2.6-.4-1.8 1.7-1.6-1.6 1.7-1.8-.4-2.6L2.7 13v-2l2.4-1.2.4-2.6-1.7-1.8 1.6-1.6 1.8 1.7 2.6-.4z"/><circle cx="12" cy="12" r="3"/></svg>', menu:'<svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>', close:'<svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>' }; return icons[name] || ''; }
+    </script>
+    <script src="app.js"></script>
+  </body>
+</html>
