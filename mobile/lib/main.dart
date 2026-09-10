@@ -439,7 +439,26 @@ class _CarHomeState extends State<CarHome> {
 
   Widget _filterChips() {
     const values = ['Todos', 'Abastecimentos', 'Despesas'];
-    return SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: values.map((value) => Padding(padding: const EdgeInsets.only(right: 7), child: ChoiceChip(label: Text(value), selected: typeFilter == value, onSelected: (_) => setState(() => typeFilter = value), selectedColor: lime, backgroundColor: panel, side: BorderSide(color: typeFilter == value ? lime : Colors.white.withOpacity(.08)), labelStyle: TextStyle(color: typeFilter == value ? const Color(0xff101607) : textMuted, fontSize: 11, fontWeight: FontWeight.w700))).toList()));
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: values.map((value) {
+          final selected = typeFilter == value;
+          return Padding(
+            padding: const EdgeInsets.only(right: 7),
+            child: ChoiceChip(
+              label: Text(value),
+              selected: selected,
+              onSelected: (_) => setState(() => typeFilter = value),
+              selectedColor: lime,
+              backgroundColor: panel,
+              side: BorderSide(color: selected ? lime : Colors.white.withOpacity(.08)),
+              labelStyle: TextStyle(color: selected ? const Color(0xff101607) : textMuted, fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 
   Widget _sortDropdown() => DropdownButtonHideUnderline(child: DropdownButton<String>(value: sort, dropdownColor: panelRaised, icon: const Icon(Icons.swap_vert_rounded, color: textMuted, size: 16), style: const TextStyle(color: textMuted, fontSize: 11), items: const ['Mais recentes', 'Mais antigos', 'Maior valor', 'Menor valor', 'Maior km', 'Menor km'].map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(), onChanged: (value) => setState(() => sort = value ?? sort)));
@@ -523,7 +542,28 @@ class _CarHomeState extends State<CarHome> {
 
   Widget _vehicleRow(CarVehicle vehicle) {
     final selected = vehicle.id == activeVehicle;
-    return InkWell(onTap: () async { setState(() => activeVehicle = vehicle.id); await _save(); }, borderRadius: BorderRadius.circular(15), child: Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12), decoration: BoxDecoration(color: selected ? lime.withOpacity(.1) : panel, borderRadius: BorderRadius.circular(15), border: Border.all(color: selected ? lime.withOpacity(.35) : Colors.white.withOpacity(.06))), child: Row(children: [Icon(Icons.directions_car_outlined, color: selected ? lime : textMuted, size: 20), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(vehicle.name, style: TextStyle(color: selected ? lime : textMain, fontSize: 13, fontWeight: FontWeight.w800)), Text(vehicle.model.isEmpty ? 'Modelo não informado' : vehicle.model, style: const TextStyle(color: textMuted, fontSize: 10))])), if (selected) const Icon(Icons.check_circle_rounded, color: lime, size: 19), IconButton(onPressed: () => _vehicleSheet(vehicle), icon: const Icon(Icons.more_horiz_rounded, color: textSoft, size: 19))]));
+    return InkWell(
+      onTap: () async {
+        setState(() => activeVehicle = vehicle.id);
+        await _save();
+      },
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+        decoration: BoxDecoration(color: selected ? lime.withOpacity(.1) : panel, borderRadius: BorderRadius.circular(15), border: Border.all(color: selected ? lime.withOpacity(.35) : Colors.white.withOpacity(.06))),
+        child: Row(children: [
+          Icon(Icons.directions_car_outlined, color: selected ? lime : textMuted, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(vehicle.name, style: TextStyle(color: selected ? lime : textMain, fontSize: 13, fontWeight: FontWeight.w800)),
+            Text(vehicle.model.isEmpty ? 'Modelo não informado' : vehicle.model, style: const TextStyle(color: textMuted, fontSize: 10)),
+          ])),
+          if (selected) const Icon(Icons.check_circle_rounded, color: lime, size: 19),
+          IconButton(onPressed: () => _vehicleSheet(vehicle), icon: const Icon(Icons.more_horiz_rounded, color: textSoft, size: 19)),
+        ]),
+      ),
+    );
   }
 
   Widget _emptyState(String title, String subtitle) => Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 27), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(17), border: Border.all(color: Colors.white.withOpacity(.06))), child: Column(children: [const Icon(Icons.inbox_outlined, color: textSoft, size: 28), const SizedBox(height: 9), Text(title, style: const TextStyle(color: textMain, fontSize: 13, fontWeight: FontWeight.w800)), const SizedBox(height: 4), Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(color: textMuted, fontSize: 11))]));
@@ -543,6 +583,7 @@ class _CarHomeState extends State<CarHome> {
     _snack('Lançamento excluído.');
   }
 
+  /*
   Future<void> _entrySheet({required bool fuel, CarEvent? edit}) async {
     final date = TextEditingController(text: edit?.date ?? _isoToday());
     final odo = TextEditingController(text: edit == null || edit.odometer == 0 ? '' : edit.odometer.round().toString());
@@ -567,8 +608,124 @@ class _CarHomeState extends State<CarHome> {
     }
   }
 
+  */
   Widget _formRow(List<Widget> children) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: children);
 
+  Future<void> _entrySheet({required bool fuel, CarEvent? edit}) async {
+    final date = TextEditingController(text: edit?.date ?? _isoToday());
+    final odo = TextEditingController(text: edit == null || edit.odometer == 0 ? '' : edit.odometer.round().toString());
+    final liters = TextEditingController(text: edit == null || edit.liters == 0 ? '' : edit.liters.toString());
+    final price = TextEditingController(text: edit == null || edit.pricePerLiter == 0 ? '' : edit.pricePerLiter.toString());
+    final amount = TextEditingController(text: edit == null || edit.amount == 0 ? '' : edit.amount.toStringAsFixed(2));
+    final title = TextEditingController(text: edit?.title ?? '');
+    final note = TextEditingController(text: edit?.note ?? '');
+    var selectedFuel = edit?.fuelType ?? 'Etanol';
+    var selectedCategory = edit?.category ?? 'Maintenance';
+    final categories = <String, String>{
+      'Maintenance': 'Manutenção',
+      'Insurance': 'Seguro',
+      'Tax': 'Imposto / documento',
+      'Parking': 'Estacionamento',
+      'Wash': 'Lavagem',
+      'Fine': 'Multa',
+      'Other': 'Outro',
+    };
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: panel,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(27))),
+        builder: (sheetContext) => SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, 14, 20, MediaQuery.viewInsetsOf(sheetContext).bottom + 18),
+            child: StatefulBuilder(
+              builder: (context, setModalState) {
+                final calculated = _number(liters.text) * _number(price.text);
+                return SingleChildScrollView(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Center(child: Container(width: 38, height: 4, decoration: BoxDecoration(color: textSoft, borderRadius: BorderRadius.circular(4)))),
+                    const SizedBox(height: 20),
+                    Row(children: [
+                      Expanded(child: Text(edit == null ? (fuel ? 'Novo abastecimento' : 'Nova despesa') : 'Editar lançamento', style: const TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -.5))),
+                      IconButton(onPressed: () => Navigator.pop(sheetContext), icon: const Icon(Icons.close_rounded, color: textMuted)),
+                    ]),
+                    Text(fuel ? 'Registre o abastecimento e acompanhe o consumo.' : 'Mantenha todas as despesas do carro no mesmo lugar.', style: const TextStyle(color: textMuted, fontSize: 12)),
+                    const SizedBox(height: 19),
+                    _formRow([
+                      Expanded(child: TextField(controller: date, readOnly: true, onTap: () async {
+                        final picked = await showDatePicker(context: context, firstDate: DateTime(2000), lastDate: DateTime.now().add(const Duration(days: 365)), initialDate: _parseDate(date.text) ?? DateTime.now());
+                        if (picked != null) {
+                          date.text = DateFormat('yyyy-MM-dd').format(picked);
+                          setModalState(() {});
+                        }
+                      }, decoration: const InputDecoration(labelText: 'Data', prefixIcon: Icon(Icons.calendar_today_outlined, size: 17)))),
+                      const SizedBox(width: 10),
+                      Expanded(child: TextField(controller: odo, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Hodômetro', suffixText: 'km'))),
+                    ]),
+                    const SizedBox(height: 10),
+                    if (fuel) ...[
+                      DropdownButtonFormField<String>(value: selectedFuel, decoration: const InputDecoration(labelText: 'Combustível', prefixIcon: Icon(Icons.local_gas_station_outlined, size: 18)), items: const ['Etanol', 'Gasolina', 'Diesel', 'GNV', 'Flex'].map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(), onChanged: (value) => setModalState(() => selectedFuel = value ?? selectedFuel)),
+                      const SizedBox(height: 10),
+                      _formRow([
+                        Expanded(child: TextField(controller: liters, onChanged: (_) => setModalState(() {}), keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Litros'))),
+                        const SizedBox(width: 10),
+                        Expanded(child: TextField(controller: price, onChanged: (_) => setModalState(() {}), keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Preço / litro', prefixText: 'R\$ '))),
+                      ]),
+                      const SizedBox(height: 10),
+                      TextField(controller: amount, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Total pago', prefixText: 'R\$ ', hintText: calculated > 0 ? calculated.toStringAsFixed(2) : null)),
+                    ] else ...[
+                      DropdownButtonFormField<String>(value: selectedCategory, decoration: const InputDecoration(labelText: 'Categoria', prefixIcon: Icon(Icons.category_outlined, size: 18)), items: categories.entries.map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value))).toList(), onChanged: (value) => setModalState(() => selectedCategory = value ?? selectedCategory)),
+                      const SizedBox(height: 10),
+                      TextField(controller: amount, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Valor', prefixText: 'R\$ ')),
+                      const SizedBox(height: 10),
+                      TextField(controller: title, decoration: const InputDecoration(labelText: 'Descrição', hintText: 'Ex.: troca de óleo, IPVA, seguro')),
+                    ],
+                    const SizedBox(height: 10),
+                    TextField(controller: note, decoration: InputDecoration(labelText: fuel ? 'Posto ou observação' : 'Observação', hintText: fuel ? 'Ex.: Posto Central' : 'Detalhes opcionais')),
+                    const SizedBox(height: 20),
+                    SizedBox(width: double.infinity, child: FilledButton(onPressed: () async {
+                      final value = _number(amount.text) > 0 ? _number(amount.text) : calculated;
+                      if (value <= 0) {
+                        _snack('Informe um valor válido.');
+                        return;
+                      }
+                      final event = edit ?? CarEvent(id: 'local-${DateTime.now().microsecondsSinceEpoch}', vehicleId: activeVehicle, type: fuel ? 'fuel' : 'expense', date: date.text, amount: value);
+                      event.vehicleId = activeVehicle;
+                      event.type = fuel ? 'fuel' : 'expense';
+                      event.date = date.text.isEmpty ? _isoToday() : date.text;
+                      event.amount = value;
+                      event.odometer = _number(odo.text);
+                      event.liters = _number(liters.text);
+                      event.pricePerLiter = _number(price.text);
+                      event.fuelType = selectedFuel;
+                      event.title = title.text.trim();
+                      event.category = selectedCategory;
+                      event.note = note.text.trim();
+                      setState(() {
+                        if (edit == null) events.insert(0, event);
+                        if (event.odometer > currentVehicle.odometer) currentVehicle.odometer = event.odometer;
+                      });
+                      await _save();
+                      if (sheetContext.mounted) Navigator.pop(sheetContext);
+                      _snack(edit == null ? 'Lançamento salvo.' : 'Lançamento atualizado.');
+                    }, style: FilledButton.styleFrom(backgroundColor: lime, foregroundColor: const Color(0xff111707), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)), textStyle: const TextStyle(fontWeight: FontWeight.w800)), child: Text(edit == null ? 'Salvar lançamento' : 'Salvar alterações'))),
+                    if (edit != null) Center(child: TextButton.icon(onPressed: () { Navigator.pop(sheetContext); _deleteEvent(edit); }, icon: const Icon(Icons.delete_outline_rounded, color: coral, size: 17), label: const Text('Excluir lançamento', style: TextStyle(color: coral, fontSize: 12)))),
+                  ]),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    } finally {
+      for (final controller in [date, odo, liters, price, amount, title, note]) {
+        controller.dispose();
+      }
+    }
+  }
+
+  /*
   Future<void> _vehicleSheet([CarVehicle? edit]) async {
     final name = TextEditingController(text: edit?.name ?? '');
     final model = TextEditingController(text: edit?.model ?? '');
@@ -583,12 +740,81 @@ class _CarHomeState extends State<CarHome> {
     }
   }
 
+  */
   Future<void> _deleteVehicle(CarVehicle vehicle) async {
     final confirmed = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(backgroundColor: panelRaised, title: const Text('Excluir veículo?'), content: const Text('Os registros deste veículo também serão removidos.'), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Excluir'))]));
     if (confirmed != true) return;
     setState(() { vehicles.removeWhere((item) => item.id == vehicle.id); events.removeWhere((event) => event.vehicleId == vehicle.id); activeVehicle = vehicles.first.id; });
     await _save();
     _snack('Veículo excluído.');
+  }
+
+  Future<void> _vehicleSheet([CarVehicle? edit]) async {
+    final name = TextEditingController(text: edit?.name ?? '');
+    final model = TextEditingController(text: edit?.model ?? '');
+    final plate = TextEditingController(text: edit?.plate ?? '');
+    final odometer = TextEditingController(text: edit == null || edit.odometer == 0 ? '' : edit.odometer.round().toString());
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: panel,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(27))),
+        builder: (sheetContext) => SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, 14, 20, MediaQuery.viewInsetsOf(sheetContext).bottom + 18),
+            child: SingleChildScrollView(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Center(child: Container(width: 38, height: 4, decoration: BoxDecoration(color: textSoft, borderRadius: BorderRadius.circular(4)))),
+                const SizedBox(height: 20),
+                Row(children: [
+                  Expanded(child: Text(edit == null ? 'Adicionar veículo' : 'Editar veículo', style: const TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900))),
+                  IconButton(onPressed: () => Navigator.pop(sheetContext), icon: const Icon(Icons.close_rounded, color: textMuted)),
+                ]),
+                const Text('Cadastre os detalhes para identificar seus registros.', style: TextStyle(color: textMuted, fontSize: 12)),
+                const SizedBox(height: 19),
+                TextField(controller: name, decoration: const InputDecoration(labelText: 'Nome do veículo', hintText: 'Ex.: Meu carro')),
+                const SizedBox(height: 10),
+                _formRow([
+                  Expanded(child: TextField(controller: model, decoration: const InputDecoration(labelText: 'Modelo / ano'))),
+                  const SizedBox(width: 10),
+                  Expanded(child: TextField(controller: plate, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Placa'))),
+                ]),
+                const SizedBox(height: 10),
+                TextField(controller: odometer, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Hodômetro atual', suffixText: 'km')),
+                const SizedBox(height: 21),
+                SizedBox(width: double.infinity, child: FilledButton(onPressed: () async {
+                  if (name.text.trim().isEmpty) {
+                    _snack('Informe um nome para o veículo.');
+                    return;
+                  }
+                  setState(() {
+                    if (edit == null) {
+                      final vehicle = CarVehicle(id: 'local-${DateTime.now().microsecondsSinceEpoch}', name: name.text.trim(), model: model.text.trim(), plate: plate.text.trim(), odometer: _number(odometer.text));
+                      vehicles.add(vehicle);
+                      activeVehicle = vehicle.id;
+                    } else {
+                      edit.name = name.text.trim();
+                      edit.model = model.text.trim();
+                      edit.plate = plate.text.trim();
+                      edit.odometer = _number(odometer.text);
+                    }
+                  });
+                  await _save();
+                  if (sheetContext.mounted) Navigator.pop(sheetContext);
+                  _snack(edit == null ? 'Veículo adicionado.' : 'Veículo atualizado.');
+                }, style: FilledButton.styleFrom(backgroundColor: lime, foregroundColor: const Color(0xff111707), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)), textStyle: const TextStyle(fontWeight: FontWeight.w800)), child: Text(edit == null ? 'Adicionar veículo' : 'Salvar alterações'))),
+                if (edit != null && vehicles.length > 1) Center(child: TextButton.icon(onPressed: () async { Navigator.pop(sheetContext); await _deleteVehicle(edit); }, icon: const Icon(Icons.delete_outline_rounded, color: coral, size: 17), label: const Text('Excluir veículo', style: TextStyle(color: coral, fontSize: 12)))),
+              ]),
+            ),
+          ),
+        ),
+      );
+    } finally {
+      for (final controller in [name, model, plate, odometer]) {
+        controller.dispose();
+      }
+    }
   }
 
   void _snack(String message) {
