@@ -225,6 +225,10 @@ class _CarHomeState extends State<CarHome> {
         if (item is Map) loadedEvents.add(CarEvent.fromMap(item.cast<String, dynamic>()));
       }
       if (loadedVehicles.isEmpty) loadedVehicles.add(CarVehicle(id: 'vehicle-1', name: 'Meu carro'));
+      final validVehicleIds = loadedVehicles.map((vehicle) => vehicle.id).toSet();
+      for (final event in loadedEvents) {
+        if (!validVehicleIds.contains(event.vehicleId)) event.vehicleId = loadedVehicles.first.id;
+      }
       final savedActive = '${car['activeVehicleId'] ?? ''}';
       final selected = loadedVehicles.any((vehicle) => vehicle.id == savedActive) ? savedActive : loadedVehicles.first.id;
       if (!mounted) return;
