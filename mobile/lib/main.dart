@@ -159,7 +159,30 @@ class _CarHomeState extends State<CarHome> {
   Widget _brand() => Row(children: [Container(width: 30, height: 30, alignment: Alignment.center, decoration: BoxDecoration(color: lime, borderRadius: BorderRadius.circular(10)), child: const Text('F', style: TextStyle(color: Color(0xff10150a), fontWeight: FontWeight.w800, fontSize: 17)),), const SizedBox(width: 10), const Text('finanza.', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 21))]);
   Widget _nav(IconData icon, String label, bool active) => Container(margin: const EdgeInsets.only(bottom: 5), decoration: BoxDecoration(color: active ? const Color(0x19c8f55a) : Colors.transparent, borderRadius: BorderRadius.circular(12)), child: ListTile(dense: true, leading: Icon(icon, color: active ? lime : const Color(0xff858c9c), size: 20), title: Text(label, style: TextStyle(color: active ? lime : const Color(0xff858c9c), fontWeight: FontWeight.w600, fontSize: 14)), onTap: () => Navigator.pop(context)));
   Widget _content(double width) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_hero(width), const SizedBox(height: 16), _filters(width), const SizedBox(height: 16), _metrics(width), const SizedBox(height: 17), _panel('Manutenção preventiva', 'Acompanhe os próximos cuidados do veículo', _maintenance(width)), const SizedBox(height: 17), _panel('Evolução do carro', 'Gasto por mês no período filtrado', _chart()), const SizedBox(height: 17), _panel('Histórico do carro', 'Abastecimentos, manutenção, seguro, impostos e lavagens', _history()), const SizedBox(height: 12), Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Finanza · Módulo Carro', style: TextStyle(color: Color(0xff626979), fontSize: 11)), Text('${events.length} registros · tudo salvo neste dispositivo', style: const TextStyle(color: Color(0xff626979), fontSize: 11))])]);
-  Widget _hero(double width) => Container(width: double.infinity, padding: const EdgeInsets.all(24), decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0x25c8f55a)), gradient: const LinearGradient(colors: [Color(0x1bc8f55a), Color(0x095af5c8), Color(0x1412151e)])), child: Stack(children: [Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('MÓDULO DE VEÍCULO', style: TextStyle(color: lime, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.6)), const SizedBox(height: 9), Text(vehicle.name, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1.2)), const SizedBox(height: 6), Text([vehicle.model, vehicle.plate, '${NumberFormat.decimalPattern('pt_BR').format(maxOdo)} km'].where((e) => e.isNotEmpty).join('  ·  '), style: const TextStyle(color: Color(0xffa2a9b6), fontSize: 14)), const SizedBox(height: 20), Wrap(spacing: 8, runSpacing: 8, children: [_button('+ Veículo', Icons.add, _vehicleSheet), _button('Editar veículo', Icons.edit_outlined, () => _vehicleSheet(vehicle)), _button('Importar CSV', Icons.upload_file_outlined, () => _snack('Os dados reais do Drivvo já estão carregados.')), _button('+ Despesa', Icons.receipt_long_outlined, () => _entrySheet(false)), _button('+ Abastecimento', Icons.local_gas_station_outlined, () => _entrySheet(true), primary: true)])])]),);
+  Widget _hero(double width) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0x25c8f55a)),
+          gradient: const LinearGradient(colors: [Color(0x1bc8f55a), Color(0x095af5c8), Color(0x1412151e)]),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('MÓDULO DE VEÍCULO', style: TextStyle(color: lime, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.6)),
+          const SizedBox(height: 9),
+          Text(vehicle.name, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1.2)),
+          const SizedBox(height: 6),
+          Text([vehicle.model, vehicle.plate, '${NumberFormat.decimalPattern('pt_BR').format(maxOdo)} km'].where((e) => e.isNotEmpty).join('  ·  '), style: const TextStyle(color: Color(0xffa2a9b6), fontSize: 14)),
+          const SizedBox(height: 20),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            _button('+ Veículo', Icons.add, _vehicleSheet),
+            _button('Editar veículo', Icons.edit_outlined, () => _vehicleSheet(vehicle)),
+            _button('Importar CSV', Icons.upload_file_outlined, () => _snack('Os dados reais do Drivvo já estão carregados.')),
+            _button('+ Despesa', Icons.receipt_long_outlined, () => _entrySheet(false)),
+            _button('+ Abastecimento', Icons.local_gas_station_outlined, () => _entrySheet(true), primary: true),
+          ]),
+        ]),
+      );
   Widget _button(String label, IconData icon, VoidCallback onTap, {bool primary = false}) => FilledButton.icon(onPressed: onTap, icon: Icon(icon, size: 16), label: Text(label), style: FilledButton.styleFrom(backgroundColor: primary ? lime : surface, foregroundColor: primary ? const Color(0xff10150a) : const Color(0xffc6ccd5), side: BorderSide(color: primary ? lime : const Color(0x20ffffff)), padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)), textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)));
   Widget _filters(double width) => Container(padding: const EdgeInsets.all(9), decoration: BoxDecoration(color: const Color(0xaa12151e), border: Border.all(color: const Color(0x10ffffff)), borderRadius: BorderRadius.circular(15)), child: Wrap(spacing: 8, runSpacing: 8, children: [_select(activeVehicle == 'all' ? 'Todos os veículos' : vehicle.name, vehicles.map((e) => e.name).toList() + ['Todos os veículos'], (v) { setState(() => activeVehicle = v == 'Todos os veículos' ? 'all' : vehicles.firstWhere((e) => e.name == v).id); }), _select(period, const ['Mês atual', '30 dias', '90 dias', 'Ano atual', 'Tudo'], (v) => setState(() => period = v)), _select(typeFilter, const ['Todos', 'Abastecimentos', 'Despesas'], (v) => setState(() => typeFilter = v)), _select(sort, const ['Mais recentes', 'Mais antigos', 'Maior valor', 'Menor valor', 'Maior km', 'Menor km'], (v) => setState(() => sort = v)), SizedBox(width: width > 700 ? 220 : width - 50, child: TextField(controller: search, onChanged: (v) => setState(() => query = v), decoration: const InputDecoration(hintText: 'Buscar no histórico...', prefixIcon: Icon(Icons.search, size: 18), isDense: true))) ]));
   Widget _select(String value, List<String> values, ValueChanged<String> onChanged) => SizedBox(width: 170, child: DropdownButtonFormField<String>(value: values.contains(value) ? value : values.first, isExpanded: true, items: values.map((e) => DropdownMenuItem(value: e, child: Text(e, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) { if (v != null) onChanged(v); }, decoration: const InputDecoration(isDense: true)));
@@ -255,6 +278,53 @@ class _CarHomeState extends State<CarHome> {
       ),
     );
   }
-  Future<void> _vehicleSheet([CarVehicle? edit]) async { final name = TextEditingController(text: edit?.name), model = TextEditingController(text: edit?.model), plate = TextEditingController(text: edit?.plate), odo = TextEditingController(text: edit?.odometer.round().toString()); await showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: const Color(0xff151925), builder: (c) => Padding(padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.viewInsetsOf(c).bottom + 20), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(edit == null ? 'Novo veículo' : 'Editar veículo', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)), const SizedBox(height: 16), TextField(controller: name, decoration: const InputDecoration(labelText: 'Nome')), const SizedBox(height: 10), Row(children: [Expanded(child: TextField(controller: model, decoration: const InputDecoration(labelText: 'Modelo / ano'))), const SizedBox(width: 10), Expanded(child: TextField(controller: plate, decoration: const InputDecoration(labelText: 'Placa')))]), const SizedBox(height: 10), TextField(controller: odo, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Hodômetro atual')), const SizedBox(height: 18), Align(alignment: Alignment.centerRight, child: FilledButton(onPressed: () async { if (name.text.trim().isEmpty) return; setState(() { if (edit == null) { final v = CarVehicle(id: 'local-${DateTime.now().microsecondsSinceEpoch}', name: name.text.trim(), model: model.text, plate: plate.text, odometer: _number(odo.text)); vehicles.add(v); activeVehicle = v.id; } else { edit.name = name.text.trim(); edit.model = model.text; edit.plate = plate.text; edit.odometer = _number(odo.text); } }); await _save(); if (c.mounted) Navigator.pop(c); }, child: const Text('Salvar veículo')))])));
+  Future<void> _vehicleSheet([CarVehicle? edit]) async {
+    final name = TextEditingController(text: edit?.name);
+    final model = TextEditingController(text: edit?.model);
+    final plate = TextEditingController(text: edit?.plate);
+    final odo = TextEditingController(text: edit?.odometer.round().toString());
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xff151925),
+      builder: (c) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.viewInsetsOf(c).bottom + 20),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(edit == null ? 'Novo veículo' : 'Editar veículo', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 16),
+          TextField(controller: name, decoration: const InputDecoration(labelText: 'Nome')),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: TextField(controller: model, decoration: const InputDecoration(labelText: 'Modelo / ano'))),
+            const SizedBox(width: 10),
+            Expanded(child: TextField(controller: plate, decoration: const InputDecoration(labelText: 'Placa'))),
+          ]),
+          const SizedBox(height: 10),
+          TextField(controller: odo, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Hodômetro atual')),
+          const SizedBox(height: 18),
+          Align(alignment: Alignment.centerRight, child: FilledButton(
+            onPressed: () async {
+              if (name.text.trim().isEmpty) return;
+              setState(() {
+                if (edit == null) {
+                  final v = CarVehicle(id: 'local-${DateTime.now().microsecondsSinceEpoch}', name: name.text.trim(), model: model.text, plate: plate.text, odometer: _number(odo.text));
+                  vehicles.add(v);
+                  activeVehicle = v.id;
+                } else {
+                  edit.name = name.text.trim();
+                  edit.model = model.text;
+                  edit.plate = plate.text;
+                  edit.odometer = _number(odo.text);
+                }
+              });
+              await _save();
+              if (c.mounted) Navigator.pop(c);
+            },
+            child: const Text('Salvar veículo'),
+          )),
+        ]),
+      ),
+    );
+  }
   void _snack(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text), backgroundColor: lime, behavior: SnackBarBehavior.floating));
 }
