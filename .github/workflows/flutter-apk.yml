@@ -23,6 +23,10 @@ jobs:
         working-directory: mobile
         run: flutter create --platforms=android --org com.jeffersonf --project-name finanza_auto --no-pub .
 
+      - name: Set Android app label
+        working-directory: mobile
+        run: sed -i 's/android:label="finanza_auto"/android:label="Finanza Auto"/' android/app/src/main/AndroidManifest.xml
+
       - name: Install dependencies
         working-directory: mobile
         run: flutter pub get
