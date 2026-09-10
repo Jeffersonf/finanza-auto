@@ -1542,7 +1542,7 @@ window.FINANZA_AUTO_REAL_DATA = {
       "date": "2021-01-05",
       "odometer": 0.0,
       "title": "Impostos (IPVA/DPVAT)",
-      "category": "Outro",
+      "category": "Tax",
       "amount": 400.0,
       "place": ""
     },

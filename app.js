@@ -1,261 +1,137 @@
-const realData = window.FINANZA_AUTO_REAL_DATA || null;
-const STORAGE_KEY = 'finanza-auto-real-state-v1';
-const importedVehicle = realData?.vehicles?.[0];
-const vehicles = realData ? {
-  [importedVehicle.id]: { name: importedVehicle.name || 'Meu carro', year: '', details: 'Histórico importado do Drivvo', plate: importedVehicle.plate || '', mileage: Number(importedVehicle.odometer || 0).toLocaleString('pt-BR'), service: realData.summary?.latestDate || '—' }
-} : {
-  hrv: { name: 'Honda HR-V', year: '2022', details: 'Touring · Automático · Flex', plate: 'RBT 4E21', mileage: '28.420', service: '14' },
-  corolla: { name: 'Toyota Corolla', year: '2021', details: 'Altis Premium · Automático · Flex', plate: 'ECO 7B83', mileage: '46.180', service: '29' }
-};
+'use strict';
 
-const defaultTransactions = realData ? realData.events.map(event => ({
-  description: event.type === 'fuel' ? `Abastecimento · ${event.fuelType}` : event.title,
-  category: event.type === 'fuel' ? 'Abastecimento' : 'Outro',
-  place: event.place || '', date: event.date, value: event.amount
-})) : [
-  { description: 'Abastecimento', category: 'Abastecimento', place: 'Posto Ipiranga', date: '2026-09-08', value: 248.60 },
-  { description: 'Troca de óleo', category: 'Manutenção', place: 'Auto Center Prime', date: '2026-09-01', value: 380.00 },
-  { description: 'Seguro auto', category: 'Seguro', place: 'Porto Seguro', date: '2026-08-12', value: 557.80 }
-];
-
-function loadState() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved && Array.isArray(saved.transactions)) return { vehicle: saved.vehicle || 'hrv', transactions: saved.transactions };
-  } catch (error) { /* storage unavailable: continue with defaults */ }
-  return { vehicle: 'hrv', transactions: [...defaultTransactions] };
-}
-
-let state = loadState();
+const SOURCE_DATA = window.FINANZA_AUTO_REAL_DATA || { vehicles: [{ id: 'vehicle-1', name: 'Meu carro', plate: '', model: '', odometer: 0 }], events: [], summary: {} };
+const STORAGE_KEY = 'finanza-auto-car-state-v1';
+const state = loadState();
+const filters = { vehicle: state.activeVehicleId || 'all', period: 'all', type: 'all', kind: 'all', query: '', sort: 'date_desc', from: '', to: '' };
+let entryType = 'fuel';
 let toastTimer;
+let chartMode = 'bars';
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
+const money = value => `R$ ${Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const dateText = value => value ? new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${String(value).slice(0, 10)}T12:00:00`)) : '—';
+const esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;' }[char]));
 
-function saveState() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (error) { /* private browsing can block storage */ }
+function uid(prefix = 'local') { return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`; }
+function clone(value) { return JSON.parse(JSON.stringify(value)); }
+function normalizeVehicle(vehicle) { return { id: String(vehicle.id || uid('vehicle')), name: String(vehicle.name || 'Meu carro'), plate: String(vehicle.plate || ''), model: String(vehicle.model || ''), odometer: Number(vehicle.odometer) || 0 }; }
+function normalizeEvent(event, vehicleId) {
+  const fuel = event.type === 'fuel';
+  return { id: String(event.id || uid('event')), vehicleId: String(event.vehicleId || vehicleId), type: fuel ? 'fuel' : 'expense', date: String(event.date || new Date().toISOString()).slice(0, 10), odometer: Number(event.odometer) || 0, fuelType: String(event.fuelType || 'Gasolina'), liters: Number(event.liters) || 0, pricePerLiter: Number(event.pricePerLiter || 0), amount: Number(event.amount || 0), title: String(event.title || ''), category: String(event.category || (fuel ? 'Combustivel' : 'Other')), note: String(event.note || event.place || '') }; }
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (saved?.vehicles?.length && Array.isArray(saved.events)) return { vehicles: saved.vehicles.map(normalizeVehicle), events: saved.events.map(event => normalizeEvent(event, saved.vehicles[0].id)), activeVehicleId: saved.activeVehicleId || saved.vehicles[0].id };
+  } catch (error) { /* use imported data when local storage is unavailable */ }
+  const vehicles = (SOURCE_DATA.vehicles || []).map(normalizeVehicle);
+  const vehicleId = vehicles[0]?.id || 'vehicle-1';
+  return { vehicles: vehicles.length ? vehicles : [normalizeVehicle({ id: vehicleId })], events: (SOURCE_DATA.events || []).map(event => normalizeEvent(event, vehicleId)), activeVehicleId: vehicleId };
+}
+function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (error) { /* storage may be blocked */ } }
+function vehicleById(id) { return state.vehicles.find(vehicle => vehicle.id === id) || state.vehicles[0]; }
+function vehicleName(id) { return vehicleById(id)?.name || 'Meu carro'; }
+function notify(message, kind = '') { const toast = $('#toast'); toast.textContent = message; toast.className = `toast show ${kind}`; clearTimeout(toastTimer); toastTimer = setTimeout(() => { toast.className = 'toast'; }, 2800); }
+
+function periodRange() {
+  if (filters.period === 'all') return {};
+  if (filters.period === 'custom') return { from: filters.from, to: filters.to };
+  const now = new Date();
+  if (filters.period === 'month') return { from: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`, to: now.toISOString().slice(0, 10) };
+  const days = filters.period === 'year' ? 365 : Number(filters.period.replace('d', ''));
+  const from = new Date(now); from.setDate(from.getDate() - days + 1);
+  return { from: from.toISOString().slice(0, 10), to: now.toISOString().slice(0, 10) };
+}
+function filteredEvents() {
+  const range = periodRange();
+  let events = [...state.events];
+  if (filters.vehicle !== 'all') events = events.filter(event => event.vehicleId === filters.vehicle);
+  if (range.from) events = events.filter(event => event.date >= range.from);
+  if (range.to) events = events.filter(event => event.date <= range.to);
+  if (filters.type !== 'all') events = events.filter(event => event.type === filters.type);
+  if (filters.kind !== 'all') events = events.filter(event => event.type === 'fuel' ? `fuel:${event.fuelType.toLowerCase()}` === filters.kind : `cat:${event.category}` === filters.kind);
+  if (filters.query) { const query = filters.query.toLowerCase(); events = events.filter(event => [vehicleName(event.vehicleId), event.fuelType, event.title, event.category, event.note, event.odometer].join(' ').toLowerCase().includes(query)); }
+  const direction = filters.sort.endsWith('_asc') ? 1 : -1;
+  if (filters.sort.startsWith('odo')) events.sort((a, b) => ((a.odometer || 0) - (b.odometer || 0)) * direction);
+  else if (filters.sort.startsWith('amount')) events.sort((a, b) => ((a.amount || 0) - (b.amount || 0)) * direction);
+  else events.sort((a, b) => a.date.localeCompare(b.date) * direction || a.id.localeCompare(b.id) * direction);
+  return events;
+}
+function eventStats(events) {
+  const fuels = events.filter(event => event.type === 'fuel' && event.liters > 0 && event.odometer > 0).sort((a, b) => a.odometer - b.odometer || a.date.localeCompare(b.date));
+  const latest = fuels.at(-1); const previous = fuels.at(-2);
+  const distance = latest && previous ? Math.max(0, latest.odometer - previous.odometer) : 0;
+  const intervalEvents = latest && previous ? events.filter(event => event.date >= previous.date && event.date <= latest.date) : [];
+  const total = events.reduce((sum, event) => sum + event.amount, 0);
+  const fuelTotal = events.filter(event => event.type === 'fuel').reduce((sum, event) => sum + event.amount, 0);
+  const expenseTotal = total - fuelTotal;
+  return { total, fuelTotal, expenseTotal, fuelCount: events.filter(event => event.type === 'fuel').length, expenseCount: events.filter(event => event.type === 'expense').length, distance, liters: latest?.liters || 0, kmPerLiter: distance && latest?.liters ? distance / latest.liters : 0, costPerKm: distance ? (intervalEvents.reduce((sum, event) => sum + event.amount, 0) / distance) : 0, avgTicket: events.length ? total / events.length : 0, lastEvent: events[0], maxOdo: Math.max(0, ...events.map(event => event.odometer || 0)), avgFuelPrice: events.filter(event => event.type === 'fuel' && event.liters).reduce((sum, event) => sum + event.amount, 0) / (events.filter(event => event.type === 'fuel' && event.liters).reduce((sum, event) => sum + event.liters, 0) || 1), topKind: [...events.reduce((map, event) => { const key = event.type === 'fuel' ? event.fuelType : event.title || event.category; map.set(key, (map.get(key) || 0) + event.amount); return map; }, new Map())].sort((a, b) => b[1] - a[1])[0] };
 }
 
-function escapeHtml(value) {
-  return String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;' }[character]));
+function renderControls() {
+  const vehicleSelect = $('#carVehicleFilter');
+  vehicleSelect.innerHTML = `<option value="all">Todos os veículos</option>${state.vehicles.map(vehicle => `<option value="${esc(vehicle.id)}">${esc(vehicle.name)}${vehicle.plate ? ` - ${esc(vehicle.plate)}` : ''}</option>`).join('')}`;
+  vehicleSelect.value = filters.vehicle;
+  $('#carPeriodFilter').value = filters.period; $('#carTypeFilter').value = filters.type; $('#carSortFilter').value = filters.sort; $('#carSearchFilter').value = filters.query;
+  $('#customRange').classList.toggle('open', filters.period === 'custom');
+  $('#carFromFilter').value = filters.from; $('#carToFilter').value = filters.to;
+  const kinds = new Map();
+  state.events.forEach(event => { const key = event.type === 'fuel' ? `fuel:${event.fuelType.toLowerCase()}` : `cat:${event.category}`; const label = event.type === 'fuel' ? event.fuelType : expenseLabel(event.category); kinds.set(key, label); });
+  $('#carKindFilter').innerHTML = `<option value="all">Combustível / tipo</option>${[...kinds].map(([key, label]) => `<option value="${esc(key)}">${esc(label)}</option>`).join('')}`; $('#carKindFilter').value = kinds.has(filters.kind) ? filters.kind : 'all';
 }
-
-function formatCurrency(value) {
-  return `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function expenseLabel(category) { return ({ Maintenance: 'Manutenção', Insurance: 'Seguro', Tax: 'Imposto', Parking: 'Estacionamento', Wash: 'Lavagem', Fine: 'Multa', Other: 'Outro' }[category] || category || 'Despesa do carro'); }
+function renderStats(events, stats) {
+  const cards = [
+    ['Gastos totais', money(stats.total), `${events.length} registro${events.length === 1 ? '' : 's'} no filtro`, 'dan'],
+    ['Km rodados', stats.distance ? Math.round(stats.distance).toLocaleString('pt-BR') : '—', stats.distance ? 'último intervalo válido' : 'precisa de 2 abastecimentos', 'ac2'],
+    ['Consumo médio', stats.kmPerLiter ? `${stats.kmPerLiter.toFixed(1).replace('.', ',')} km/l` : '—', stats.liters ? `${stats.liters.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} L no último abastecimento` : 'sem litros suficientes', 'ac'],
+    ['Custo por km', stats.costPerKm ? money(stats.costPerKm) : '—', 'combustível + despesas do intervalo', 'warn'],
+    ['Combustível', money(stats.fuelTotal), `${stats.fuelCount} abastecimento${stats.fuelCount === 1 ? '' : 's'} · ${stats.avgFuelPrice ? `${money(stats.avgFuelPrice)}/L` : 'sem média'}`, 'warn'],
+    ['Despesas', money(stats.expenseTotal), `${stats.expenseCount} despesa${stats.expenseCount === 1 ? '' : 's'} fora do tanque`, 'dan'],
+    ['Ticket médio', stats.avgTicket ? money(stats.avgTicket) : '—', 'por registro no período', ''],
+    ['Último lançamento', stats.lastEvent ? money(stats.lastEvent.amount) : '—', stats.lastEvent ? dateText(stats.lastEvent.date) : 'sem registros', ''],
+    ['Hodômetro', stats.maxOdo ? Math.round(stats.maxOdo).toLocaleString('pt-BR') : '—', 'maior registro encontrado', ''],
+    ['Maior peso', stats.topKind ? esc(stats.topKind[0]) : '—', stats.topKind ? `${money(stats.topKind[1])} acumulados` : 'sem dados', ''],
+    ['Veículos', state.vehicles.length, filters.vehicle === 'all' ? 'frota no filtro' : esc(vehicleName(filters.vehicle)), '']
+  ];
+  $('#carStats').innerHTML = cards.map(([label, value, caption, tone]) => `<article class="insight-card"><div class="insight-k">${label}</div><div class="insight-v ${tone}">${value}</div><div class="cc">${caption}</div></article>`).join('');
 }
-
-function formatDate(value) {
-  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(`${value}T12:00:00`)).replace(/\./g, '');
+function renderMaintenance(events) {
+  const maintenance = events.filter(event => event.type === 'expense'); const latest = [...maintenance].sort((a, b) => b.date.localeCompare(a.date))[0]; const highest = Math.max(0, ...events.map(event => event.odometer || 0));
+  const vendors = new Map(); events.forEach(event => { const vendor = event.note || ''; if (vendor && !/^importado do drivvo$/i.test(vendor)) vendors.set(vendor, (vendors.get(vendor) || 0) + event.amount); });
+  const topVendors = [...vendors].sort((a, b) => b[1] - a[1]).slice(0, 4);
+  $('#carMaintenancePanel').innerHTML = `<div class="maintenance-grid"><div class="maintenance-card"><div class="maintenance-k">Próxima revisão</div><div class="maintenance-v">—</div><div class="cc">cadastre troca de óleo ou revisão</div></div><div class="maintenance-card"><div class="maintenance-k">Prazo por data</div><div class="maintenance-v">—</div><div class="cc">sem referência no histórico</div></div><div class="maintenance-card"><div class="maintenance-k">Maior gasto de manutenção</div><div class="maintenance-v">${maintenance.length ? money(Math.max(...maintenance.map(event => event.amount))) : '—'}</div><div class="cc">${maintenance.length ? esc(expenseLabel(maintenance.sort((a, b) => b.amount - a.amount)[0].category)) : 'sem despesas'}</div></div><div class="maintenance-card"><div class="maintenance-k">Hodômetro atual</div><div class="maintenance-v">${highest ? highest.toLocaleString('pt-BR') : '—'} km</div><div class="cc">maior leitura importada</div></div><div class="maintenance-card"><div class="maintenance-k">Gasto em despesas</div><div class="maintenance-v">${money(maintenance.reduce((sum, event) => sum + event.amount, 0))}</div><div class="cc">${maintenance.length} lançamento${maintenance.length === 1 ? '' : 's'} no filtro</div></div><div class="maintenance-card"><div class="maintenance-k">Ações rápidas</div><div class="maintenance-actions"><button class="btn btn-primary" data-maintenance="oil">Troca de óleo</button><button class="btn btn-ghost" data-maintenance="review">Revisão</button></div><div class="cc">abre um lançamento pré-preenchido</div></div></div><div class="maintenance-lower"><div class="sub-panel"><h4>Postos e oficinas</h4><p>Quem mais pesa no período filtrado</p><div class="vendor-list">${topVendors.length ? topVendors.map(([vendor, amount]) => `<div class="vendor-row"><div><strong>${esc(vendor)}</strong><span>${money(amount)} acumulados</span></div><b>${money(amount)}</b></div>`).join('') : '<div class="empty">Sem local informado nos registros.</div>'}</div></div><div class="sub-panel"><h4>Última manutenção</h4><p>Serviços salvos no filtro atual</p><div class="vendor-list">${latest ? `<div class="vendor-row"><div><strong>${esc(latest.title || expenseLabel(latest.category))}</strong><span>${dateText(latest.date)} · ${esc(latest.note || 'sem observação')}</span></div><b>${money(latest.amount)}</b></div>` : '<div class="empty">Nenhum serviço encontrado no CSV.</div>'}</div></div></div>`;
+  $$('[data-maintenance]').forEach(button => button.addEventListener('click', () => openEntry('expense', button.dataset.maintenance === 'oil' ? 'Troca de óleo' : 'Revisão geral')));
 }
-
-function todayISO() {
-  const today = new Date();
-  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+function renderChart(events) {
+  const dates = events.map(event => event.date).sort(); const latest = dates.at(-1) || new Date().toISOString().slice(0, 10); const end = new Date(`${latest.slice(0, 7)}-01T12:00:00`); const months = [];
+  for (let i = 11; i >= 0; i -= 1) { const date = new Date(end); date.setMonth(date.getMonth() - i); months.push(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`); }
+  const values = key => events.filter(event => event.date.slice(0, 7) === key).reduce((sum, event) => sum + event.amount, 0); const current = months.map(values); const previous = months.map(key => values(`${Number(key.slice(0, 4)) - 1}${key.slice(4)}`)); const max = Math.max(100, ...current, ...previous) * 1.15;
+  $('#axisTop').textContent = money(max); $('#chartTotal').textContent = `${money(current.reduce((sum, value) => sum + value, 0))} no período`; $('#spendLabels').innerHTML = months.map(key => `<span>${new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(new Date(`${key}-01T12:00:00`)).replace('.', '')}</span>`).join('');
+  if (chartMode === 'line') $('#spendChart').innerHTML = current.map(value => `<span class="line-point" style="--pos:${100 - (value / max * 100)}%" title="${money(value)}"></span>`).join('');
+  else $('#spendChart').innerHTML = current.map((value, index) => `<div class="bar-group"><span class="bar previous" style="height:${Math.max(2, previous[index] / max * 100)}%"></span><span class="bar" style="height:${Math.max(2, value / max * 100)}%" title="${money(value)}"></span></div>`).join('');
 }
+function renderHistory(events) { $('#resultCount').textContent = `${events.length} registro${events.length === 1 ? '' : 's'}`; $('#carList').innerHTML = events.length ? events.map(event => { const fuel = event.type === 'fuel'; const title = fuel ? `${event.fuelType} · ${event.liters.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} L` : (event.title || expenseLabel(event.category)); const meta = [filters.vehicle === 'all' ? vehicleName(event.vehicleId) : '', dateText(event.date), event.odometer ? `${Math.round(event.odometer).toLocaleString('pt-BR')} km` : '', fuel && event.pricePerLiter ? `${money(event.pricePerLiter)}/L` : '', event.note].filter(Boolean).join(' · '); return `<div class="car-row"><div class="car-ico">${fuel ? '⛽' : '🔧'}</div><div class="car-info"><div class="car-name">${esc(title)}</div><div class="car-meta">${esc(meta || 'Sem detalhes')}</div></div><div class="car-amt">${money(event.amount)}</div><button class="car-delete" data-delete="${esc(event.id)}" aria-label="Remover registro">×</button></div>`; }).join('') : '<div class="empty">🚗<br><br>Nenhum registro neste filtro.</div>'; $$('.car-delete').forEach(button => button.addEventListener('click', () => deleteEvent(button.dataset.delete))); }
+function renderAll() { const events = filteredEvents(); const stats = eventStats(events); const vehicle = vehicleById(filters.vehicle === 'all' ? state.activeVehicleId : filters.vehicle); $('#carTitleView').textContent = filters.vehicle === 'all' ? (state.vehicles.length > 1 ? 'Todos os veículos' : vehicle?.name || 'Meu carro') : vehicle?.name || 'Meu carro'; $('#carSubView').textContent = [vehicle?.model, vehicle?.plate, stats.maxOdo ? `${Math.round(stats.maxOdo).toLocaleString('pt-BR')} km` : ''].filter(Boolean).join(' · ') || 'Consumo, abastecimentos e despesas'; $('#dataSourceLabel').textContent = `${SOURCE_DATA.summary?.source || 'Dados locais'} · ${state.events.length} registros`; $('#lastUpdated').textContent = stats.lastEvent ? `Último: ${dateText(stats.lastEvent.date)}` : 'Sem registros'; renderControls(); renderStats(events, stats); renderMaintenance(events); renderChart(events); renderHistory(events); }
 
-function showToast(message) {
-  const toast = $('#toast');
-  toast.textContent = message;
-  toast.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
-}
+function setEntryType(type) { entryType = type; $('#fuelTypeTab').classList.toggle('active', type === 'fuel'); $('#expenseTypeTab').classList.toggle('active', type === 'expense'); $('#fuelFields').hidden = type !== 'fuel'; $('#expenseFields').hidden = type !== 'expense'; $('#carModalTitle').textContent = type === 'fuel' ? 'Novo abastecimento' : 'Nova despesa'; }
+function populateEntryVehicles() { $('#carEntryVehicle').innerHTML = state.vehicles.map(vehicle => `<option value="${esc(vehicle.id)}">${esc(vehicle.name)}${vehicle.plate ? ` · ${esc(vehicle.plate)}` : ''}</option>`).join(''); $('#carEntryVehicle').value = state.activeVehicleId; }
+function openEntry(type = 'fuel', title = '') { setEntryType(type); populateEntryVehicles(); $('#carDate').value = new Date().toISOString().slice(0, 10); $('#carOdo').value = vehicleById(state.activeVehicleId)?.odometer || ''; $('#carFuelType').value = 'Etanol'; $('#carLiters').value = ''; $('#carPrice').value = ''; $('#carAmount').value = ''; $('#carAmountExpense').value = ''; $('#carTitle').value = title; $('#carNote').value = ''; $('#carModal').classList.add('open'); setTimeout(() => (type === 'fuel' ? $('#carLiters') : $('#carTitle')).focus(), 50); }
+function closeModal(id) { $(`#${id}`).classList.remove('open'); }
+function saveEntry() { const vehicleId = $('#carEntryVehicle').value; const fuel = entryType === 'fuel'; const liters = Number($('#carLiters').value) || 0; const price = Number($('#carPrice').value) || 0; const amount = fuel ? (Number($('#carAmount').value) || liters * price) : Number($('#carAmountExpense').value); if (!amount || amount <= 0 || (fuel && (!liters || !price))) return notify(fuel ? 'Informe litros, preço e valor válidos.' : 'Informe um valor válido.', 'error'); const event = normalizeEvent({ id: uid('event'), vehicleId, type: entryType, date: $('#carDate').value, odometer: Number($('#carOdo').value) || 0, fuelType: $('#carFuelType').value, liters, pricePerLiter: price, amount, title: $('#carTitle').value.trim(), category: $('#carCategory').value, note: $('#carNote').value.trim() }, vehicleId); state.events.unshift(event); const vehicle = vehicleById(vehicleId); vehicle.odometer = Math.max(vehicle.odometer, event.odometer); state.activeVehicleId = vehicleId; saveState(); closeModal('carModal'); filters.vehicle = vehicleId; renderAll(); notify('Registro do carro salvo.', 'success'); }
+function deleteEvent(id) { if (!confirm('Remover este registro do carro?')) return; state.events = state.events.filter(event => event.id !== id); saveState(); renderAll(); notify('Registro removido.', 'success'); }
+function saveVehicle() { const id = $('#carVehicleId').value; const name = $('#carVehicleName').value.trim(); if (!name) return notify('Informe o nome do veículo.', 'error'); const vehicle = normalizeVehicle({ id: id || uid('vehicle'), name, plate: $('#carPlate').value.trim().toUpperCase(), model: $('#carModel').value.trim(), odometer: Number($('#carVehicleOdo').value) || 0 }); const index = state.vehicles.findIndex(item => item.id === id); if (index >= 0) state.vehicles[index] = vehicle; else state.vehicles.push(vehicle); state.activeVehicleId = vehicle.id; filters.vehicle = vehicle.id; saveState(); closeModal('carVehicleModal'); renderAll(); notify('Veículo salvo.', 'success'); }
+function openVehicle(id = '') { const vehicle = vehicleById(id || state.activeVehicleId); $('#vehicleModalTitle').textContent = id ? 'Editar veículo' : 'Novo veículo'; $('#carVehicleId').value = id; $('#carVehicleName').value = id ? vehicle.name : ''; $('#carPlate').value = id ? vehicle.plate : ''; $('#carModel').value = id ? vehicle.model : ''; $('#carVehicleOdo').value = id ? vehicle.odometer : ''; $('#deleteVehicleButton').style.display = id && state.vehicles.length > 1 ? 'inline-block' : 'none'; $('#carVehicleModal').classList.add('open'); }
+function deleteVehicle() { const id = $('#carVehicleId').value; if (!id || state.vehicles.length <= 1) return notify('Mantenha pelo menos um veículo.', 'error'); if (state.events.some(event => event.vehicleId === id)) return notify('Esse veículo tem registros. Remova-os ou mova-os antes.', 'error'); state.vehicles = state.vehicles.filter(vehicle => vehicle.id !== id); state.activeVehicleId = state.vehicles[0].id; filters.vehicle = state.activeVehicleId; saveState(); closeModal('carVehicleModal'); renderAll(); notify('Veículo removido.', 'success'); }
+function exportBackup() { const payload = { app: 'Finanza Auto', version: '1.0', exportedAt: new Date().toISOString(), source: SOURCE_DATA.summary, car: { vehicles: clone(state.vehicles), events: clone(state.events), activeVehicleId: state.activeVehicleId } }; const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `finanza-auto-backup-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(link.href); notify('Backup JSON exportado.', 'success'); }
 
-function chartData(period) {
-  const source = state.transactions.filter(transaction => transaction.date);
-  const latest = realData?.summary?.latestDate || source.map(transaction => transaction.date).sort().at(-1) || todayISO();
-  const end = new Date(`${latest.slice(0, 7)}-01T12:00:00`);
-  const keys = [];
-  for (let offset = Number(period) - 1; offset >= 0; offset -= 1) {
-    const month = new Date(end);
-    month.setMonth(month.getMonth() - offset);
-    keys.push(`${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`);
-  }
-  const totalFor = key => source.filter(transaction => transaction.date.slice(0, 7) === key).reduce((sum, transaction) => sum + Number(transaction.value), 0);
-  return {
-    months: keys.map(key => new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(new Date(`${key}-01T12:00:00`)).replace(/\./g, '')),
-    current: keys.map(totalFor),
-    previous: keys.map(key => totalFor(`${Number(key.slice(0, 4)) - 1}${key.slice(4)}`)),
-    total: keys.reduce((sum, key) => sum + totalFor(key), 0)
-  };
-}
+function parseCsvRows(text) { const rows = []; let row = [], cell = '', quoted = false; for (let i = 0; i < text.length; i += 1) { const char = text[i]; const next = text[i + 1]; if (char === '"' && quoted && next === '"') { cell += '"'; i += 1; } else if (char === '"') quoted = !quoted; else if (char === ',' && !quoted) { row.push(cell); cell = ''; } else if ((char === '\n' || char === '\r') && !quoted) { if (char === '\r' && next === '\n') i += 1; row.push(cell); if (row.some(value => value.trim())) rows.push(row); row = []; cell = ''; } else cell += char; } if (cell || row.length) { row.push(cell); rows.push(row); } return rows; }
+function categoryFromText(text) { const value = String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); if (/seguro|insurance/.test(value)) return 'Insurance'; if (/ipva|licenciamento|taxa|imposto|document|tax/.test(value)) return 'Tax'; if (/estacion|parking|pedagio|toll/.test(value)) return 'Parking'; if (/lavagem|lava|wash/.test(value)) return 'Wash'; if (/multa|fine/.test(value)) return 'Fine'; if (/manut|revis|oleo|pneu|oficina|service|repair|maintenance/.test(value)) return 'Maintenance'; return 'Other'; }
+function parseNumber(value) { const text = String(value || '').trim(); if (!text) return 0; return Number(text.includes(',') && !text.includes('.') ? text.replace(',', '.') : text) || 0; }
+function importCsv(file) { const reader = new FileReader(); reader.onload = () => { const rows = parseCsvRows(reader.result); let section = ''; let headers = null; let added = 0; const known = new Set(state.events.map(event => `${event.date}|${event.amount}|${event.odometer}|${event.type}`)); rows.forEach(row => { if (row[0]?.startsWith('##')) { section = row[0].slice(2).toLowerCase(); headers = null; return; } if (!headers) { headers = row.map(value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()); return; } const get = names => { const index = headers.findIndex(header => names.some(name => header.includes(name))); return index >= 0 ? row[index] : ''; }; const fuel = section.includes('refuelling') || section.includes('abastec'); const amount = parseNumber(get(['valor total', 'amount', 'valor'])); const liters = parseNumber(get(['volume', 'litros', 'liters'])); if (!amount && !liters) return; const date = String(get(['data', 'date'])).slice(0, 10); const odometer = parseNumber(get(['odometro', 'odometer', 'quilometragem', 'km'])); const type = fuel ? 'fuel' : 'expense'; const fingerprint = `${date}|${amount}|${odometer}|${type}`; if (known.has(fingerprint)) return; const vehicleId = state.activeVehicleId; const title = get(['tipo de despesa', 'descricao', 'description']); state.events.push(normalizeEvent({ id: uid('import'), vehicleId, type, date, odometer, fuelType: get(['combustivel', 'fuel']) || 'Gasolina', liters, pricePerLiter: parseNumber(get(['preco / l', 'preco litro', 'price'])), amount, title, category: fuel ? 'Combustivel' : categoryFromText(`${title} ${row.join(' ')}`), note: get(['posto', 'local', 'place', 'observacao', 'note']) || 'Importado do Drivvo' }, vehicleId)); known.add(fingerprint); added += 1; }); if (added) { const vehicle = vehicleById(state.activeVehicleId); vehicle.odometer = Math.max(vehicle.odometer, ...state.events.map(event => event.odometer || 0)); saveState(); renderAll(); notify(`${added} registros importados.`, 'success'); } else notify('Nenhum registro novo encontrado no CSV.', 'error'); }; reader.readAsText(file, 'UTF-8'); }
 
-function renderChart(period = '6') {
-  const chart = chartData(period);
-  const max = Math.max(1500, ...chart.current, ...chart.previous) * 1.08;
-  $('#bars').innerHTML = chart.months.map((month, index) => `
-    <div class="bar-group" title="${month}: ${formatCurrency(chart.current[index])}">
-      <span class="bar previous" style="height:${Math.max(5, chart.previous[index] / max * 100)}%"></span>
-      <span class="bar current" style="height:${Math.max(5, chart.current[index] / max * 100)}%"></span>
-    </div>`).join('');
-  $('#chartMonths').innerHTML = chart.months.map(month => `<span>${month}</span>`).join('');
-  $('#periodTotal').textContent = formatCurrency(chart.total);
-}
+$('#newFuelButton').addEventListener('click', () => openEntry('fuel')); $('#newExpenseButton').addEventListener('click', () => openEntry('expense')); $('#newVehicleButton').addEventListener('click', () => openVehicle()); $('#editVehicleButton').addEventListener('click', () => openVehicle(state.activeVehicleId)); $('#saveCarButton').addEventListener('click', saveEntry); $('#saveVehicleButton').addEventListener('click', saveVehicle); $('#deleteVehicleButton').addEventListener('click', deleteVehicle); $('#exportButton').addEventListener('click', exportBackup); $('#carCsvFile').addEventListener('change', event => { if (event.target.files[0]) importCsv(event.target.files[0]); event.target.value = ''; }); $('#sideImport').addEventListener('change', event => { if (event.target.files[0]) importCsv(event.target.files[0]); event.target.value = ''; }); $('#fuelTypeTab').addEventListener('click', () => setEntryType('fuel')); $('#expenseTypeTab').addEventListener('click', () => setEntryType('expense')); $('#carLiters').addEventListener('input', () => { if (!$('#carAmount').value || !$('#carAmount').dataset.manual) $('#carAmount').value = (($('#carLiters').value || 0) * ($('#carPrice').value || 0)).toFixed(2); }); $('#carPrice').addEventListener('input', () => { if (!$('#carAmount').dataset.manual) $('#carAmount').value = (($('#carLiters').value || 0) * ($('#carPrice').value || 0)).toFixed(2); }); $('#carAmount').addEventListener('input', () => { $('#carAmount').dataset.manual = '1'; });
+$('#carVehicleFilter').addEventListener('change', event => { filters.vehicle = event.target.value; state.activeVehicleId = event.target.value === 'all' ? state.activeVehicleId : event.target.value; saveState(); renderAll(); }); $('#carPeriodFilter').addEventListener('change', event => { filters.period = event.target.value; renderAll(); }); $('#carTypeFilter').addEventListener('change', event => { filters.type = event.target.value; renderAll(); }); $('#carKindFilter').addEventListener('change', event => { filters.kind = event.target.value; renderAll(); }); $('#carSortFilter').addEventListener('change', event => { filters.sort = event.target.value; renderAll(); }); $('#carSearchFilter').addEventListener('input', event => { filters.query = event.target.value; renderAll(); }); $('#carFromFilter').addEventListener('change', event => { filters.from = event.target.value; filters.period = 'custom'; renderAll(); }); $('#carToFilter').addEventListener('change', event => { filters.to = event.target.value; filters.period = 'custom'; renderAll(); }); $('#carChartBars').addEventListener('click', () => { chartMode = 'bars'; $('#carChartBars').classList.add('active'); $('#carChartLine').classList.remove('active'); renderChart(filteredEvents()); }); $('#carChartLine').addEventListener('click', () => { chartMode = 'line'; $('#carChartLine').classList.add('active'); $('#carChartBars').classList.remove('active'); renderChart(filteredEvents()); }); $('#mobileMenu').addEventListener('click', () => $('.sidebar').classList.toggle('open')); $$('[data-close]').forEach(button => button.addEventListener('click', () => closeModal(button.dataset.close))); $$('.nav-item').forEach(item => item.addEventListener('click', () => { $$('.nav-item').forEach(nav => nav.classList.remove('active')); item.classList.add('active'); if (window.innerWidth < 760) $('.sidebar').classList.remove('open'); })); window.addEventListener('keydown', event => { if (event.key === 'Escape') { closeModal('carModal'); closeModal('carVehicleModal'); } });
 
-function renderSummary() {
-  const total = state.transactions.reduce((sum, transaction) => sum + Number(transaction.value), 0);
-  $('#monthTotal').textContent = formatCurrency(total);
-  const summary = realData?.summary;
-  const consumption = summary?.averageConsumption || 0;
-  const distance = summary?.distance || 0;
-  $('#avgConsumption').innerHTML = consumption ? `${consumption.toFixed(2).replace('.', ',')} <small>km/L</small>` : '— <small>km/L</small>';
-  $('#costPerKm').textContent = distance ? formatCurrency(total / distance) : 'R$ 0,00';
-  $('#totalFoot').innerHTML = `${state.transactions.length} <span>registros importados</span>`;
-  if (summary) {
-    const latest = state.transactions[0]?.date || summary.latestDate;
-    const healthItems = $$('.health-item');
-    const healthCopy = healthItems.map(item => item.querySelector('.health-info span'));
-    const healthTitles = healthItems.map(item => item.querySelector('.health-info strong'));
-    if (healthTitles[0]) healthTitles[0].textContent = 'Último abastecimento';
-    if (healthTitles[1]) healthTitles[1].textContent = 'Combustível';
-    if (healthTitles[2]) healthTitles[2].textContent = 'Manutenções';
-    if (healthCopy[0]) healthCopy[0].textContent = latest ? `Em ${formatDate(latest)}` : 'Sem registros';
-    if (healthCopy[1]) healthCopy[1].textContent = `${summary.refuels} abastecimentos · ${summary.liters.toLocaleString('pt-BR')} L`;
-    $('.route-number strong').textContent = summary.distance.toLocaleString('pt-BR');
-    $('.route-number span').textContent = 'km registrados';
-    $('.route-progress span').style.width = '100%';
-    $('.route-caption span').textContent = `${formatDate(summary.earliestDate)} a ${formatDate(summary.latestDate)}`;
-    $('.route-caption strong').textContent = `${summary.refuels + summary.expenses} registros`;
-    const routeStats = $$('.route-stats strong');
-    if (routeStats[0]) routeStats[0].textContent = summary.refuels;
-    if (routeStats[1]) routeStats[1].textContent = `${Math.max(...(realData.events || []).map(event => event.distance || 0)).toLocaleString('pt-BR')} km`;
-    const routeLabels = $$('.route-stats span');
-    if (routeLabels[0]) routeLabels[0].textContent = 'Abastecimentos';
-    if (routeLabels[1]) routeLabels[1].textContent = 'Maior trecho';
-    $('.route-year').textContent = 'Drivvo';
-    $('#maintenanceButton').textContent = 'Ver histórico importado →';
-    $('#docCount').innerHTML = '0 <small>disponíveis</small>';
-    $('#docFoot').textContent = 'Nenhum documento no CSV';
-    $('.document-list').innerHTML = '<div class="empty-state">O CSV trouxe abastecimentos e despesas, mas nenhum documento. Você pode adicionar arquivos depois.</div>';
-  }
-}
-
-function categoryMeta(category) {
-  return {
-    Abastecimento: ['fuel-bg', 'fuel'],
-    Manutenção: ['wrench-bg', 'wrench'],
-    Seguro: ['insurance-bg', 'shield'],
-    Documento: ['doc-bg', 'file'],
-    Outro: ['doc-bg', 'file']
-  }[category] || ['doc-bg', 'file'];
-}
-
-function renderActivity() {
-  const list = $('#activityList');
-  if (!state.transactions.length) {
-    list.innerHTML = '<div class="empty-state">Nenhum lançamento ainda. Use “Novo lançamento” para começar.</div>';
-    return;
-  }
-  list.innerHTML = state.transactions.slice(0, 8).map(transaction => {
-    const [className, iconName] = categoryMeta(transaction.category);
-    const detail = transaction.place ? `${escapeHtml(transaction.place)} · ${formatDate(transaction.date)}` : `${escapeHtml(transaction.category)} · ${formatDate(transaction.date)}`;
-    return `<div class="activity-item"><div class="activity-icon ${className}">${icon(iconName)}</div><div class="activity-copy"><strong>${escapeHtml(transaction.description)}</strong><span>${detail}</span></div><strong class="activity-value">− ${formatCurrency(transaction.value)}</strong></div>`;
-  }).join('');
-}
-
-function updateVehicle(vehicleKey, notify = true) {
-  const vehicle = vehicles[vehicleKey] || vehicles.hrv;
-  state.vehicle = vehicles[vehicleKey] ? vehicleKey : 'hrv';
-  $('#vehicleSelect').value = state.vehicle;
-  $('#heroCarName').innerHTML = vehicle.year ? `${vehicle.name} <span>${vehicle.year}</span>` : vehicle.name;
-  $('#heroCarDetails').textContent = vehicle.details;
-  $('#heroMileage').innerHTML = `${vehicle.mileage} <small>km</small>`;
-  $('#heroService').innerHTML = realData ? `${formatDate(vehicle.service)} <small>último</small>` : `${vehicle.service} <small>dias</small>`;
-  $('#sideCarName').textContent = vehicle.name;
-  $('#sideCarPlate').textContent = vehicle.plate;
-  saveState();
-  if (notify) showToast(`${vehicle.name} selecionado`);
-}
-
-function openModal(prefill = '', category = '') {
-  $('#modalBackdrop').classList.add('open');
-  $('#modalBackdrop').setAttribute('aria-hidden', 'false');
-  $('#modalTitle').textContent = category ? `Adicionar ${category.toLowerCase()}` : 'Adicionar despesa';
-  const description = $('input[name="description"]');
-  const categoryField = $('select[name="category"]');
-  if (prefill) description.value = prefill;
-  if (category && [...categoryField.options].some(option => option.value === category)) categoryField.value = category;
-  setTimeout(() => description.focus(), 60);
-}
-
-function closeModal() {
-  $('#modalBackdrop').classList.remove('open');
-  $('#modalBackdrop').setAttribute('aria-hidden', 'true');
-  $('#expenseForm').reset();
-  $('input[name="date"]').value = todayISO();
-  $('#modalTitle').textContent = 'Adicionar despesa';
-}
-
-function addTransaction(form) {
-  const transaction = {
-    description: form.get('description').trim(),
-    category: form.get('category'),
-    date: form.get('date') || todayISO(),
-    value: Number(form.get('value'))
-  };
-  state.transactions.unshift(transaction);
-  saveState();
-  renderActivity();
-  renderSummary();
-  closeModal();
-  showToast('Lançamento salvo com sucesso');
-}
-
-// The icon helper lives in index.html so the page stays dependency-free.
-document.body.innerHTML = document.body.innerHTML.replace(/\$\{icon\('([^']+)'\)\}/g, (_, name) => icon(name));
-
-function prepareVehicleSelect() {
-  const select = $('#vehicleSelect');
-  const options = Object.entries(vehicles).map(([id, vehicle]) => `<option value="${id}">${escapeHtml(vehicle.name)}</option>`).join('');
-  select.innerHTML = options;
-  $('.select-car-dot').title = realData ? 'Dados importados do Drivvo' : 'Veículo ativo';
-}
-
-$('#vehicleSelect').addEventListener('change', event => updateVehicle(event.target.value));
-$('#periodSelect').addEventListener('change', event => renderChart(event.target.value));
-$('#openExpense').addEventListener('click', () => openModal());
-$('#closeModal').addEventListener('click', closeModal);
-$('#cancelModal').addEventListener('click', closeModal);
-$('#modalBackdrop').addEventListener('click', event => { if (event.target === $('#modalBackdrop')) closeModal(); });
-document.addEventListener('keydown', event => { if (event.key === 'Escape' && $('#modalBackdrop').classList.contains('open')) closeModal(); });
-
-$('#expenseForm').addEventListener('submit', event => {
-  event.preventDefault();
-  const form = new FormData(event.target);
-  const value = Number(form.get('value'));
-  if (!form.get('description').trim() || !Number.isFinite(value) || value <= 0) return showToast('Preencha uma descrição e um valor válido');
-  addTransaction(form);
-});
-
-$$('.action-card').forEach(card => card.addEventListener('click', () => {
-  const action = card.dataset.action;
-  const category = ['Abastecimento', 'Manutenção', 'Seguro'].includes(action) ? action : '';
-  openModal(action === 'Viagem' ? '' : action, category);
-}));
-
-$('#maintenanceButton').addEventListener('click', () => showToast('Plano de manutenção atualizado: tudo em dia'));
-$('#helpButton').addEventListener('click', () => showToast('Suporte online — responderemos em breve'));
-$('#notificationButton').addEventListener('click', () => showToast('Você não tem novas notificações'));
-$('#allActivity').addEventListener('click', () => showToast(`${state.transactions.length} lançamento(s) no histórico`));
-$('#sideCarButton').addEventListener('click', () => {
-  const keys = Object.keys(vehicles);
-  if (keys.length < 2) return showToast('Apenas um veículo foi encontrado no CSV');
-  updateVehicle(keys[(keys.indexOf(state.vehicle) + 1) % keys.length]);
-});
-$('#addDocumentButton').addEventListener('click', () => showToast('Selecione um arquivo para guardar no carro'));
-$('#tripButton').addEventListener('click', () => openModal('Viagem', ''));
-$$('.document-more').forEach(button => button.addEventListener('click', () => showToast(`${button.dataset.document}: opções disponíveis em breve`)));
-$$('.nav-item').forEach(item => item.addEventListener('click', () => {
-  $$('.nav-item').forEach(nav => nav.classList.remove('active'));
-  item.classList.add('active');
-  if (window.innerWidth <= 900) $('.sidebar').classList.remove('open');
-}));
-$('.mobile-menu').addEventListener('click', () => $('.sidebar').classList.toggle('open'));
-document.addEventListener('click', event => { if (window.innerWidth <= 900 && !event.target.closest('.sidebar') && !event.target.closest('.mobile-menu')) $('.sidebar').classList.remove('open'); });
-
-prepareVehicleSelect();
-$('input[name="date"]').value = todayISO();
-updateVehicle(state.vehicle, false);
-renderActivity();
-renderSummary();
-renderChart();
+renderAll();
