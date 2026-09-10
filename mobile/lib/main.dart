@@ -235,7 +235,9 @@ class _CarHomeState extends State<CarHome> {
         loading = false;
         loadError = '';
       });
-    } catch (_) {
+    } catch (error, stack) {
+      debugPrint('Finanza Auto load error: $error');
+      debugPrintStack(stackTrace: stack);
       if (!mounted) return;
       setState(() {
         vehicles = [CarVehicle(id: 'vehicle-1', name: 'Meu carro')];
