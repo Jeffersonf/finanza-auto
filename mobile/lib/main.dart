@@ -132,7 +132,30 @@ class _CarHomeState extends State<CarHome> {
       ),
     );
   }
-  Widget _drawer(BuildContext context) => Drawer(backgroundColor: const Color(0xff0d0f16), child: SafeArea(child: Padding(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_brand(), const SizedBox(height: 48), const Text('MÓDULO', style: TextStyle(color: Color(0xff626979), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.5)), const SizedBox(height: 12), _nav(Icons.directions_car_outlined, 'Carro', true), _nav(Icons.build_outlined, 'Manutenção', false), _nav(Icons.insights_outlined, 'Evolução', false), _nav(Icons.receipt_long_outlined, 'Histórico', false), const Spacer(), const Divider(color: Color(0x1affffff)), const SizedBox(height: 12), Text('Dados locais', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)), const SizedBox(height: 5), const Text('salvos neste dispositivo', style: TextStyle(color: Color(0xff626979), fontSize: 11))])));
+  Widget _drawer(BuildContext context) => Drawer(
+        backgroundColor: const Color(0xff0d0f16),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _brand(),
+              const SizedBox(height: 48),
+              const Text('MÓDULO', style: TextStyle(color: Color(0xff626979), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+              const SizedBox(height: 12),
+              _nav(Icons.directions_car_outlined, 'Carro', true),
+              _nav(Icons.build_outlined, 'Manutenção', false),
+              _nav(Icons.insights_outlined, 'Evolução', false),
+              _nav(Icons.receipt_long_outlined, 'Histórico', false),
+              const Spacer(),
+              const Divider(color: Color(0x1affffff)),
+              const SizedBox(height: 12),
+              Text('Dados locais', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+              const SizedBox(height: 5),
+              const Text('salvos neste dispositivo', style: TextStyle(color: Color(0xff626979), fontSize: 11)),
+            ]),
+          ),
+        ),
+      );
   Widget _brand() => Row(children: [Container(width: 30, height: 30, alignment: Alignment.center, decoration: BoxDecoration(color: lime, borderRadius: BorderRadius.circular(10)), child: const Text('F', style: TextStyle(color: Color(0xff10150a), fontWeight: FontWeight.w800, fontSize: 17)),), const SizedBox(width: 10), const Text('finanza.', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 21))]);
   Widget _nav(IconData icon, String label, bool active) => Container(margin: const EdgeInsets.only(bottom: 5), decoration: BoxDecoration(color: active ? const Color(0x19c8f55a) : Colors.transparent, borderRadius: BorderRadius.circular(12)), child: ListTile(dense: true, leading: Icon(icon, color: active ? lime : const Color(0xff858c9c), size: 20), title: Text(label, style: TextStyle(color: active ? lime : const Color(0xff858c9c), fontWeight: FontWeight.w600, fontSize: 14)), onTap: () => Navigator.pop(context)));
   Widget _content(double width) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_hero(width), const SizedBox(height: 16), _filters(width), const SizedBox(height: 16), _metrics(width), const SizedBox(height: 17), _panel('Manutenção preventiva', 'Acompanhe os próximos cuidados do veículo', _maintenance(width)), const SizedBox(height: 17), _panel('Evolução do carro', 'Gasto por mês no período filtrado', _chart()), const SizedBox(height: 17), _panel('Histórico do carro', 'Abastecimentos, manutenção, seguro, impostos e lavagens', _history()), const SizedBox(height: 12), Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Finanza · Módulo Carro', style: TextStyle(color: Color(0xff626979), fontSize: 11)), Text('${events.length} registros · tudo salvo neste dispositivo', style: const TextStyle(color: Color(0xff626979), fontSize: 11))])]);
@@ -188,7 +211,50 @@ class _CarHomeState extends State<CarHome> {
     )).toList());
   }
   Future<void> _delete(CarEvent event) async { if (await showDialog<bool>(context: context, builder: (c) => AlertDialog(title: const Text('Remover registro?'), content: const Text('Essa ação remove o lançamento deste dispositivo.'), actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Remover'))])) == true) { setState(() => events.removeWhere((e) => e.id == event.id)); await _save(); } }
-  Future<void> _entrySheet(bool fuel) async { final liters = TextEditingController(), price = TextEditingController(), amount = TextEditingController(), odo = TextEditingController(text: vehicle.odometer.round().toString()), title = TextEditingController(), note = TextEditingController(); await showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: const Color(0xff151925), builder: (c) => Padding(padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.viewInsetsOf(c).bottom + 20), child: StatefulBuilder(builder: (c, setModal) => SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(fuel ? 'Novo abastecimento' : 'Nova despesa', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)), const SizedBox(height: 18), Wrap(spacing: 12, runSpacing: 0, children: [SizedBox(width: 170, child: TextField(controller: odo, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Hodômetro (km)'))), if (fuel) SizedBox(width: 170, child: TextField(controller: liters, onChanged: (_) => setModal(() {}), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Litros'))), if (fuel) SizedBox(width: 170, child: TextField(controller: price, onChanged: (_) => setModal(() {}), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Preço/litro'))), SizedBox(width: 170, child: TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: r'Total (R$)', hintText: fuel && liters.text.isNotEmpty && price.text.isNotEmpty ? (double.parse(liters.text.replaceAll(',', '.')) * double.parse(price.text.replaceAll(',', '.'))).toStringAsFixed(2) : null))), if (!fuel) SizedBox(width: 360, child: TextField(controller: title, decoration: const InputDecoration(labelText: 'Descrição'))), SizedBox(width: 360, child: TextField(controller: note, decoration: const InputDecoration(labelText: 'Observação')))]), const SizedBox(height: 20), Align(alignment: Alignment.centerRight, child: FilledButton(onPressed: () async { final value = double.tryParse(amount.text.replaceAll(',', '.')) ?? ((double.tryParse(liters.text.replaceAll(',', '.')) ?? 0) * (double.tryParse(price.text.replaceAll(',', '.')) ?? 0)); if (value <= 0) return; final e = CarEvent(id: 'local-${DateTime.now().microsecondsSinceEpoch}', vehicleId: activeVehicle, type: fuel ? 'fuel' : 'expense', date: DateFormat('yyyy-MM-dd').format(DateTime.now()), amount: value, odometer: _number(odo.text), liters: _number(liters.text), pricePerLiter: _number(price.text), fuelType: 'Etanol', title: title.text, category: fuel ? 'Combustivel' : 'Maintenance', note: note.text); setState(() { events.insert(0, e); vehicle.odometer = e.odometer > vehicle.odometer ? e.odometer : vehicle.odometer; }); await _save(); if (c.mounted) Navigator.pop(c); }, child: const Text('Salvar registro')))])))));
+  Future<void> _entrySheet(bool fuel) async {
+    final liters = TextEditingController();
+    final price = TextEditingController();
+    final amount = TextEditingController();
+    final odo = TextEditingController(text: vehicle.odometer.round().toString());
+    final title = TextEditingController();
+    final note = TextEditingController();
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xff151925),
+      builder: (c) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.viewInsetsOf(c).bottom + 20),
+        child: StatefulBuilder(
+          builder: (c, setModal) => SingleChildScrollView(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(fuel ? 'Novo abastecimento' : 'Nova despesa', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 18),
+              Wrap(spacing: 12, runSpacing: 0, children: [
+                SizedBox(width: 170, child: TextField(controller: odo, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Hodômetro (km)'))),
+                if (fuel) SizedBox(width: 170, child: TextField(controller: liters, onChanged: (_) => setModal(() {}), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Litros'))),
+                if (fuel) SizedBox(width: 170, child: TextField(controller: price, onChanged: (_) => setModal(() {}), keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Preço/litro'))),
+                SizedBox(width: 170, child: TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: r'Total (R$)', hintText: fuel && liters.text.isNotEmpty && price.text.isNotEmpty ? (_number(liters.text) * _number(price.text)).toStringAsFixed(2) : null))),
+                if (!fuel) SizedBox(width: 360, child: TextField(controller: title, decoration: const InputDecoration(labelText: 'Descrição'))),
+                SizedBox(width: 360, child: TextField(controller: note, decoration: const InputDecoration(labelText: 'Observação'))),
+              ]),
+              const SizedBox(height: 20),
+              Align(alignment: Alignment.centerRight, child: FilledButton(
+                onPressed: () async {
+                  final value = double.tryParse(amount.text.replaceAll(',', '.')) ?? (_number(liters.text) * _number(price.text));
+                  if (value <= 0) return;
+                  final e = CarEvent(id: 'local-${DateTime.now().microsecondsSinceEpoch}', vehicleId: activeVehicle, type: fuel ? 'fuel' : 'expense', date: DateFormat('yyyy-MM-dd').format(DateTime.now()), amount: value, odometer: _number(odo.text), liters: _number(liters.text), pricePerLiter: _number(price.text), fuelType: 'Etanol', title: title.text, category: fuel ? 'Combustivel' : 'Maintenance', note: note.text);
+                  setState(() { events.insert(0, e); vehicle.odometer = e.odometer > vehicle.odometer ? e.odometer : vehicle.odometer; });
+                  await _save();
+                  if (c.mounted) Navigator.pop(c);
+                },
+                child: const Text('Salvar registro'),
+              )),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
   Future<void> _vehicleSheet([CarVehicle? edit]) async { final name = TextEditingController(text: edit?.name), model = TextEditingController(text: edit?.model), plate = TextEditingController(text: edit?.plate), odo = TextEditingController(text: edit?.odometer.round().toString()); await showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: const Color(0xff151925), builder: (c) => Padding(padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.viewInsetsOf(c).bottom + 20), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(edit == null ? 'Novo veículo' : 'Editar veículo', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)), const SizedBox(height: 16), TextField(controller: name, decoration: const InputDecoration(labelText: 'Nome')), const SizedBox(height: 10), Row(children: [Expanded(child: TextField(controller: model, decoration: const InputDecoration(labelText: 'Modelo / ano'))), const SizedBox(width: 10), Expanded(child: TextField(controller: plate, decoration: const InputDecoration(labelText: 'Placa')))]), const SizedBox(height: 10), TextField(controller: odo, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Hodômetro atual')), const SizedBox(height: 18), Align(alignment: Alignment.centerRight, child: FilledButton(onPressed: () async { if (name.text.trim().isEmpty) return; setState(() { if (edit == null) { final v = CarVehicle(id: 'local-${DateTime.now().microsecondsSinceEpoch}', name: name.text.trim(), model: model.text, plate: plate.text, odometer: _number(odo.text)); vehicles.add(v); activeVehicle = v.id; } else { edit.name = name.text.trim(); edit.model = model.text; edit.plate = plate.text; edit.odometer = _number(odo.text); } }); await _save(); if (c.mounted) Navigator.pop(c); }, child: const Text('Salvar veículo')))])));
   void _snack(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text), backgroundColor: lime, behavior: SnackBarBehavior.floating));
 }
