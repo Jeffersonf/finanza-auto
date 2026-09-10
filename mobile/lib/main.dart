@@ -80,7 +80,7 @@ class _CarHomeState extends State<CarHome> {
     final car = (data['car'] as Map).cast<String, dynamic>();
     vehicles = ((car['vehicles'] as List?) ?? []).map((e) => CarVehicle.fromMap((e as Map).cast<String, dynamic>())).toList();
     events = ((car['events'] as List?) ?? []).map((e) => CarEvent.fromMap((e as Map).cast<String, dynamic>())).toList();
-    activeVehicle = '${car['activeVehicleId'] ?? vehicles.firstOrNull?.id ?? ''}';
+    activeVehicle = '${car['activeVehicleId'] ?? (vehicles.isNotEmpty ? vehicles.first.id : '')}';
     if (vehicles.isEmpty) { vehicles = [CarVehicle(id: 'vehicle-1', name: 'Meu carro')]; activeVehicle = vehicles.first.id; }
     setState(() => loading = false);
   }
@@ -126,5 +126,3 @@ class _CarHomeState extends State<CarHome> {
   Future<void> _vehicleSheet([CarVehicle? edit]) async { final name = TextEditingController(text: edit?.name), model = TextEditingController(text: edit?.model), plate = TextEditingController(text: edit?.plate), odo = TextEditingController(text: edit?.odometer.round().toString()); await showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: const Color(0xff151925), builder: (c) => Padding(padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.viewInsetsOf(c).bottom + 20), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(edit == null ? 'Novo veículo' : 'Editar veículo', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)), const SizedBox(height: 16), TextField(controller: name, decoration: const InputDecoration(labelText: 'Nome')), const SizedBox(height: 10), Row(children: [Expanded(child: TextField(controller: model, decoration: const InputDecoration(labelText: 'Modelo / ano'))), const SizedBox(width: 10), Expanded(child: TextField(controller: plate, decoration: const InputDecoration(labelText: 'Placa')))]), const SizedBox(height: 10), TextField(controller: odo, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Hodômetro atual')), const SizedBox(height: 18), Align(alignment: Alignment.centerRight, child: FilledButton(onPressed: () async { if (name.text.trim().isEmpty) return; setState(() { if (edit == null) { final v = CarVehicle(id: 'local-${DateTime.now().microsecondsSinceEpoch}', name: name.text.trim(), model: model.text, plate: plate.text, odometer: _number(odo.text)); vehicles.add(v); activeVehicle = v.id; } else { edit.name = name.text.trim(); edit.model = model.text; edit.plate = plate.text; edit.odometer = _number(odo.text); } }); await _save(); if (c.mounted) Navigator.pop(c); }, child: const Text('Salvar veículo')))])));
   void _snack(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text), backgroundColor: lime, behavior: SnackBarBehavior.floating));
 }
-
-extension<T> on List<T> { T? get firstOrNull => isEmpty ? null : first; }
