@@ -75,52 +75,9 @@ class _AmbientBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isDarkTheme) return SizedBox.shrink();
-    return IgnorePointer(
-      child: Stack(
-        children: [
-          Positioned(
-            top: -150,
-            left: -90,
-            child: Container(
-              width: 330,
-              height: 330,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: blue.withOpacity(.045),
-                boxShadow: [BoxShadow(color: blue.withOpacity(.16), blurRadius: 120, spreadRadius: 24)],
-              ),
-            ),
-          ),
-          Positioned(
-            top: 270,
-            right: -170,
-            child: Container(
-              width: 360,
-              height: 360,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: lime.withOpacity(.025),
-                boxShadow: [BoxShadow(color: lime.withOpacity(.11), blurRadius: 130, spreadRadius: 18)],
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -180,
-            left: 100,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: mint.withOpacity(.025),
-                boxShadow: [BoxShadow(color: mint.withOpacity(.10), blurRadius: 110, spreadRadius: 16)],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    // O Next usa um canvas limpo. O glass fica reservado aos componentes,
+    // sem halos decorativos competindo com os dados.
+    return SizedBox.shrink();
   }
 }
 
@@ -621,15 +578,12 @@ class _CarHomeState extends State<CarHome> {
   Widget _heroCard(List<CarEvent> list, double total) => Container(padding: EdgeInsets.fromLTRB(20, 20, 20, 17), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(26), border: Border.all(color: Colors.white.withOpacity(.14))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(padding: EdgeInsets.symmetric(horizontal: 9, vertical: 6), decoration: BoxDecoration(color: lime.withOpacity(.13), borderRadius: BorderRadius.circular(9)), child: Text('VISÃƒO GERAL', style: TextStyle(color: lime, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.1))), Spacer(), Icon(Icons.auto_awesome_rounded, color: textMain, size: 20)]), SizedBox(height: 20), Text(_money(total), style: TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1.2)), SizedBox(height: 5), Text('${list.length} registros em ${period.toLowerCase()}', style: TextStyle(color: textMuted, fontSize: 12)), SizedBox(height: 18), Row(children: [Expanded(child: _heroStat('CombustÃ­vel', _money(_fuelTotal(list)), amber)), Container(width: 1, height: 32, color: Colors.white.withOpacity(.12)), Expanded(child: Padding(padding: EdgeInsets.only(left: 16), child: _heroStat('Despesas', _money(_expenseTotal(list)), coral)))]), SizedBox(height: 17), SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _entrySheet(fuel: true), icon: Icon(Icons.add_rounded, size: 18), label: Text('Registrar abastecimento'), style: FilledButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white, padding: EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21)), textStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 13))))]));
   Widget _heroCardGlass(List<CarEvent> list, double total) => GlassPanel(
         radius: 28,
-        opacity: .62,
-        blur: 26,
-        borderColor: Colors.white.withOpacity(.18),
-        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xff1c1c1e), Color(0xcc1c1c1e), Color(0x99202024)]),
+        opacity: .94,
+        blur: 18,
+        borderColor: Colors.white.withOpacity(.12),
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xff1c1c1e), Color(0xff202024)]),
         padding: EdgeInsets.fromLTRB(20, 20, 20, 17),
-        child: Stack(clipBehavior: Clip.none, children: [
-          Positioned(right: -54, top: -74, child: Container(width: 190, height: 190, decoration: BoxDecoration(shape: BoxShape.circle, color: blue.withOpacity(.07), boxShadow: [BoxShadow(color: blue.withOpacity(.20), blurRadius: 80, spreadRadius: 8)]))),
-          Positioned(right: 12, bottom: 42, child: Container(width: 64, height: 64, decoration: BoxDecoration(shape: BoxShape.circle, color: lime.withOpacity(.035), boxShadow: [BoxShadow(color: lime.withOpacity(.13), blurRadius: 40)]))),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [Container(padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: Colors.white.withOpacity(.08), borderRadius: BorderRadius.circular(99), border: Border.all(color: Colors.white.withOpacity(.10))), child: Text('VISÃO GERAL', style: TextStyle(color: lime, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.1))), Spacer(), Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: Colors.white.withOpacity(.07), shape: BoxShape.circle), child: Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 18))]),
             SizedBox(height: 22),
             FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(_money(total), maxLines: 1, style: TextStyle(fontFamily: 'Syne', color: Colors.white, fontSize: 35, fontWeight: FontWeight.w800, letterSpacing: -1.2))),
@@ -639,7 +593,6 @@ class _CarHomeState extends State<CarHome> {
             Row(children: [Expanded(child: _heroStat('CombustÃ­vel', _money(_fuelTotal(list)), amber)), Container(width: 1, height: 32, color: Colors.white.withOpacity(.14)), Expanded(child: Padding(padding: EdgeInsets.only(left: 16), child: _heroStat('Despesas', _money(_expenseTotal(list)), coral)))]),
             SizedBox(height: 18),
             SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _entrySheet(fuel: true), icon: Icon(Icons.add_rounded, size: 18), label: Text('Registrar abastecimento'), style: FilledButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white, padding: EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21)), textStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)))),
-          ]),
         ]),
       );
 
