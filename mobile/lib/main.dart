@@ -6,17 +6,19 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const ink = Color(0xff080a0f);
-const panel = Color(0xff121722);
-const panelSoft = Color(0xff181e2b);
-const panelRaised = Color(0xff20283a);
-const lime = Color(0xffc8f55a);
-const mint = Color(0xff5af5c8);
-const amber = Color(0xffffc857);
-const coral = Color(0xffff806b);
-const textMain = Color(0xfff5f7fb);
-const textMuted = Color(0xff9aa4b5);
-const textSoft = Color(0xff687388);
+// Finanza Next modern theme: black canvas, graphite surfaces and bright system accents.
+const ink = Color(0xff000000);
+const panel = Color(0xff1c1c1e);
+const panelSoft = Color(0xff2c2c2e);
+const panelRaised = Color(0xff3a3a40);
+const lime = Color(0xffd2f668);
+const mint = Color(0xff34c759);
+const amber = Color(0xffff9f0a);
+const coral = Color(0xffff453a);
+const blue = Color(0xff0a84ff);
+const textMain = Color(0xfff7f7fa);
+const textMuted = Color(0xffb0b0b7);
+const textSoft = Color(0xff636366);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,24 +37,34 @@ class FinanzaAutoApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        fontFamily: 'Roboto',
+        fontFamily: 'DM Sans',
         scaffoldBackgroundColor: ink,
-        colorScheme: ColorScheme.fromSeed(seedColor: lime, brightness: Brightness.dark).copyWith(
-          primary: lime,
-          onPrimary: const Color(0xff111707),
+        textTheme: const TextTheme(
+          headlineLarge: TextStyle(fontFamily: 'Syne', fontWeight: FontWeight.w800),
+          headlineMedium: TextStyle(fontFamily: 'Syne', fontWeight: FontWeight.w800),
+          titleLarge: TextStyle(fontFamily: 'Syne', fontWeight: FontWeight.w700),
+          titleMedium: TextStyle(fontFamily: 'Syne', fontWeight: FontWeight.w700),
+        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: blue, brightness: Brightness.dark).copyWith(
+          primary: blue,
+          onPrimary: Colors.white,
           secondary: mint,
           surface: panel,
+          onSurface: textMain,
+          surfaceVariant: panelSoft,
+          onSurfaceVariant: textMuted,
+          outline: const Color(0xff636366),
         ),
         appBarTheme: const AppBarTheme(backgroundColor: ink, elevation: 0),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xff0e131c),
+          fillColor: panelSoft,
           labelStyle: const TextStyle(color: textMuted),
           hintStyle: const TextStyle(color: textSoft),
           contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
           border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide.none),
           enabledBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: Color(0x16ffffff))),
-          focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: mint, width: 1.2)),
+          focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14)), borderSide: BorderSide(color: blue, width: 1.2)),
         ),
         dividerTheme: const DividerThemeData(color: Color(0x16ffffff), space: 1),
       ),
@@ -390,8 +402,8 @@ class _CarHomeState extends State<CarHome> {
       bottomNavigationBar: _bottomNavigation(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _quickExpenseSheet,
-        backgroundColor: lime,
-        foregroundColor: const Color(0xff111707),
+        backgroundColor: blue,
+        foregroundColor: Colors.white,
         icon: const Icon(Icons.bolt_rounded),
         label: const Text('Lançamento rápido', style: TextStyle(fontWeight: FontWeight.w800)),
       ),
@@ -402,7 +414,7 @@ class _CarHomeState extends State<CarHome> {
     return Padding(padding: const EdgeInsets.fromLTRB(20, 15, 14, 10), child: Row(children: [
       Container(width: 38, height: 38, alignment: Alignment.center, decoration: BoxDecoration(color: lime, borderRadius: BorderRadius.circular(13), boxShadow: const [BoxShadow(color: Color(0x22c8f55a), blurRadius: 16)]), child: const Text('F', style: TextStyle(color: Color(0xff101607), fontWeight: FontWeight.w900, fontSize: 21))),
       const SizedBox(width: 11),
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('finanza.', style: TextStyle(color: textMain, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -.5)), Text(_tabTitle, style: const TextStyle(color: textMuted, fontSize: 11, fontWeight: FontWeight.w500))]),
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('finanza.', style: TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -.5)), Text(_tabTitle, style: const TextStyle(color: textMuted, fontSize: 11, fontWeight: FontWeight.w500))]),
       const Spacer(),
       PopupMenuButton<String>(tooltip: 'Mais opções', color: panelRaised, icon: const Icon(Icons.more_horiz_rounded, color: textMuted), onSelected: (value) { if (value == 'backup') _copyBackup(); if (value == 'restore') _restoreBackup(); if (value == 'vehicle') _vehicleSheet(); }, itemBuilder: (context) => const [PopupMenuItem(value: 'backup', child: Text('Copiar backup local')), PopupMenuItem(value: 'restore', child: Text('Restaurar backup')), PopupMenuItem(value: 'vehicle', child: Text('Adicionar veículo'))]),
     ]));
@@ -410,7 +422,7 @@ class _CarHomeState extends State<CarHome> {
 
   Widget _errorBanner() => Container(width: double.infinity, margin: const EdgeInsets.fromLTRB(20, 0, 20, 8), padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10), decoration: BoxDecoration(color: coral.withOpacity(.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: coral.withOpacity(.25))), child: Row(children: [const Icon(Icons.info_outline_rounded, color: coral, size: 17), const SizedBox(width: 8), Expanded(child: Text(loadError, style: const TextStyle(color: Color(0xffffb0a4), fontSize: 12)))]));
 
-  Widget _bottomNavigation() => NavigationBar(height: 72, selectedIndex: tab, onDestinationSelected: (index) => setState(() => tab = index), backgroundColor: const Color(0xff0d1119), indicatorColor: lime.withOpacity(.16), labelTextStyle: const MaterialStatePropertyAll(TextStyle(fontSize: 10, fontWeight: FontWeight.w700)), destinations: const [NavigationDestination(icon: Icon(Icons.grid_view_rounded), selectedIcon: Icon(Icons.grid_view_rounded, color: lime), label: 'Início'), NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long, color: lime), label: 'Histórico'), NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights, color: lime), label: 'Análises'), NavigationDestination(icon: Icon(Icons.directions_car_outlined), selectedIcon: Icon(Icons.directions_car, color: lime), label: 'Carro')]);
+  Widget _bottomNavigation() => NavigationBar(height: 68, selectedIndex: tab, onDestinationSelected: (index) => setState(() => tab = index), backgroundColor: panel, surfaceTintColor: Colors.transparent, elevation: 0, indicatorColor: const Color(0xff3a3a40), labelTextStyle: const MaterialStatePropertyAll(TextStyle(color: textMain, fontSize: 10, fontWeight: FontWeight.w600)), destinations: const [NavigationDestination(icon: Icon(Icons.grid_view_rounded), selectedIcon: Icon(Icons.grid_view_rounded, color: Colors.white), label: 'Início'), NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long, color: Colors.white), label: 'Histórico'), NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights, color: Colors.white), label: 'Análises'), NavigationDestination(icon: Icon(Icons.directions_car_outlined), selectedIcon: Icon(Icons.directions_car, color: Colors.white), label: 'Carro')]);
 
   Widget _homeTab() {
     final list = filteredEvents;
@@ -440,10 +452,10 @@ class _CarHomeState extends State<CarHome> {
 
   Widget _vehicleSwitcher() => Row(children: [Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: mint.withOpacity(.12), borderRadius: BorderRadius.circular(11)), child: const Icon(Icons.directions_car_rounded, size: 19, color: mint)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(currentVehicle.name, style: const TextStyle(color: textMain, fontSize: 15, fontWeight: FontWeight.w700)), Text(currentVehicle.model.isEmpty ? 'Seu veículo principal' : currentVehicle.model, style: const TextStyle(color: textMuted, fontSize: 11))])), PopupMenuButton<String>(tooltip: 'Trocar veículo', onSelected: (value) async { setState(() => activeVehicle = value); await _save(); }, color: panelRaised, icon: const Icon(Icons.keyboard_arrow_down_rounded, color: textMuted), itemBuilder: (context) => vehicles.map((vehicle) => PopupMenuItem(value: vehicle.id, child: Text(vehicle.name))).toList())]);
 
-  Widget _heroCard(List<CarEvent> list, double total) => Container(padding: const EdgeInsets.fromLTRB(20, 20, 20, 17), decoration: BoxDecoration(borderRadius: BorderRadius.circular(25), gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xff26361e), Color(0xff17221e), Color(0xff141925)]), border: Border.all(color: lime.withOpacity(.23)), boxShadow: const [BoxShadow(color: Color(0x1dc8f55a), blurRadius: 28, offset: Offset(0, 14))]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6), decoration: BoxDecoration(color: lime.withOpacity(.13), borderRadius: BorderRadius.circular(9)), child: const Text('VISÃO GERAL', style: TextStyle(color: lime, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.1))), const Spacer(), const Icon(Icons.auto_awesome_rounded, color: Color(0xffefffbf), size: 20)]), const SizedBox(height: 20), Text(_money(total), style: const TextStyle(color: textMain, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: -1.2)), const SizedBox(height: 5), Text('${list.length} registros em ${period.toLowerCase()}', style: const TextStyle(color: Color(0xffb6c7a5), fontSize: 12)), const SizedBox(height: 18), Row(children: [Expanded(child: _heroStat('Combustível', _money(_fuelTotal(list)), amber)), Container(width: 1, height: 32, color: Colors.white.withOpacity(.12)), Expanded(child: Padding(padding: const EdgeInsets.only(left: 16), child: _heroStat('Despesas', _money(_expenseTotal(list)), coral)))]), const SizedBox(height: 17), SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _entrySheet(fuel: true), icon: const Icon(Icons.add_rounded, size: 18), label: const Text('Registrar abastecimento'), style: FilledButton.styleFrom(backgroundColor: lime, foregroundColor: const Color(0xff111707), padding: const EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)), textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13))))]));
+  Widget _heroCard(List<CarEvent> list, double total) => Container(padding: const EdgeInsets.fromLTRB(20, 20, 20, 17), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(26), border: Border.all(color: Colors.white.withOpacity(.14))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6), decoration: BoxDecoration(color: lime.withOpacity(.13), borderRadius: BorderRadius.circular(9)), child: const Text('VISÃO GERAL', style: TextStyle(color: lime, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.1))), const Spacer(), const Icon(Icons.auto_awesome_rounded, color: textMain, size: 20)]), const SizedBox(height: 20), Text(_money(total), style: const TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1.2)), const SizedBox(height: 5), Text('${list.length} registros em ${period.toLowerCase()}', style: const TextStyle(color: textMuted, fontSize: 12)), const SizedBox(height: 18), Row(children: [Expanded(child: _heroStat('Combustível', _money(_fuelTotal(list)), amber)), Container(width: 1, height: 32, color: Colors.white.withOpacity(.12)), Expanded(child: Padding(padding: const EdgeInsets.only(left: 16), child: _heroStat('Despesas', _money(_expenseTotal(list)), coral)))]), const SizedBox(height: 17), SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _entrySheet(fuel: true), icon: const Icon(Icons.add_rounded, size: 18), label: const Text('Registrar abastecimento'), style: FilledButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21)), textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13))))]));
   Widget _heroStat(String label, String value, Color color) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: textMuted, fontSize: 11)), const SizedBox(height: 3), Text(value, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w800))]);
 
-  Widget _sectionTitle(String title, String subtitle, {Widget? trailing}) => Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: textMain, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -.3)), const SizedBox(height: 3), Text(subtitle, style: const TextStyle(color: textMuted, fontSize: 11))])), if (trailing != null) trailing]);
+  Widget _sectionTitle(String title, String subtitle, {Widget? trailing}) => Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -.3)), const SizedBox(height: 3), Text(subtitle, style: const TextStyle(color: textMuted, fontSize: 11))])), if (trailing != null) trailing]);
   Widget _periodDropdown() => DropdownButtonHideUnderline(child: DropdownButton<String>(value: period, dropdownColor: panelRaised, icon: const Icon(Icons.keyboard_arrow_down_rounded, color: textMuted, size: 18), style: const TextStyle(color: textMain, fontSize: 11, fontWeight: FontWeight.w700), items: const ['Tudo', 'Mês atual', '30 dias', '90 dias', 'Ano atual'].map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(), onChanged: (value) => setState(() => period = value ?? period)));
 
   Widget _metricsGrid(List<CarEvent> list) {
@@ -604,7 +616,7 @@ class _CarHomeState extends State<CarHome> {
     return ListView(padding: const EdgeInsets.fromLTRB(20, 8, 20, 30), children: [
       _pageIntro('Seu veículo', 'Cadastro, desempenho e dados locais', Icons.directions_car_rounded, amber),
       const SizedBox(height: 17),
-      Container(padding: const EdgeInsets.all(19), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xff202b3b), Color(0xff151b27)]), borderRadius: BorderRadius.circular(22), border: Border.all(color: amber.withOpacity(.22))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(width: 45, height: 45, alignment: Alignment.center, decoration: BoxDecoration(color: amber.withOpacity(.14), borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.directions_car_rounded, color: amber, size: 25)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(currentVehicle.name, style: const TextStyle(color: textMain, fontSize: 20, fontWeight: FontWeight.w900)), Text(currentVehicle.model.isEmpty ? 'Modelo não informado' : currentVehicle.model, style: const TextStyle(color: textMuted, fontSize: 12))])), IconButton(onPressed: () => _vehicleSheet(currentVehicle), icon: const Icon(Icons.edit_outlined, color: textMuted))]), const SizedBox(height: 20), Row(children: [Expanded(child: _vehicleInfo('Hodômetro', '${_maxOdometer(list).round()} km')), Expanded(child: _vehicleInfo('Registros', '${list.length}')), Expanded(child: _vehicleInfo('Placa', currentVehicle.plate.isEmpty ? '—' : currentVehicle.plate))]) ])),
+      Container(padding: const EdgeInsets.all(19), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(22), border: Border.all(color: Colors.white.withOpacity(.14))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(width: 45, height: 45, alignment: Alignment.center, decoration: BoxDecoration(color: amber.withOpacity(.14), borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.directions_car_rounded, color: amber, size: 25)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(currentVehicle.name, style: const TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 20, fontWeight: FontWeight.w700)), Text(currentVehicle.model.isEmpty ? 'Modelo não informado' : currentVehicle.model, style: const TextStyle(color: textMuted, fontSize: 12))])), IconButton(onPressed: () => _vehicleSheet(currentVehicle), icon: const Icon(Icons.edit_outlined, color: textMuted))]), const SizedBox(height: 20), Row(children: [Expanded(child: _vehicleInfo('Hodômetro', '${_maxOdometer(list).round()} km')), Expanded(child: _vehicleInfo('Registros', '${list.length}')), Expanded(child: _vehicleInfo('Placa', currentVehicle.plate.isEmpty ? '—' : currentVehicle.plate))]) ])),
       const SizedBox(height: 19),
       _sectionTitle('Meus veículos', 'Toque para alternar o veículo ativo', trailing: IconButton(onPressed: () => _vehicleSheet(), icon: const Icon(Icons.add_circle_outline_rounded, color: lime))),
       const SizedBox(height: 9),
@@ -618,7 +630,7 @@ class _CarHomeState extends State<CarHome> {
     ]);
   }
 
-  Widget _pageIntro(String title, String subtitle, IconData icon, Color color) => Row(children: [Container(width: 42, height: 42, alignment: Alignment.center, decoration: BoxDecoration(color: color.withOpacity(.12), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: color, size: 21)), const SizedBox(width: 11), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -.6)), const SizedBox(height: 3), Text(subtitle, style: const TextStyle(color: textMuted, fontSize: 11))]))]);
+  Widget _pageIntro(String title, String subtitle, IconData icon, Color color) => Row(children: [Container(width: 42, height: 42, alignment: Alignment.center, decoration: BoxDecoration(color: color.withOpacity(.12), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: color, size: 21)), const SizedBox(width: 11), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -.6)), const SizedBox(height: 3), Text(subtitle, style: const TextStyle(color: textMuted, fontSize: 11))]))]);
   Widget _vehicleInfo(String label, String value) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: textMuted, fontSize: 10)), const SizedBox(height: 5), Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w800))]);
 
   Widget _vehicleRow(CarVehicle vehicle) {
