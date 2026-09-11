@@ -27,6 +27,23 @@ jobs:
         working-directory: mobile
         run: sed -i 's/android:label="finanza_auto"/android:label="Finanza Auto"/' android/app/src/main/AndroidManifest.xml
 
+      - name: Add Android summary widget
+        working-directory: mobile
+        run: |
+          mkdir -p android/app/src/main/kotlin/com/jeffersonf/finanza_auto
+          mkdir -p android/app/src/main/res/layout android/app/src/main/res/drawable android/app/src/main/res/xml android/app/src/main/assets
+          cp android-addon/src/main/kotlin/com/jeffersonf/finanza_auto/FinanzaSummaryWidget.kt android/app/src/main/kotlin/com/jeffersonf/finanza_auto/
+          cp android-addon/src/main/res/layout/widget_finanza_summary.xml android/app/src/main/res/layout/
+          cp android-addon/src/main/res/drawable/finanza_widget_background.xml android/app/src/main/res/drawable/
+          cp android-addon/src/main/res/xml/finanza_summary_widget_info.xml android/app/src/main/res/xml/
+          cp assets/finanza-auto-backup.json android/app/src/main/assets/
+          sed -i '/<\/application>/i\        <receiver android:name=".FinanzaSummaryWidget" android:exported="true">\
+                  <intent-filter>\
+                      <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />\
+                  </intent-filter>\
+                  <meta-data android:name="android.appwidget.provider" android:resource="@xml/finanza_summary_widget_info" />\
+              </receiver>' android/app/src/main/AndroidManifest.xml
+
       - name: Install dependencies
         working-directory: mobile
         run: flutter pub get
