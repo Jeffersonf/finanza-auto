@@ -618,7 +618,7 @@ class _CarHomeState extends State<CarHome> {
             const SizedBox(height: 18),
             SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _entrySheet(fuel: true), icon: const Icon(Icons.add_rounded, size: 18), label: const Text('Registrar abastecimento'), style: FilledButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21)), textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)))),
           ]),
-        ],
+        ]),
       );
 
   Widget _heroStat(String label, String value, Color color) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: textMuted, fontSize: 11)), const SizedBox(height: 3), Text(value, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w800))]);
