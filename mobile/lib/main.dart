@@ -775,7 +775,7 @@ class _CarHomeState extends State<CarHome> {
                   ]),
                   const Text('Anote uma despesa agora e complete os detalhes depois, se quiser.', style: TextStyle(color: textMuted, fontSize: 12)),
                   const SizedBox(height: 18),
-                  TextField(controller: amount, autofocus: true, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Valor', prefixText: 'R$ ', prefixIcon: Icon(Icons.payments_outlined))),
+                  TextField(controller: amount, autofocus: true, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Valor', prefixText: r'R$ ', prefixIcon: Icon(Icons.payments_outlined))),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(value: category, decoration: const InputDecoration(labelText: 'Categoria', prefixIcon: Icon(Icons.category_outlined, size: 18)), items: categories.entries.map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value))).toList(), onChanged: (value) => setModalState(() => category = value ?? category)),
                   const SizedBox(height: 10),
