@@ -93,21 +93,20 @@ class CarEvent {
   bool get fuel => type == 'fuel';
 
   factory CarEvent.fromMap(Map<String, dynamic> map) {
-    final rawDate = '${map['date'] ?? ''}';
-    final safeDate = rawDate.length >= 10 ? rawDate.substring(0, 10) : _isoToday();
+    final rawType = '${_firstValue(map, ['type', 'kind']) ?? 'expense'}'.toLowerCase();
     return CarEvent(
-      id: '${map['id'] ?? 'event-${DateTime.now().microsecondsSinceEpoch}'}',
-      vehicleId: '${map['vehicleId'] ?? 'vehicle-1'}',
-      type: '${map['type'] ?? 'expense'}',
-      date: safeDate,
-      amount: _number(map['amount']),
-      odometer: _number(map['odometer']),
-      fuelType: '${map['fuelType'] ?? 'Gasolina'}',
-      liters: _number(map['liters']),
-      pricePerLiter: _number(map['pricePerLiter']),
-      title: '${map['title'] ?? ''}',
-      category: '${map['category'] ?? 'Other'}',
-      note: '${map['note'] ?? map['place'] ?? ''}',
+      id: '${_firstValue(map, ['id', 'eventId']) ?? 'event-${DateTime.now().microsecondsSinceEpoch}'}',
+      vehicleId: '${_firstValue(map, ['vehicleId', 'vehicle_id']) ?? 'vehicle-1'}',
+      type: rawType == 'fuel' || rawType == 'abastecimento' ? 'fuel' : 'expense',
+      date: _safeDate(_firstValue(map, ['date', 'eventDate', 'createdAt'])),
+      amount: _number(_firstValue(map, ['amount', 'total', 'value'])),
+      odometer: _number(_firstValue(map, ['odometer', 'odometerKm', 'km', 'mileage'])),
+      fuelType: '${_firstValue(map, ['fuelType', 'fuel_type']) ?? 'Gasolina'}',
+      liters: _number(_firstValue(map, ['liters', 'quantity'])),
+      pricePerLiter: _number(_firstValue(map, ['pricePerLiter', 'price_per_liter'])),
+      title: '${_firstValue(map, ['title', 'description', 'name']) ?? ''}',
+      category: '${_firstValue(map, ['category', 'categoryId']) ?? 'Other'}',
+      note: '${_firstValue(map, ['note', 'place', 'location']) ?? ''}',
     );
   }
 
@@ -137,14 +136,61 @@ class CarVehicle {
   double odometer;
 
   factory CarVehicle.fromMap(Map<String, dynamic> map) => CarVehicle(
-        id: '${map['id'] ?? 'vehicle-${DateTime.now().microsecondsSinceEpoch}'}',
-        name: '${map['name'] ?? 'Meu carro'}',
-        model: '${map['model'] ?? ''}',
-        plate: '${map['plate'] ?? ''}',
-        odometer: _number(map['odometer']),
+        id: '${_firstValue(map, ['id', 'vehicleId', 'vehicle_id']) ?? 'vehicle-${DateTime.now().microsecondsSinceEpoch}'}',
+        name: '${_firstValue(map, ['name', 'title']) ?? 'Meu carro'}',
+        model: '${_firstValue(map, ['model', 'modelYear', 'model_year']) ?? ''}',
+        plate: '${_firstValue(map, ['plate', 'licensePlate', 'license_plate']) ?? ''}',
+        odometer: _number(_firstValue(map, ['odometer', 'odometerKm', 'km', 'mileage'])),
       );
 
   Map<String, dynamic> toMap() => {'id': id, 'name': name, 'model': model, 'plate': plate, 'odometer': odometer};
+}
+
+Map<String, dynamic> _asMap(dynamic value) {
+  if (value is Map) {
+    return value.map((key, item) => MapEntry('$key', item));
+  }
+  return <String, dynamic>{};
+}
+
+Map<String, dynamic>? _tryDecodeMap(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return null;
+  try {
+    final map = _asMap(jsonDecode(raw));
+    return map.isEmpty ? null : map;
+  } catch (_) {
+    return null;
+  }
+}
+
+Map<String, dynamic> _carMap(Map<String, dynamic> data) {
+  for (final key in ['car', 'vehicle', 'vehicles']) {
+    final candidate = _asMap(data[key]);
+    if (candidate.isNotEmpty) return candidate;
+  }
+  return data;
+}
+
+List<dynamic> _listValue(Map<String, dynamic> data, List<String> keys) {
+  for (final key in keys) {
+    if (data[key] is List) return data[key] as List;
+  }
+  return const [];
+}
+
+dynamic _firstValue(Map<String, dynamic> data, List<String> keys) {
+  for (final key in keys) {
+    if (data.containsKey(key) && data[key] != null) return data[key];
+  }
+  return null;
+}
+
+String _safeDate(dynamic value) {
+  final raw = '$value'.trim();
+  if (raw.isEmpty || raw == 'null') return _isoToday();
+  final brazilian = RegExp(r'^(\d{2})/(\d{2})/(\d{4})').firstMatch(raw);
+  if (brazilian != null) return '${brazilian.group(3)}-${brazilian.group(2)}-${brazilian.group(1)}';
+  return raw.length >= 10 ? raw.substring(0, 10) : _isoToday();
 }
 
 double _number(dynamic value) => double.tryParse('$value'.replaceAll(',', '.')) ?? 0;
@@ -211,11 +257,17 @@ class _CarHomeState extends State<CarHome> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString('finanza_auto_flutter_state');
-      final raw = saved == null || saved.isEmpty ? await rootBundle.loadString('assets/finanza-auto-backup.json') : saved;
-      final data = jsonDecode(raw) as Map<String, dynamic>;
-      final car = (data['car'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
-      final rawVehicles = (car['vehicles'] as List?) ?? const [];
-      final rawEvents = (car['events'] as List?) ?? const [];
+      final bundledData = _tryDecodeMap(await rootBundle.loadString('assets/finanza-auto-backup.json')) ?? <String, dynamic>{};
+      final savedData = _tryDecodeMap(saved);
+      final bundledCar = _carMap(bundledData);
+      final savedCar = savedData == null ? <String, dynamic>{} : _carMap(savedData);
+      final savedEvents = _listValue(savedCar, ['events', 'items', 'records']);
+      final bundledEvents = _listValue(bundledCar, ['events', 'items', 'records']);
+      final useBundled = savedData == null || (savedData['dataInitialized'] != true && savedEvents.isEmpty && bundledEvents.isNotEmpty);
+      final data = useBundled ? bundledData : savedData;
+      final car = _carMap(data ?? bundledData);
+      final rawVehicles = _listValue(car, ['vehicles', 'vehicleList', 'items']);
+      final rawEvents = _listValue(car, ['events', 'items', 'records']);
       final loadedVehicles = <CarVehicle>[];
       final loadedEvents = <CarEvent>[];
       for (final item in rawVehicles) {
@@ -227,10 +279,11 @@ class _CarHomeState extends State<CarHome> {
       if (loadedVehicles.isEmpty) loadedVehicles.add(CarVehicle(id: 'vehicle-1', name: 'Meu carro'));
       final validVehicleIds = loadedVehicles.map((vehicle) => vehicle.id).toSet();
       for (final event in loadedEvents) {
-        if (!validVehicleIds.contains(event.vehicleId)) event.vehicleId = loadedVehicles.first.id;
+        if (loadedVehicles.length == 1 || !validVehicleIds.contains(event.vehicleId)) event.vehicleId = loadedVehicles.first.id;
       }
-      final savedActive = '${car['activeVehicleId'] ?? ''}';
+      final savedActive = '${_firstValue(car, ['activeVehicleId', 'active_vehicle_id']) ?? ''}';
       final selected = loadedVehicles.any((vehicle) => vehicle.id == savedActive) ? savedActive : loadedVehicles.first.id;
+      debugPrint('Finanza Auto load: source=${useBundled ? 'bundle' : 'saved'} saved=${saved != null} vehicles=${loadedVehicles.length} events=${loadedEvents.length} selected=$selected firstEventVehicle=${loadedEvents.isEmpty ? '-' : loadedEvents.first.vehicleId}');
       if (!mounted) return;
       setState(() {
         vehicles = loadedVehicles;
@@ -260,6 +313,7 @@ class _CarHomeState extends State<CarHome> {
       jsonEncode({
         'app': 'Finanza Auto',
         'version': '2.0',
+        'dataInitialized': true,
         'car': {
           'vehicles': vehicles.map((vehicle) => vehicle.toMap()).toList(),
           'events': events.map((event) => event.toMap()).toList(),
@@ -334,6 +388,13 @@ class _CarHomeState extends State<CarHome> {
         Expanded(child: IndexedStack(index: tab, children: [_homeTab(), _historyTab(), _analyticsTab(), _vehicleTab()])),
       ])),
       bottomNavigationBar: _bottomNavigation(),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _quickExpenseSheet,
+        backgroundColor: lime,
+        foregroundColor: const Color(0xff111707),
+        icon: const Icon(Icons.bolt_rounded),
+        label: const Text('Lançamento rápido', style: TextStyle(fontWeight: FontWeight.w800)),
+      ),
     );
   }
 
@@ -519,7 +580,21 @@ class _CarHomeState extends State<CarHome> {
 
   Widget _maintenanceCard(List<CarEvent> list) {
     final expenses = list.where((event) => !event.fuel).toList()..sort((a, b) => b.amount.compareTo(a.amount));
-    return Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: amber.withOpacity(.13), borderRadius: BorderRadius.circular(11)), child: const Icon(Icons.build_circle_outlined, color: amber, size: 19)), const SizedBox(width: 10), const Expanded(child: Text('Cuidados do veículo', style: TextStyle(color: textMain, fontSize: 13, fontWeight: FontWeight.w800))), const Icon(Icons.chevron_right_rounded, color: textSoft)]), const SizedBox(height: 14), _maintenanceLine('Maior despesa registrada', expenses.isEmpty ? 'Nenhuma ainda' : '${_categoryLabel(expenses.first.category)} · ${_money(expenses.first.amount)}'), const SizedBox(height: 8), _maintenanceLine('Último hodômetro conhecido', '${_maxOdometer(allVehicleEvents).round()} km'), const SizedBox(height: 8), _maintenanceLine('Próxima revisão', 'Cadastre uma despesa de manutenção para acompanhar') ]));
+    final service = list.where((event) {
+      if (event.fuel) return false;
+      final text = '${event.title} ${event.note}'.toLowerCase();
+      return ['oleo', 'óleo', 'filtro', 'revis', 'troca'].any(text.contains);
+    }).toList()
+      ..sort((a, b) => '${a.date}${a.odometer}'.compareTo('${b.date}${b.odometer}'));
+    final latestService = service.isEmpty ? null : service.last;
+    final currentOdometer = _maxOdometer(list);
+    final nextService = latestService != null && latestService.odometer > 0 ? latestService.odometer + 5000 : 0.0;
+    final serviceLabel = latestService == null || nextService == 0
+        ? 'Registre troca de óleo ou revisão'
+        : currentOdometer >= nextService
+            ? 'Revisão atrasada · ${currentOdometer.round() - nextService.round()} km'
+            : '${(nextService - currentOdometer).round()} km restantes';
+    return Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: amber.withOpacity(.13), borderRadius: BorderRadius.circular(11)), child: const Icon(Icons.build_circle_outlined, color: amber, size: 19)), const SizedBox(width: 10), const Expanded(child: Text('Cuidados do veículo', style: TextStyle(color: textMain, fontSize: 13, fontWeight: FontWeight.w800))), const Icon(Icons.chevron_right_rounded, color: textSoft)]), const SizedBox(height: 14), _maintenanceLine('Maior despesa registrada', expenses.isEmpty ? 'Nenhuma ainda' : '${_categoryLabel(expenses.first.category)} · ${_money(expenses.first.amount)}'), const SizedBox(height: 8), _maintenanceLine('Último hodômetro conhecido', '${currentOdometer.round()} km'), const SizedBox(height: 8), _maintenanceLine('Próxima revisão', serviceLabel) ]));
   }
 
   Widget _maintenanceLine(String label, String value) => Container(padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10), decoration: BoxDecoration(color: panelSoft, borderRadius: BorderRadius.circular(11)), child: Row(children: [Expanded(child: Text(label, style: const TextStyle(color: textMuted, fontSize: 10))), const SizedBox(width: 8), Flexible(child: Text(value, textAlign: TextAlign.right, style: const TextStyle(color: textMain, fontSize: 10, fontWeight: FontWeight.w700)))]));
@@ -589,20 +664,21 @@ class _CarHomeState extends State<CarHome> {
       return;
     }
     try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      final car = (decoded['car'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+      final decoded = _tryDecodeMap(raw);
+      if (decoded == null) throw const FormatException('invalid backup');
+      final car = _carMap(decoded);
       final loadedVehicles = <CarVehicle>[];
       final loadedEvents = <CarEvent>[];
-      for (final item in (car['vehicles'] as List?) ?? const []) {
+      for (final item in _listValue(car, ['vehicles', 'vehicleList', 'items'])) {
         if (item is Map) loadedVehicles.add(CarVehicle.fromMap(item.cast<String, dynamic>()));
       }
-      for (final item in (car['events'] as List?) ?? const []) {
+      for (final item in _listValue(car, ['events', 'items', 'records'])) {
         if (item is Map) loadedEvents.add(CarEvent.fromMap(item.cast<String, dynamic>()));
       }
       if (loadedVehicles.isEmpty) loadedVehicles.add(CarVehicle(id: 'vehicle-1', name: 'Meu carro'));
       final validIds = loadedVehicles.map((vehicle) => vehicle.id).toSet();
       for (final event in loadedEvents) {
-        if (!validIds.contains(event.vehicleId)) event.vehicleId = loadedVehicles.first.id;
+        if (loadedVehicles.length == 1 || !validIds.contains(event.vehicleId)) event.vehicleId = loadedVehicles.first.id;
       }
       final confirmed = await showDialog<bool>(
         context: context,
@@ -617,7 +693,7 @@ class _CarHomeState extends State<CarHome> {
         ),
       );
       if (confirmed != true) return;
-      final savedActive = '${car['activeVehicleId'] ?? ''}';
+      final savedActive = '${_firstValue(car, ['activeVehicleId', 'active_vehicle_id']) ?? ''}';
       setState(() {
         vehicles = loadedVehicles;
         events = loadedEvents;
@@ -664,6 +740,71 @@ class _CarHomeState extends State<CarHome> {
   }
 
   */
+  Future<void> _quickExpenseSheet() async {
+    final amount = TextEditingController();
+    final title = TextEditingController();
+    var category = 'Other';
+    const categories = <String, String>{
+      'Maintenance': 'Manutenção',
+      'Insurance': 'Seguro',
+      'Tax': 'Imposto / documento',
+      'Parking': 'Estacionamento',
+      'Wash': 'Lavagem',
+      'Fine': 'Multa',
+      'Other': 'Outro',
+    };
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: panel,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(27))),
+        builder: (sheetContext) => SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, 14, 20, MediaQuery.viewInsetsOf(sheetContext).bottom + 18),
+            child: StatefulBuilder(
+              builder: (context, setModalState) => Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(child: Container(width: 38, height: 4, decoration: BoxDecoration(color: textSoft, borderRadius: BorderRadius.circular(4)))),
+                  const SizedBox(height: 20),
+                  Row(children: [
+                    const Expanded(child: Text('Lançamento rápido', style: TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900))),
+                    IconButton(onPressed: () => Navigator.pop(sheetContext), icon: const Icon(Icons.close_rounded, color: textMuted)),
+                  ]),
+                  const Text('Anote uma despesa agora e complete os detalhes depois, se quiser.', style: TextStyle(color: textMuted, fontSize: 12)),
+                  const SizedBox(height: 18),
+                  TextField(controller: amount, autofocus: true, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Valor', prefixText: 'R$ ', prefixIcon: Icon(Icons.payments_outlined))),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(value: category, decoration: const InputDecoration(labelText: 'Categoria', prefixIcon: Icon(Icons.category_outlined, size: 18)), items: categories.entries.map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value))).toList(), onChanged: (value) => setModalState(() => category = value ?? category)),
+                  const SizedBox(height: 10),
+                  TextField(controller: title, textInputAction: TextInputAction.done, decoration: const InputDecoration(labelText: 'Descrição', hintText: 'Ex.: estacionamento, pedágio...')),
+                  const SizedBox(height: 20),
+                  SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () async {
+                    final value = _number(amount.text);
+                    if (value <= 0) {
+                      _snack('Informe um valor válido.');
+                      return;
+                    }
+                    final event = CarEvent(id: 'local-${DateTime.now().microsecondsSinceEpoch}', vehicleId: activeVehicle, type: 'expense', date: _isoToday(), amount: value, odometer: _maxOdometer(allVehicleEvents), title: title.text.trim().isEmpty ? _categoryLabel(category) : title.text.trim(), category: category, note: 'Lançamento rápido');
+                    setState(() => events.insert(0, event));
+                    await _save();
+                    if (sheetContext.mounted) Navigator.pop(sheetContext);
+                    _snack('Despesa salva.');
+                  }, icon: const Icon(Icons.check_rounded), label: const Text('Salvar agora'), style: FilledButton.styleFrom(backgroundColor: lime, foregroundColor: const Color(0xff111707), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)), textStyle: const TextStyle(fontWeight: FontWeight.w800)))),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    } finally {
+      amount.dispose();
+      title.dispose();
+    }
+  }
+
   Widget _formRow(List<Widget> children) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: children);
 
   Future<void> _entrySheet({required bool fuel, CarEvent? edit}) async {
