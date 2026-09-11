@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,9 +9,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Finanza Next modern theme: black canvas, graphite surfaces and bright system accents.
 const ink = Color(0xff000000);
-const panel = Color(0xff1c1c1e);
-const panelSoft = Color(0xff2c2c2e);
-const panelRaised = Color(0xff3a3a40);
+const panel = Color(0xb81c1c1e);
+const panelSoft = Color(0xc92c2c2e);
+const panelRaised = Color(0xde3a3a40);
 const lime = Color(0xffd2f668);
 const mint = Color(0xff34c759);
 const amber = Color(0xffff9f0a);
@@ -19,6 +20,106 @@ const blue = Color(0xff0a84ff);
 const textMain = Color(0xfff7f7fa);
 const textMuted = Color(0xffb0b0b7);
 const textSoft = Color(0xff636366);
+
+class GlassPanel extends StatelessWidget {
+  const GlassPanel({
+    super.key,
+    required this.child,
+    this.padding,
+    this.radius = 20,
+    this.tint = panel,
+    this.opacity = .66,
+    this.blur = 20,
+    this.borderColor = const Color(0x2bffffff),
+    this.gradient,
+    this.shadows,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final double radius;
+  final Color tint;
+  final double opacity;
+  final double blur;
+  final Color borderColor;
+  final Gradient? gradient;
+  final List<BoxShadow>? shadows;
+
+  @override
+  Widget build(BuildContext context) {
+    final shape = BorderRadius.circular(radius);
+    return ClipRRect(
+      borderRadius: shape,
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          padding: padding,
+          decoration: BoxDecoration(
+            color: tint.withOpacity(opacity),
+            gradient: gradient,
+            borderRadius: shape,
+            border: Border.all(color: borderColor),
+            boxShadow: shadows ?? const [BoxShadow(color: Color(0x22000000), blurRadius: 22, offset: Offset(0, 10))],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _AmbientBackdrop extends StatelessWidget {
+  const _AmbientBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            left: -90,
+            child: Container(
+              width: 330,
+              height: 330,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: blue.withOpacity(.045),
+                boxShadow: [BoxShadow(color: blue.withOpacity(.16), blurRadius: 120, spreadRadius: 24)],
+              ),
+            ),
+          ),
+          Positioned(
+            top: 270,
+            right: -170,
+            child: Container(
+              width: 360,
+              height: 360,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: lime.withOpacity(.025),
+                boxShadow: [BoxShadow(color: lime.withOpacity(.11), blurRadius: 130, spreadRadius: 18)],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -180,
+            left: 100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: mint.withOpacity(.025),
+                boxShadow: [BoxShadow(color: mint.withOpacity(.10), blurRadius: 110, spreadRadius: 16)],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -394,12 +495,19 @@ class _CarHomeState extends State<CarHome> {
     if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator(color: lime)));
     return Scaffold(
       backgroundColor: ink,
-      body: SafeArea(child: Column(children: [
-        _topBar(),
-        if (loadError.isNotEmpty) _errorBanner(),
-        Expanded(child: IndexedStack(index: tab, children: [_homeTab(), _historyTab(), _analyticsTab(), _vehicleTab()])),
-      ])),
-      bottomNavigationBar: _bottomNavigation(),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            const Positioned.fill(child: _AmbientBackdrop()),
+            Column(children: [
+              _glassTopBar(),
+              if (loadError.isNotEmpty) _errorBanner(),
+              Expanded(child: IndexedStack(index: tab, children: [_homeTab(), _historyTab(), _analyticsTab(), _vehicleTab()])),
+            ]),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _glassBottomNavigation(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _quickExpenseSheet,
         backgroundColor: blue,
@@ -420,6 +528,28 @@ class _CarHomeState extends State<CarHome> {
     ]));
   }
 
+  Widget _glassTopBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: GlassPanel(
+        radius: 22,
+        opacity: .48,
+        blur: 24,
+        borderColor: Colors.white.withOpacity(.13),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(children: [
+          Container(width: 38, height: 38, alignment: Alignment.center, decoration: BoxDecoration(color: lime, borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: lime.withOpacity(.20), blurRadius: 20)]), child: const Text('F', style: TextStyle(color: Color(0xff101607), fontWeight: FontWeight.w900, fontSize: 21))),
+          const SizedBox(width: 11),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('finanza.', style: TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -.5)), Text(_tabTitle, style: const TextStyle(color: textMuted, fontSize: 11, fontWeight: FontWeight.w500))]),
+          const Spacer(),
+          PopupMenuButton<String>(tooltip: 'Mais opções', color: panelRaised, icon: const Icon(Icons.more_horiz_rounded, color: textMuted), onSelected: (value) { if (value == 'backup') _copyBackup(); if (value == 'restore') _restoreBackup(); if (value == 'vehicle') _vehicleSheet(); }, itemBuilder: (context) => const [PopupMenuItem(value: 'backup', child: Text('Copiar backup local')), PopupMenuItem(value: 'restore', child: Text('Restaurar backup')), PopupMenuItem(value: 'vehicle', child: Text('Adicionar veículo'))]),
+        ]),
+      ),
+    );
+  }
+
+  Widget _glassBottomNavigation() => SafeArea(top: false, child: Padding(padding: const EdgeInsets.fromLTRB(14, 0, 14, 10), child: GlassPanel(radius: 25, opacity: .76, blur: 28, borderColor: Colors.white.withOpacity(.16), padding: const EdgeInsets.all(5), child: NavigationBar(height: 62, selectedIndex: tab, onDestinationSelected: (index) => setState(() => tab = index), backgroundColor: Colors.transparent, surfaceTintColor: Colors.transparent, elevation: 0, indicatorColor: const Color(0x803a3a40), labelTextStyle: const MaterialStatePropertyAll(TextStyle(color: textMain, fontSize: 10, fontWeight: FontWeight.w600)), destinations: const [NavigationDestination(icon: Icon(Icons.grid_view_rounded), selectedIcon: Icon(Icons.grid_view_rounded, color: Colors.white), label: 'Início'), NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long, color: Colors.white), label: 'Histórico'), NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights, color: Colors.white), label: 'Análises'), NavigationDestination(icon: Icon(Icons.directions_car_outlined), selectedIcon: Icon(Icons.directions_car, color: Colors.white), label: 'Carro')]))));
+
   Widget _errorBanner() => Container(width: double.infinity, margin: const EdgeInsets.fromLTRB(20, 0, 20, 8), padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10), decoration: BoxDecoration(color: coral.withOpacity(.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: coral.withOpacity(.25))), child: Row(children: [const Icon(Icons.info_outline_rounded, color: coral, size: 17), const SizedBox(width: 8), Expanded(child: Text(loadError, style: const TextStyle(color: Color(0xffffb0a4), fontSize: 12)))]));
 
   Widget _bottomNavigation() => NavigationBar(height: 68, selectedIndex: tab, onDestinationSelected: (index) => setState(() => tab = index), backgroundColor: panel, surfaceTintColor: Colors.transparent, elevation: 0, indicatorColor: const Color(0xff3a3a40), labelTextStyle: const MaterialStatePropertyAll(TextStyle(color: textMain, fontSize: 10, fontWeight: FontWeight.w600)), destinations: const [NavigationDestination(icon: Icon(Icons.grid_view_rounded), selectedIcon: Icon(Icons.grid_view_rounded, color: Colors.white), label: 'Início'), NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long, color: Colors.white), label: 'Histórico'), NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights, color: Colors.white), label: 'Análises'), NavigationDestination(icon: Icon(Icons.directions_car_outlined), selectedIcon: Icon(Icons.directions_car, color: Colors.white), label: 'Carro')]);
@@ -428,9 +558,9 @@ class _CarHomeState extends State<CarHome> {
     final list = filteredEvents;
     final total = _total(list);
     return RefreshIndicator(color: lime, backgroundColor: panel, onRefresh: _load, child: ListView(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.fromLTRB(20, 8, 20, 30), children: [
-      _vehicleSwitcher(),
+      _glassVehicleSwitcher(),
       const SizedBox(height: 16),
-      _heroCard(list, total),
+      _heroCardGlass(list, total),
       const SizedBox(height: 22),
       _sectionTitle('Resumo do período', 'Tudo que foi registrado no carro', trailing: _periodDropdown()),
       const SizedBox(height: 11),
@@ -452,7 +582,45 @@ class _CarHomeState extends State<CarHome> {
 
   Widget _vehicleSwitcher() => Row(children: [Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: mint.withOpacity(.12), borderRadius: BorderRadius.circular(11)), child: const Icon(Icons.directions_car_rounded, size: 19, color: mint)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(currentVehicle.name, style: const TextStyle(color: textMain, fontSize: 15, fontWeight: FontWeight.w700)), Text(currentVehicle.model.isEmpty ? 'Seu veículo principal' : currentVehicle.model, style: const TextStyle(color: textMuted, fontSize: 11))])), PopupMenuButton<String>(tooltip: 'Trocar veículo', onSelected: (value) async { setState(() => activeVehicle = value); await _save(); }, color: panelRaised, icon: const Icon(Icons.keyboard_arrow_down_rounded, color: textMuted), itemBuilder: (context) => vehicles.map((vehicle) => PopupMenuItem(value: vehicle.id, child: Text(vehicle.name))).toList())]);
 
+  Widget _glassVehicleSwitcher() => GlassPanel(
+        radius: 20,
+        opacity: .40,
+        blur: 18,
+        borderColor: Colors.white.withOpacity(.10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(children: [
+          Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: mint.withOpacity(.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: mint.withOpacity(.18))), child: const Icon(Icons.directions_car_rounded, size: 19, color: mint)),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(currentVehicle.name, style: const TextStyle(color: textMain, fontSize: 15, fontWeight: FontWeight.w700)), Text(currentVehicle.model.isEmpty ? 'Seu veículo principal' : currentVehicle.model, style: const TextStyle(color: textMuted, fontSize: 11))])),
+          PopupMenuButton<String>(tooltip: 'Trocar veículo', onSelected: (value) async { setState(() => activeVehicle = value); await _save(); }, color: panelRaised, icon: const Icon(Icons.keyboard_arrow_down_rounded, color: textMuted), itemBuilder: (context) => vehicles.map((vehicle) => PopupMenuItem(value: vehicle.id, child: Text(vehicle.name))).toList()),
+        ]),
+      );
+
   Widget _heroCard(List<CarEvent> list, double total) => Container(padding: const EdgeInsets.fromLTRB(20, 20, 20, 17), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(26), border: Border.all(color: Colors.white.withOpacity(.14))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6), decoration: BoxDecoration(color: lime.withOpacity(.13), borderRadius: BorderRadius.circular(9)), child: const Text('VISÃO GERAL', style: TextStyle(color: lime, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.1))), const Spacer(), const Icon(Icons.auto_awesome_rounded, color: textMain, size: 20)]), const SizedBox(height: 20), Text(_money(total), style: const TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1.2)), const SizedBox(height: 5), Text('${list.length} registros em ${period.toLowerCase()}', style: const TextStyle(color: textMuted, fontSize: 12)), const SizedBox(height: 18), Row(children: [Expanded(child: _heroStat('Combustível', _money(_fuelTotal(list)), amber)), Container(width: 1, height: 32, color: Colors.white.withOpacity(.12)), Expanded(child: Padding(padding: const EdgeInsets.only(left: 16), child: _heroStat('Despesas', _money(_expenseTotal(list)), coral)))]), const SizedBox(height: 17), SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _entrySheet(fuel: true), icon: const Icon(Icons.add_rounded, size: 18), label: const Text('Registrar abastecimento'), style: FilledButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21)), textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13))))]));
+  Widget _heroCardGlass(List<CarEvent> list, double total) => GlassPanel(
+        radius: 28,
+        opacity: .62,
+        blur: 26,
+        borderColor: Colors.white.withOpacity(.18),
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [const Color(0xcc252a36), panel.withOpacity(.50), const Color(0x66202024)]),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 17),
+        child: Stack(clipBehavior: Clip.none, children: [
+          Positioned(right: -54, top: -74, child: Container(width: 190, height: 190, decoration: BoxDecoration(shape: BoxShape.circle, color: blue.withOpacity(.07), boxShadow: [BoxShadow(color: blue.withOpacity(.20), blurRadius: 80, spreadRadius: 8)]))),
+          Positioned(right: 12, bottom: 42, child: Container(width: 64, height: 64, decoration: BoxDecoration(shape: BoxShape.circle, color: lime.withOpacity(.035), boxShadow: [BoxShadow(color: lime.withOpacity(.13), blurRadius: 40)]))),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: Colors.white.withOpacity(.08), borderRadius: BorderRadius.circular(99), border: Border.all(color: Colors.white.withOpacity(.10))), child: const Text('VISÃO GERAL', style: TextStyle(color: lime, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.1))), const Spacer(), Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: Colors.white.withOpacity(.07), shape: BoxShape.circle), child: const Icon(Icons.auto_awesome_rounded, color: textMain, size: 18))]),
+            const SizedBox(height: 22),
+            Text(_money(total), style: const TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 35, fontWeight: FontWeight.w800, letterSpacing: -1.2)),
+            const SizedBox(height: 5),
+            Text('${list.length} registros em ${period.toLowerCase()}', style: const TextStyle(color: textMuted, fontSize: 12)),
+            const SizedBox(height: 20),
+            Row(children: [Expanded(child: _heroStat('Combustível', _money(_fuelTotal(list)), amber)), Container(width: 1, height: 32, color: Colors.white.withOpacity(.14)), Expanded(child: Padding(padding: const EdgeInsets.only(left: 16), child: _heroStat('Despesas', _money(_expenseTotal(list)), coral)))]),
+            const SizedBox(height: 18),
+            SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _entrySheet(fuel: true), icon: const Icon(Icons.add_rounded, size: 18), label: const Text('Registrar abastecimento'), style: FilledButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21)), textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)))),
+          ]),
+        ],
+      );
+
   Widget _heroStat(String label, String value, Color color) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: textMuted, fontSize: 11)), const SizedBox(height: 3), Text(value, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w800))]);
 
   Widget _sectionTitle(String title, String subtitle, {Widget? trailing}) => Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -.3)), const SizedBox(height: 3), Text(subtitle, style: const TextStyle(color: textMuted, fontSize: 11))])), if (trailing != null) trailing]);
@@ -467,12 +635,31 @@ class _CarHomeState extends State<CarHome> {
       _MetricData('Custo por km', distance > 0 ? _money(_total(list) / distance) : '—', 'combustível + despesas', amber, Icons.payments_outlined),
       _MetricData('Hodômetro', '${_maxOdometer(allVehicleEvents).round()} km', 'maior leitura importada', coral, Icons.dashboard_outlined),
     ];
-    return GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.27, children: cards.map(_metricCard).toList());
+    return GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.27, children: cards.map(_glassMetricCard).toList());
   }
+
+  Widget _glassMetricCard(_MetricData data) => GlassPanel(
+        radius: 20,
+        opacity: .48,
+        blur: 18,
+        borderColor: data.color.withOpacity(.18),
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [Container(width: 31, height: 31, alignment: Alignment.center, decoration: BoxDecoration(color: data.color.withOpacity(.14), borderRadius: BorderRadius.circular(11), border: Border.all(color: data.color.withOpacity(.18))), child: Icon(data.icon, color: data.color, size: 16)), const Spacer(), Icon(Icons.arrow_outward_rounded, color: textSoft.withOpacity(.85), size: 14)]),
+          const Spacer(),
+          Text(data.label.toUpperCase(), style: const TextStyle(color: textMuted, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: .5)),
+          const SizedBox(height: 4),
+          Text(data.value, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: data.color, fontSize: 19, fontWeight: FontWeight.w900, letterSpacing: -.5)),
+          const SizedBox(height: 3),
+          Text(data.caption, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: textSoft, fontSize: 10)),
+        ]),
+      );
 
   Widget _metricCard(_MetricData data) => Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(17), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(width: 29, height: 29, alignment: Alignment.center, decoration: BoxDecoration(color: data.color.withOpacity(.12), borderRadius: BorderRadius.circular(9)), child: Icon(data.icon, color: data.color, size: 16)), const Spacer(), Icon(Icons.arrow_outward_rounded, color: textSoft.withOpacity(.7), size: 14)]), const Spacer(), Text(data.label.toUpperCase(), style: const TextStyle(color: textMuted, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: .5)), const SizedBox(height: 4), Text(data.value, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: data.color, fontSize: 19, fontWeight: FontWeight.w900, letterSpacing: -.5)), const SizedBox(height: 3), Text(data.caption, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: textSoft, fontSize: 10))]));
 
-  Widget _quickActions() => Row(children: [Expanded(child: _quickAction(Icons.local_gas_station_rounded, 'Abastecer', 'Combustível', mint, () => _entrySheet(fuel: true))), const SizedBox(width: 10), Expanded(child: _quickAction(Icons.build_rounded, 'Adicionar', 'Despesa', coral, () => _entrySheet(fuel: false))), const SizedBox(width: 10), Expanded(child: _quickAction(Icons.edit_rounded, 'Editar', 'Veículo', amber, () => _vehicleSheet(currentVehicle)))]);
+  Widget _quickActions() => Row(children: [Expanded(child: _glassQuickAction(Icons.local_gas_station_rounded, 'Abastecer', 'Combustível', mint, () => _entrySheet(fuel: true))), const SizedBox(width: 10), Expanded(child: _glassQuickAction(Icons.build_rounded, 'Adicionar', 'Despesa', coral, () => _entrySheet(fuel: false))), const SizedBox(width: 10), Expanded(child: _glassQuickAction(Icons.edit_rounded, 'Editar', 'Veículo', amber, () => _vehicleSheet(currentVehicle)))]);
+
+  Widget _glassQuickAction(IconData icon, String title, String caption, Color color, VoidCallback action) => InkWell(onTap: action, borderRadius: BorderRadius.circular(18), child: GlassPanel(radius: 18, opacity: .46, blur: 18, borderColor: color.withOpacity(.15), padding: const EdgeInsets.fromLTRB(10, 13, 8, 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: color.withOpacity(.13), borderRadius: BorderRadius.circular(11), border: Border.all(color: color.withOpacity(.18))), child: Icon(icon, color: color, size: 18)), const SizedBox(height: 11), Text(title, style: const TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w800)), const SizedBox(height: 2), Text(caption, style: const TextStyle(color: textSoft, fontSize: 10)), const SizedBox(height: 2), Align(alignment: Alignment.centerRight, child: Icon(Icons.arrow_forward_rounded, color: color.withOpacity(.72), size: 14))])));
   Widget _quickAction(IconData icon, String title, String caption, Color color, VoidCallback action) => InkWell(onTap: action, borderRadius: BorderRadius.circular(16), child: Container(padding: const EdgeInsets.fromLTRB(10, 13, 8, 12), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 32, height: 32, alignment: Alignment.center, decoration: BoxDecoration(color: color.withOpacity(.13), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: color, size: 18)), const SizedBox(height: 11), Text(title, style: const TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w800)), const SizedBox(height: 2), Text(caption, style: const TextStyle(color: textSoft, fontSize: 10))])));
 
   Widget _chartCard(List<CarEvent> list) {
@@ -493,12 +680,42 @@ class _CarHomeState extends State<CarHome> {
     return result;
   }
 
-  Widget _recentList(List<CarEvent> list) => list.isEmpty ? _emptyState('Nenhum lançamento ainda', 'Use um dos atalhos acima para começar.') : Column(children: list.take(5).map(_eventTile).toList());
+  Widget _recentList(List<CarEvent> list) => list.isEmpty ? _emptyState('Nenhum lançamento ainda', 'Use um dos atalhos acima para começar.') : Column(children: list.take(5).map(_glassEventTile).toList());
 
   Widget _eventTile(CarEvent event) {
     final color = event.fuel ? mint : coral;
     final icon = event.fuel ? Icons.local_gas_station_rounded : _expenseIcon(event.category);
     return Container(margin: const EdgeInsets.only(bottom: 8), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withOpacity(.06))), child: ListTile(onTap: () => _entrySheet(fuel: event.fuel, edit: event), contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 3), leading: Container(width: 40, height: 40, alignment: Alignment.center, decoration: BoxDecoration(color: color.withOpacity(.12), borderRadius: BorderRadius.circular(13)), child: Icon(icon, color: color, size: 19)), title: Text(event.fuel ? '${event.fuelType} · ${event.liters.toStringAsFixed(1)} L' : (event.title.isEmpty ? _categoryLabel(event.category) : event.title), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: textMain, fontSize: 13, fontWeight: FontWeight.w700)), subtitle: Text([_dateLabel(event.date), if (event.odometer > 0) '${event.odometer.round()} km', if (event.note.isNotEmpty) event.note].join('  ·  '), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: textMuted, fontSize: 10)), trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [Text(_money(event.amount), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w900)), const SizedBox(height: 3), const Text('Editar', style: TextStyle(color: textSoft, fontSize: 9))])));
+  }
+
+  Widget _glassEventTile(CarEvent event) {
+    final color = event.fuel ? mint : coral;
+    final icon = event.fuel ? Icons.local_gas_station_rounded : _expenseIcon(event.category);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: () => _entrySheet(fuel: event.fuel, edit: event),
+        borderRadius: BorderRadius.circular(18),
+        child: GlassPanel(
+          radius: 18,
+          opacity: .46,
+          blur: 18,
+          borderColor: color.withOpacity(.13),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+          child: Row(children: [
+            Container(width: 40, height: 40, alignment: Alignment.center, decoration: BoxDecoration(color: color.withOpacity(.12), borderRadius: BorderRadius.circular(13), border: Border.all(color: color.withOpacity(.16))), child: Icon(icon, color: color, size: 19)),
+            const SizedBox(width: 11),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(event.fuel ? '${event.fuelType} · ${event.liters.toStringAsFixed(1)} L' : (event.title.isEmpty ? _categoryLabel(event.category) : event.title), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: textMain, fontSize: 13, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text([_dateLabel(event.date), if (event.odometer > 0) '${event.odometer.round()} km', if (event.note.isNotEmpty) event.note].join('  ·  '), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: textMuted, fontSize: 10)),
+            ])),
+            const SizedBox(width: 8),
+            Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [Text(_money(event.amount), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w900)), const SizedBox(height: 3), const Text('Editar', style: TextStyle(color: textSoft, fontSize: 9))]),
+          ]),
+        ),
+      ),
+    );
   }
 
   Widget _historyTab() {
@@ -512,7 +729,7 @@ class _CarHomeState extends State<CarHome> {
       const SizedBox(height: 12),
       Row(children: [Text('${list.length} resultados', style: const TextStyle(color: textMuted, fontSize: 11, fontWeight: FontWeight.w700)), const Spacer(), _sortDropdown()]),
       const SizedBox(height: 9),
-      if (list.isEmpty) _emptyState('Nada encontrado', 'Tente mudar o filtro ou registrar um novo lançamento.') else ...list.map(_eventTile),
+      if (list.isEmpty) _emptyState('Nada encontrado', 'Tente mudar o filtro ou registrar um novo lançamento.') else ...list.map(_glassEventTile),
     ]);
   }
 
