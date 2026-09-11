@@ -52,7 +52,12 @@ jobs:
         working-directory: mobile
         run: |
           set -o pipefail
-          flutter build apk --release 2>&1 | tee build.log
+          if ! flutter build apk --release 2>&1 | tee build.log; then
+            echo '### Flutter build failure' >> "$GITHUB_STEP_SUMMARY"
+            sed -n '/\.dart:[0-9].*Error:/p; /Error: /p; /Exception:/p' build.log | head -30 >> "$GITHUB_STEP_SUMMARY"
+            while IFS= read -r line; do echo "::error::$line"; done < <(sed -n '/\.dart:[0-9].*Error:/p; /Error: /p; /Exception:/p' build.log | head -30)
+            exit 1
+          fi
 
       - name: Upload build log when compilation fails
         if: failure()
