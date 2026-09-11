@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -96,7 +96,7 @@ class FinanzaAutoApp extends StatelessWidget {
       valueListenable: _darkMode,
       builder: (context, dark, child) => MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Finanza Â· Carro',
+      title: 'Finanza · Carro',
       theme: ThemeData(
         useMaterial3: true,
         brightness: dark ? Brightness.dark : Brightness.light,
@@ -287,7 +287,7 @@ String _dateLabel(String value) {
 }
 
 String _categoryLabel(String value) => {
-      'Maintenance': 'ManutenÃ§Ã£o',
+      'Maintenance': 'Manutenção',
       'Insurance': 'Seguro',
       'Tax': 'Imposto',
       'Parking': 'Estacionamento',
@@ -379,7 +379,7 @@ class _CarHomeState extends State<CarHome> {
         activeVehicle = 'vehicle-1';
         events = [];
         loading = false;
-        loadError = 'NÃ£o foi possÃ­vel carregar o backup local.';
+        loadError = 'Não foi possível carregar o backup local.';
       });
     }
   }
@@ -417,7 +417,7 @@ class _CarHomeState extends State<CarHome> {
       result = result.where((event) {
         final date = _parseDate(event.date);
         if (date == null) return false;
-        if (period == 'MÃªs atual') return date.year == now.year && date.month == now.month;
+        if (period == 'Mês atual') return date.year == now.year && date.month == now.month;
         final days = period == '30 dias' ? 30 : period == '90 dias' ? 90 : 365;
         return !date.isBefore(now.subtract(Duration(days: days)));
       }).toList();
@@ -453,7 +453,7 @@ class _CarHomeState extends State<CarHome> {
   }
 
   double _maxOdometer(List<CarEvent> list) => list.fold<double>(0, (max, event) => event.odometer > max ? event.odometer : max);
-  String get _tabTitle => ['VisÃ£o geral', 'HistÃ³rico', 'AnÃ¡lises', 'Meu carro'][tab];
+  String get _tabTitle => ['Visão geral', 'Histórico', 'Análises', 'Meu carro'][tab];
 
   @override
   Widget build(BuildContext context) {
@@ -490,7 +490,7 @@ class _CarHomeState extends State<CarHome> {
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('finanza.', style: TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -.5)), Text(_tabTitle, style: TextStyle(color: textMuted, fontSize: 11, fontWeight: FontWeight.w500))]),
            Spacer(),
            IconButton(onPressed: _toggleTheme, tooltip: isDarkTheme ? 'Usar tema claro' : 'Usar tema escuro', icon: Icon(isDarkTheme ? Icons.light_mode_rounded : Icons.dark_mode_rounded, color: textMuted)),
-           PopupMenuButton<String>(tooltip: 'Mais opÃ§Ãµes', color: panelRaised, icon: Icon(Icons.more_horiz_rounded, color: textMuted), onSelected: (value) { if (value == 'backup') _copyBackup(); if (value == 'restore') _restoreBackup(); if (value == 'vehicle') _vehicleSheet(); }, itemBuilder: (context) => [PopupMenuItem(value: 'backup', child: Text('Copiar backup local')), PopupMenuItem(value: 'restore', child: Text('Restaurar backup')), PopupMenuItem(value: 'vehicle', child: Text('Adicionar veÃ­culo'))]),
+           PopupMenuButton<String>(tooltip: 'Mais opções', color: panelRaised, icon: Icon(Icons.more_horiz_rounded, color: textMuted), onSelected: (value) { if (value == 'backup') _copyBackup(); if (value == 'restore') _restoreBackup(); if (value == 'vehicle') _vehicleSheet(); }, itemBuilder: (context) => [PopupMenuItem(value: 'backup', child: Text('Copiar backup local')), PopupMenuItem(value: 'restore', child: Text('Restaurar backup')), PopupMenuItem(value: 'vehicle', child: Text('Adicionar veículo'))]),
     ]));
   }
 
@@ -521,7 +521,7 @@ class _CarHomeState extends State<CarHome> {
           SizedBox(width: 11),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('finanza.', style: TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -.5)), Text(_tabTitle, style: TextStyle(color: textMuted, fontSize: 11, fontWeight: FontWeight.w500))]),
           Spacer(),
-          PopupMenuButton<String>(tooltip: 'Mais opÃ§Ãµes', color: panelRaised, icon: Icon(Icons.more_horiz_rounded, color: textMuted), onSelected: (value) { if (value == 'backup') _copyBackup(); if (value == 'restore') _restoreBackup(); if (value == 'vehicle') _vehicleSheet(); }, itemBuilder: (context) => [PopupMenuItem(value: 'backup', child: Text('Copiar backup local')), PopupMenuItem(value: 'restore', child: Text('Restaurar backup')), PopupMenuItem(value: 'vehicle', child: Text('Adicionar veÃ­culo'))]),
+          PopupMenuButton<String>(tooltip: 'Mais opções', color: panelRaised, icon: Icon(Icons.more_horiz_rounded, color: textMuted), onSelected: (value) { if (value == 'backup') _copyBackup(); if (value == 'restore') _restoreBackup(); if (value == 'vehicle') _vehicleSheet(); }, itemBuilder: (context) => [PopupMenuItem(value: 'backup', child: Text('Copiar backup local')), PopupMenuItem(value: 'restore', child: Text('Restaurar backup')), PopupMenuItem(value: 'vehicle', child: Text('Adicionar veículo'))]),
         ]),
       ),
     );
@@ -531,7 +531,7 @@ class _CarHomeState extends State<CarHome> {
 
   Widget _errorBanner() => Container(width: double.infinity, margin: EdgeInsets.fromLTRB(20, 0, 20, 8), padding: EdgeInsets.symmetric(horizontal: 13, vertical: 10), decoration: BoxDecoration(color: coral.withOpacity(.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: coral.withOpacity(.25))), child: Row(children: [Icon(Icons.info_outline_rounded, color: coral, size: 17), SizedBox(width: 8), Expanded(child: Text(loadError, style: TextStyle(color: Color(0xffffb0a4), fontSize: 12)))]));
 
-  Widget _bottomNavigation() => NavigationBar(height: 68, selectedIndex: tab, onDestinationSelected: (index) => setState(() => tab = index), backgroundColor: panel, surfaceTintColor: Colors.transparent, elevation: 0, indicatorColor: Color(0xff3a3a40), labelTextStyle: MaterialStatePropertyAll(TextStyle(color: textMain, fontSize: 10, fontWeight: FontWeight.w600)), destinations: [NavigationDestination(icon: Icon(Icons.grid_view_rounded), selectedIcon: Icon(Icons.grid_view_rounded, color: Colors.white), label: 'InÃ­cio'), NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long, color: Colors.white), label: 'HistÃ³rico'), NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights, color: Colors.white), label: 'AnÃ¡lises'), NavigationDestination(icon: Icon(Icons.directions_car_outlined), selectedIcon: Icon(Icons.directions_car, color: Colors.white), label: 'Carro')]);
+  Widget _bottomNavigation() => NavigationBar(height: 68, selectedIndex: tab, onDestinationSelected: (index) => setState(() => tab = index), backgroundColor: panel, surfaceTintColor: Colors.transparent, elevation: 0, indicatorColor: Color(0xff3a3a40), labelTextStyle: MaterialStatePropertyAll(TextStyle(color: textMain, fontSize: 10, fontWeight: FontWeight.w600)), destinations: [NavigationDestination(icon: Icon(Icons.grid_view_rounded), selectedIcon: Icon(Icons.grid_view_rounded, color: Colors.white), label: 'Início'), NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long, color: Colors.white), label: 'Histórico'), NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights, color: Colors.white), label: 'Análises'), NavigationDestination(icon: Icon(Icons.directions_car_outlined), selectedIcon: Icon(Icons.directions_car, color: Colors.white), label: 'Carro')]);
 
   Widget _homeTab() {
     final list = filteredEvents;
@@ -541,7 +541,7 @@ class _CarHomeState extends State<CarHome> {
       SizedBox(height: 16),
       _heroCardGlass(list, total),
       SizedBox(height: 22),
-      _sectionTitle('Resumo do perÃ­odo', 'Tudo que foi registrado no carro', trailing: _periodDropdown()),
+      _sectionTitle('Resumo do período', 'Tudo que foi registrado no carro', trailing: _periodDropdown()),
       SizedBox(height: 11),
       _metricsGrid(list),
       SizedBox(height: 23),
@@ -549,17 +549,17 @@ class _CarHomeState extends State<CarHome> {
       SizedBox(height: 11),
       _quickActions(),
       SizedBox(height: 23),
-      _sectionTitle('EvoluÃ§Ã£o dos gastos', 'Ãšltimos meses com dados registrados', trailing: Text(_shortMoney(total), style: TextStyle(color: lime, fontWeight: FontWeight.w800, fontSize: 13))),
+      _sectionTitle('Evolução dos gastos', 'Últimos meses com dados registrados', trailing: Text(_shortMoney(total), style: TextStyle(color: lime, fontWeight: FontWeight.w800, fontSize: 13))),
       SizedBox(height: 11),
       _chartCard(list),
       SizedBox(height: 23),
-      _sectionTitle('LanÃ§amentos recentes', 'Os Ãºltimos movimentos do veÃ­culo', trailing: TextButton(onPressed: () => setState(() => tab = 1), child: Text('Ver todos'))),
+      _sectionTitle('Lançamentos recentes', 'Os últimos movimentos do veículo', trailing: TextButton(onPressed: () => setState(() => tab = 1), child: Text('Ver todos'))),
       SizedBox(height: 8),
       _recentList(list),
     ]));
   }
 
-  Widget _vehicleSwitcher() => Row(children: [Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: mint.withOpacity(.12), borderRadius: BorderRadius.circular(11)), child: Icon(Icons.directions_car_rounded, size: 19, color: mint)), SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(currentVehicle.name, style: TextStyle(color: textMain, fontSize: 15, fontWeight: FontWeight.w700)), Text(currentVehicle.model.isEmpty ? 'Seu veÃ­culo principal' : currentVehicle.model, style: TextStyle(color: textMuted, fontSize: 11))])), PopupMenuButton<String>(tooltip: 'Trocar veÃ­culo', onSelected: (value) async { setState(() => activeVehicle = value); await _save(); }, color: panelRaised, icon: Icon(Icons.keyboard_arrow_down_rounded, color: textMuted), itemBuilder: (context) => vehicles.map((vehicle) => PopupMenuItem(value: vehicle.id, child: Text(vehicle.name))).toList())]);
+  Widget _vehicleSwitcher() => Row(children: [Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: mint.withOpacity(.12), borderRadius: BorderRadius.circular(11)), child: Icon(Icons.directions_car_rounded, size: 19, color: mint)), SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(currentVehicle.name, style: TextStyle(color: textMain, fontSize: 15, fontWeight: FontWeight.w700)), Text(currentVehicle.model.isEmpty ? 'Seu veículo principal' : currentVehicle.model, style: TextStyle(color: textMuted, fontSize: 11))])), PopupMenuButton<String>(tooltip: 'Trocar veículo', onSelected: (value) async { setState(() => activeVehicle = value); await _save(); }, color: panelRaised, icon: Icon(Icons.keyboard_arrow_down_rounded, color: textMuted), itemBuilder: (context) => vehicles.map((vehicle) => PopupMenuItem(value: vehicle.id, child: Text(vehicle.name))).toList())]);
 
   Widget _glassVehicleSwitcher() => GlassPanel(
         radius: 20,
@@ -570,12 +570,12 @@ class _CarHomeState extends State<CarHome> {
         child: Row(children: [
           Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: mint.withOpacity(.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: mint.withOpacity(.18))), child: Icon(Icons.directions_car_rounded, size: 19, color: mint)),
           SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(currentVehicle.name, style: TextStyle(color: textMain, fontSize: 15, fontWeight: FontWeight.w700)), Text(currentVehicle.model.isEmpty ? 'Seu veÃ­culo principal' : currentVehicle.model, style: TextStyle(color: textMuted, fontSize: 11))])),
-          PopupMenuButton<String>(tooltip: 'Trocar veÃ­culo', onSelected: (value) async { setState(() => activeVehicle = value); await _save(); }, color: panelRaised, icon: Icon(Icons.keyboard_arrow_down_rounded, color: textMuted), itemBuilder: (context) => vehicles.map((vehicle) => PopupMenuItem(value: vehicle.id, child: Text(vehicle.name))).toList()),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(currentVehicle.name, style: TextStyle(color: textMain, fontSize: 15, fontWeight: FontWeight.w700)), Text(currentVehicle.model.isEmpty ? 'Seu veículo principal' : currentVehicle.model, style: TextStyle(color: textMuted, fontSize: 11))])),
+          PopupMenuButton<String>(tooltip: 'Trocar veículo', onSelected: (value) async { setState(() => activeVehicle = value); await _save(); }, color: panelRaised, icon: Icon(Icons.keyboard_arrow_down_rounded, color: textMuted), itemBuilder: (context) => vehicles.map((vehicle) => PopupMenuItem(value: vehicle.id, child: Text(vehicle.name))).toList()),
         ]),
       );
 
-  Widget _heroCard(List<CarEvent> list, double total) => Container(padding: EdgeInsets.fromLTRB(20, 20, 20, 17), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(26), border: Border.all(color: Colors.white.withOpacity(.14))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(padding: EdgeInsets.symmetric(horizontal: 9, vertical: 6), decoration: BoxDecoration(color: lime.withOpacity(.13), borderRadius: BorderRadius.circular(9)), child: Text('VISÃƒO GERAL', style: TextStyle(color: lime, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.1))), Spacer(), Icon(Icons.auto_awesome_rounded, color: textMain, size: 20)]), SizedBox(height: 20), Text(_money(total), style: TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1.2)), SizedBox(height: 5), Text('${list.length} registros em ${period.toLowerCase()}', style: TextStyle(color: textMuted, fontSize: 12)), SizedBox(height: 18), Row(children: [Expanded(child: _heroStat('CombustÃ­vel', _money(_fuelTotal(list)), amber)), Container(width: 1, height: 32, color: Colors.white.withOpacity(.12)), Expanded(child: Padding(padding: EdgeInsets.only(left: 16), child: _heroStat('Despesas', _money(_expenseTotal(list)), coral)))]), SizedBox(height: 17), SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _entrySheet(fuel: true), icon: Icon(Icons.add_rounded, size: 18), label: Text('Registrar abastecimento'), style: FilledButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white, padding: EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21)), textStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 13))))]));
+  Widget _heroCard(List<CarEvent> list, double total) => Container(padding: EdgeInsets.fromLTRB(20, 20, 20, 17), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(26), border: Border.all(color: Colors.white.withOpacity(.14))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(padding: EdgeInsets.symmetric(horizontal: 9, vertical: 6), decoration: BoxDecoration(color: lime.withOpacity(.13), borderRadius: BorderRadius.circular(9)), child: Text('VISÃO GERAL', style: TextStyle(color: lime, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.1))), Spacer(), Icon(Icons.auto_awesome_rounded, color: textMain, size: 20)]), SizedBox(height: 20), Text(_money(total), style: TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1.2)), SizedBox(height: 5), Text('${list.length} registros em ${period.toLowerCase()}', style: TextStyle(color: textMuted, fontSize: 12)), SizedBox(height: 18), Row(children: [Expanded(child: _heroStat('Combustível', _money(_fuelTotal(list)), amber)), Container(width: 1, height: 32, color: Colors.white.withOpacity(.12)), Expanded(child: Padding(padding: EdgeInsets.only(left: 16), child: _heroStat('Despesas', _money(_expenseTotal(list)), coral)))]), SizedBox(height: 17), SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _entrySheet(fuel: true), icon: Icon(Icons.add_rounded, size: 18), label: Text('Registrar abastecimento'), style: FilledButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white, padding: EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21)), textStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 13))))]));
   Widget _heroCardGlass(List<CarEvent> list, double total) => GlassPanel(
         radius: 28,
         opacity: .94,
@@ -590,7 +590,7 @@ class _CarHomeState extends State<CarHome> {
             SizedBox(height: 5),
             Text('${list.length} registros em ${period.toLowerCase()}', style: TextStyle(color: Color(0xffaeaeb2), fontSize: 12)),
             SizedBox(height: 20),
-            Row(children: [Expanded(child: _heroStat('CombustÃ­vel', _money(_fuelTotal(list)), amber)), Container(width: 1, height: 32, color: Colors.white.withOpacity(.14)), Expanded(child: Padding(padding: EdgeInsets.only(left: 16), child: _heroStat('Despesas', _money(_expenseTotal(list)), coral)))]),
+            Row(children: [Expanded(child: _heroStat('Combustível', _money(_fuelTotal(list)), amber)), Container(width: 1, height: 32, color: Colors.white.withOpacity(.14)), Expanded(child: Padding(padding: EdgeInsets.only(left: 16), child: _heroStat('Despesas', _money(_expenseTotal(list)), coral)))]),
             SizedBox(height: 18),
             SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _entrySheet(fuel: true), icon: Icon(Icons.add_rounded, size: 18), label: Text('Registrar abastecimento'), style: FilledButton.styleFrom(backgroundColor: blue, foregroundColor: Colors.white, padding: EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21)), textStyle: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)))),
         ]),
@@ -599,16 +599,16 @@ class _CarHomeState extends State<CarHome> {
   Widget _heroStat(String label, String value, Color color) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: TextStyle(color: isDarkTheme ? textMuted : Color(0xffaeaeb2), fontSize: 11)), SizedBox(height: 3), Text(value, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w800))]);
 
   Widget _sectionTitle(String title, String subtitle, {Widget? trailing}) => Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -.3)), SizedBox(height: 3), Text(subtitle, style: TextStyle(color: textMuted, fontSize: 11))])), if (trailing != null) trailing]);
-  Widget _periodDropdown() => DropdownButtonHideUnderline(child: DropdownButton<String>(value: period, dropdownColor: panelRaised, icon: Icon(Icons.keyboard_arrow_down_rounded, color: textMuted, size: 18), style: TextStyle(color: textMain, fontSize: 11, fontWeight: FontWeight.w700), items: ['Tudo', 'MÃªs atual', '30 dias', '90 dias', 'Ano atual'].map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(), onChanged: (value) => setState(() => period = value ?? period)));
+  Widget _periodDropdown() => DropdownButtonHideUnderline(child: DropdownButton<String>(value: period, dropdownColor: panelRaised, icon: Icon(Icons.keyboard_arrow_down_rounded, color: textMuted, size: 18), style: TextStyle(color: textMain, fontSize: 11, fontWeight: FontWeight.w700), items: ['Tudo', 'Mês atual', '30 dias', '90 dias', 'Ano atual'].map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(), onChanged: (value) => setState(() => period = value ?? period)));
 
   Widget _metricsGrid(List<CarEvent> list) {
     final distance = _distance(list);
     final consumption = _consumption(list);
     final cards = [
-      _MetricData('Km acompanhados', distance > 0 ? '${distance.round()} km' : 'â€”', distance > 0 ? 'entre abastecimentos' : 'sem leituras suficientes', mint, Icons.route_rounded),
-      _MetricData('Consumo mÃ©dio', consumption > 0 ? '${consumption.toStringAsFixed(1).replaceAll('.', ',')} km/l' : 'â€”', _liters(list) > 0 ? '${_liters(list).toStringAsFixed(0)} L registrados' : 'sem litros registrados', lime, Icons.speed_rounded),
-      _MetricData('Custo por km', distance > 0 ? _money(_total(list) / distance) : 'â€”', 'combustÃ­vel + despesas', amber, Icons.payments_outlined),
-      _MetricData('HodÃ´metro', '${_maxOdometer(allVehicleEvents).round()} km', 'maior leitura importada', coral, Icons.dashboard_outlined),
+      _MetricData('Km acompanhados', distance > 0 ? '${distance.round()} km' : '—', distance > 0 ? 'entre abastecimentos' : 'sem leituras suficientes', mint, Icons.route_rounded),
+      _MetricData('Consumo médio', consumption > 0 ? '${consumption.toStringAsFixed(1).replaceAll('.', ',')} km/l' : '—', _liters(list) > 0 ? '${_liters(list).toStringAsFixed(0)} L registrados' : 'sem litros registrados', lime, Icons.speed_rounded),
+      _MetricData('Custo por km', distance > 0 ? _money(_total(list) / distance) : '—', 'combustível + despesas', amber, Icons.payments_outlined),
+      _MetricData('Hodômetro', '${_maxOdometer(allVehicleEvents).round()} km', 'maior leitura importada', coral, Icons.dashboard_outlined),
     ];
     return GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: NeverScrollableScrollPhysics(), crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.27, children: cards.map(_glassMetricCard).toList());
   }
@@ -632,7 +632,7 @@ class _CarHomeState extends State<CarHome> {
 
   Widget _metricCard(_MetricData data) => Container(padding: EdgeInsets.all(14), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(17), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(width: 29, height: 29, alignment: Alignment.center, decoration: BoxDecoration(color: data.color.withOpacity(.12), borderRadius: BorderRadius.circular(9)), child: Icon(data.icon, color: data.color, size: 16)), Spacer(), Icon(Icons.arrow_outward_rounded, color: textSoft.withOpacity(.7), size: 14)]), Spacer(), Text(data.label.toUpperCase(), style: TextStyle(color: textMuted, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: .5)), SizedBox(height: 4), Text(data.value, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: data.color, fontSize: 19, fontWeight: FontWeight.w900, letterSpacing: -.5)), SizedBox(height: 3), Text(data.caption, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: textSoft, fontSize: 10))]));
 
-  Widget _quickActions() => Row(children: [Expanded(child: _glassQuickAction(Icons.local_gas_station_rounded, 'Abastecer', 'CombustÃ­vel', mint, () => _entrySheet(fuel: true))), SizedBox(width: 10), Expanded(child: _glassQuickAction(Icons.build_rounded, 'Adicionar', 'Despesa', coral, () => _entrySheet(fuel: false))), SizedBox(width: 10), Expanded(child: _glassQuickAction(Icons.edit_rounded, 'Editar', 'VeÃ­culo', amber, () => _vehicleSheet(currentVehicle)))]);
+  Widget _quickActions() => Row(children: [Expanded(child: _glassQuickAction(Icons.local_gas_station_rounded, 'Abastecer', 'Combustível', mint, () => _entrySheet(fuel: true))), SizedBox(width: 10), Expanded(child: _glassQuickAction(Icons.build_rounded, 'Adicionar', 'Despesa', coral, () => _entrySheet(fuel: false))), SizedBox(width: 10), Expanded(child: _glassQuickAction(Icons.edit_rounded, 'Editar', 'Veículo', amber, () => _vehicleSheet(currentVehicle)))]);
 
   Widget _glassQuickAction(IconData icon, String title, String caption, Color color, VoidCallback action) => InkWell(onTap: action, borderRadius: BorderRadius.circular(18), child: GlassPanel(radius: 18, opacity: isDarkTheme ? .90 : .96, blur: 18, borderColor: color.withOpacity(.15), padding: EdgeInsets.fromLTRB(10, 13, 8, 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: color.withOpacity(.13), borderRadius: BorderRadius.circular(11), border: Border.all(color: color.withOpacity(.18))), child: Icon(icon, color: color, size: 18)), SizedBox(height: 11), Text(title, style: TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w800)), SizedBox(height: 2), Text(caption, style: TextStyle(color: textSoft, fontSize: 10)), SizedBox(height: 2), Align(alignment: Alignment.centerRight, child: Icon(Icons.arrow_forward_rounded, color: color.withOpacity(.72), size: 14))])));
   Widget _quickAction(IconData icon, String title, String caption, Color color, VoidCallback action) => InkWell(onTap: action, borderRadius: BorderRadius.circular(16), child: Container(padding: EdgeInsets.fromLTRB(10, 13, 8, 12), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 32, height: 32, alignment: Alignment.center, decoration: BoxDecoration(color: color.withOpacity(.13), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: color, size: 18)), SizedBox(height: 11), Text(title, style: TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w800)), SizedBox(height: 2), Text(caption, style: TextStyle(color: textSoft, fontSize: 10))])));
@@ -640,7 +640,7 @@ class _CarHomeState extends State<CarHome> {
   Widget _chartCard(List<CarEvent> list) {
     final chart = _chartValues(list);
     final maxValue = chart.values.fold<double>(0, (max, value) => value > max ? value : max);
-    return Container(padding: EdgeInsets.fromLTRB(16, 17, 16, 13), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(19), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(children: [if (maxValue == 0) SizedBox(height: 116, child: Center(child: Text('Ainda nÃ£o hÃ¡ gastos neste perÃ­odo', style: TextStyle(color: textMuted, fontSize: 12)))) else SizedBox(height: 145, child: Row(crossAxisAlignment: CrossAxisAlignment.end, mainAxisAlignment: MainAxisAlignment.spaceAround, children: chart.entries.map((entry) { final height = maxValue == 0 ? 4.0 : 102 * entry.value / maxValue; return Column(mainAxisAlignment: MainAxisAlignment.end, children: [Container(width: 24, height: height.clamp(4.0, 102.0).toDouble(), decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [mint, lime]))), SizedBox(height: 8), Text(entry.key, style: TextStyle(color: textSoft, fontSize: 10))]); }).toList())), Divider(height: 20), Row(children: [Container(width: 8, height: 8, decoration: BoxDecoration(color: mint, shape: BoxShape.circle)), SizedBox(width: 7), Text('Gasto mensal', style: TextStyle(color: textMuted, fontSize: 11)), Spacer(), Text(_money(chart.values.fold<double>(0, (sum, value) => sum + value)), style: TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w800))]) ]));
+    return Container(padding: EdgeInsets.fromLTRB(16, 17, 16, 13), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(19), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(children: [if (maxValue == 0) SizedBox(height: 116, child: Center(child: Text('Ainda não há gastos neste período', style: TextStyle(color: textMuted, fontSize: 12)))) else SizedBox(height: 145, child: Row(crossAxisAlignment: CrossAxisAlignment.end, mainAxisAlignment: MainAxisAlignment.spaceAround, children: chart.entries.map((entry) { final height = maxValue == 0 ? 4.0 : 102 * entry.value / maxValue; return Column(mainAxisAlignment: MainAxisAlignment.end, children: [Container(width: 24, height: height.clamp(4.0, 102.0).toDouble(), decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [mint, lime]))), SizedBox(height: 8), Text(entry.key, style: TextStyle(color: textSoft, fontSize: 10))]); }).toList())), Divider(height: 20), Row(children: [Container(width: 8, height: 8, decoration: BoxDecoration(color: mint, shape: BoxShape.circle)), SizedBox(width: 7), Text('Gasto mensal', style: TextStyle(color: textMuted, fontSize: 11)), Spacer(), Text(_money(chart.values.fold<double>(0, (sum, value) => sum + value)), style: TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w800))]) ]));
   }
 
   Map<String, double> _chartValues(List<CarEvent> list) {
@@ -655,12 +655,12 @@ class _CarHomeState extends State<CarHome> {
     return result;
   }
 
-  Widget _recentList(List<CarEvent> list) => list.isEmpty ? _emptyState('Nenhum lanÃ§amento ainda', 'Use um dos atalhos acima para comeÃ§ar.') : Column(children: list.take(5).map(_glassEventTile).toList());
+  Widget _recentList(List<CarEvent> list) => list.isEmpty ? _emptyState('Nenhum lançamento ainda', 'Use um dos atalhos acima para começar.') : Column(children: list.take(5).map(_glassEventTile).toList());
 
   Widget _eventTile(CarEvent event) {
     final color = event.fuel ? mint : coral;
     final icon = event.fuel ? Icons.local_gas_station_rounded : _expenseIcon(event.category);
-    return Container(margin: EdgeInsets.only(bottom: 8), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withOpacity(.06))), child: ListTile(onTap: () => _entrySheet(fuel: event.fuel, edit: event), contentPadding: EdgeInsets.symmetric(horizontal: 13, vertical: 3), leading: Container(width: 40, height: 40, alignment: Alignment.center, decoration: BoxDecoration(color: color.withOpacity(.12), borderRadius: BorderRadius.circular(13)), child: Icon(icon, color: color, size: 19)), title: Text(event.fuel ? '${event.fuelType} Â· ${event.liters.toStringAsFixed(1)} L' : (event.title.isEmpty ? _categoryLabel(event.category) : event.title), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: textMain, fontSize: 13, fontWeight: FontWeight.w700)), subtitle: Text([_dateLabel(event.date), if (event.odometer > 0) '${event.odometer.round()} km', if (event.note.isNotEmpty) event.note].join('  Â·  '), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: textMuted, fontSize: 10)), trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [Text(_money(event.amount), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w900)), SizedBox(height: 3), Text('Editar', style: TextStyle(color: textSoft, fontSize: 9))])));
+    return Container(margin: EdgeInsets.only(bottom: 8), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withOpacity(.06))), child: ListTile(onTap: () => _entrySheet(fuel: event.fuel, edit: event), contentPadding: EdgeInsets.symmetric(horizontal: 13, vertical: 3), leading: Container(width: 40, height: 40, alignment: Alignment.center, decoration: BoxDecoration(color: color.withOpacity(.12), borderRadius: BorderRadius.circular(13)), child: Icon(icon, color: color, size: 19)), title: Text(event.fuel ? '${event.fuelType} · ${event.liters.toStringAsFixed(1)} L' : (event.title.isEmpty ? _categoryLabel(event.category) : event.title), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: textMain, fontSize: 13, fontWeight: FontWeight.w700)), subtitle: Text([_dateLabel(event.date), if (event.odometer > 0) '${event.odometer.round()} km', if (event.note.isNotEmpty) event.note].join('  ·  '), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: textMuted, fontSize: 10)), trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [Text(_money(event.amount), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w900)), SizedBox(height: 3), Text('Editar', style: TextStyle(color: textSoft, fontSize: 9))])));
   }
 
   Widget _glassEventTile(CarEvent event) {
@@ -681,9 +681,9 @@ class _CarHomeState extends State<CarHome> {
             Container(width: 40, height: 40, alignment: Alignment.center, decoration: BoxDecoration(color: color.withOpacity(.12), borderRadius: BorderRadius.circular(13), border: Border.all(color: color.withOpacity(.16))), child: Icon(icon, color: color, size: 19)),
             SizedBox(width: 11),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(event.fuel ? '${event.fuelType} Â· ${event.liters.toStringAsFixed(1)} L' : (event.title.isEmpty ? _categoryLabel(event.category) : event.title), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: textMain, fontSize: 13, fontWeight: FontWeight.w700)),
+              Text(event.fuel ? '${event.fuelType} · ${event.liters.toStringAsFixed(1)} L' : (event.title.isEmpty ? _categoryLabel(event.category) : event.title), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: textMain, fontSize: 13, fontWeight: FontWeight.w700)),
               SizedBox(height: 4),
-              Text([_dateLabel(event.date), if (event.odometer > 0) '${event.odometer.round()} km', if (event.note.isNotEmpty) event.note].join('  Â·  '), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: textMuted, fontSize: 10)),
+              Text([_dateLabel(event.date), if (event.odometer > 0) '${event.odometer.round()} km', if (event.note.isNotEmpty) event.note].join('  ·  '), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: textMuted, fontSize: 10)),
             ])),
             SizedBox(width: 8),
             Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [Text(_money(event.amount), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w900)), SizedBox(height: 3), Text('Editar', style: TextStyle(color: textSoft, fontSize: 9))]),
@@ -696,15 +696,15 @@ class _CarHomeState extends State<CarHome> {
   Widget _historyTab() {
     final list = filteredEvents;
     return ListView(padding: EdgeInsets.fromLTRB(20, 8, 20, 30), children: [
-      _pageIntro('HistÃ³rico completo', '${allVehicleEvents.length} registros salvos neste dispositivo', Icons.receipt_long_rounded, mint),
+      _pageIntro('Histórico completo', '${allVehicleEvents.length} registros salvos neste dispositivo', Icons.receipt_long_rounded, mint),
       SizedBox(height: 17),
-      TextField(controller: searchController, onChanged: (value) => setState(() => search = value), decoration: InputDecoration(hintText: 'Buscar por posto, categoria ou descriÃ§Ã£o', prefixIcon: Icon(Icons.search_rounded, color: textMuted))),
+      TextField(controller: searchController, onChanged: (value) => setState(() => search = value), decoration: InputDecoration(hintText: 'Buscar por posto, categoria ou descrição', prefixIcon: Icon(Icons.search_rounded, color: textMuted))),
       SizedBox(height: 12),
       _filterChips(),
       SizedBox(height: 12),
       Row(children: [Text('${list.length} resultados', style: TextStyle(color: textMuted, fontSize: 11, fontWeight: FontWeight.w700)), Spacer(), _sortDropdown()]),
       SizedBox(height: 9),
-      if (list.isEmpty) _emptyState('Nada encontrado', 'Tente mudar o filtro ou registrar um novo lanÃ§amento.') else ...list.map(_glassEventTile),
+      if (list.isEmpty) _emptyState('Nada encontrado', 'Tente mudar o filtro ou registrar um novo lançamento.') else ...list.map(_glassEventTile),
     ]);
   }
 
@@ -747,38 +747,38 @@ class _CarHomeState extends State<CarHome> {
     final orderedPlaces = places.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     final orderedFuel = fuelTypes.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     return ListView(padding: EdgeInsets.fromLTRB(20, 8, 20, 30), children: [
-      _pageIntro('AnÃ¡lises do carro', 'Entenda para onde seu dinheiro estÃ¡ indo', Icons.insights_rounded, lime),
+      _pageIntro('Análises do carro', 'Entenda para onde seu dinheiro está indo', Icons.insights_rounded, lime),
       SizedBox(height: 17),
       _analysisSummary(fuel, expense, list),
       SizedBox(height: 19),
-      _sectionTitle('Gasto por mÃªs', 'Acompanhe a evoluÃ§Ã£o do custo total'),
+      _sectionTitle('Gasto por mês', 'Acompanhe a evolução do custo total'),
       SizedBox(height: 10),
       _chartCard(list),
       SizedBox(height: 19),
-      _sectionTitle('CombustÃ­vel', 'DistribuiÃ§Ã£o do que foi abastecido'),
+      _sectionTitle('Combustível', 'Distribuição do que foi abastecido'),
       SizedBox(height: 10),
       _breakdownCard(orderedFuel, fuel, Icons.local_gas_station_rounded, mint),
       SizedBox(height: 19),
-      _sectionTitle('Onde vocÃª abastece', 'Postos e locais mais frequentes'),
+      _sectionTitle('Onde você abastece', 'Postos e locais mais frequentes'),
       SizedBox(height: 10),
       _placesCard(orderedPlaces),
       SizedBox(height: 19),
-      _sectionTitle('ManutenÃ§Ã£o preventiva', 'PrÃ³ximos cuidados para nÃ£o esquecer'),
+      _sectionTitle('Manutenção preventiva', 'Próximos cuidados para não esquecer'),
       SizedBox(height: 10),
       _maintenanceCard(list),
     ]);
   }
 
-  Widget _analysisSummary(double fuel, double expense, List<CarEvent> list) => Container(padding: EdgeInsets.all(16), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(children: [Row(children: [Expanded(child: _summaryValue('Total', _money(fuel + expense), textMain)), Expanded(child: _summaryValue('CombustÃ­vel', _money(fuel), mint)), Expanded(child: _summaryValue('Despesas', _money(expense), coral))]), SizedBox(height: 18), Row(children: [Icon(Icons.info_outline_rounded, size: 15, color: textMuted), SizedBox(width: 7), Expanded(child: Text('${list.length} lanÃ§amentos analisados Â· ${_distance(list).round()} km acompanhados', style: TextStyle(color: textMuted, fontSize: 11)))]) ]));
+  Widget _analysisSummary(double fuel, double expense, List<CarEvent> list) => Container(padding: EdgeInsets.all(16), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(children: [Row(children: [Expanded(child: _summaryValue('Total', _money(fuel + expense), textMain)), Expanded(child: _summaryValue('Combustível', _money(fuel), mint)), Expanded(child: _summaryValue('Despesas', _money(expense), coral))]), SizedBox(height: 18), Row(children: [Icon(Icons.info_outline_rounded, size: 15, color: textMuted), SizedBox(width: 7), Expanded(child: Text('${list.length} lançamentos analisados · ${_distance(list).round()} km acompanhados', style: TextStyle(color: textMuted, fontSize: 11)))]) ]));
   Widget _summaryValue(String label, String value, Color color) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: TextStyle(color: textMuted, fontSize: 10)), SizedBox(height: 5), Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w900))]);
 
   Widget _breakdownCard(List<MapEntry<String, double>> items, double total, IconData icon, Color color) {
-    if (items.isEmpty) return _emptyState('Sem abastecimentos', 'Os dados aparecerÃ£o aqui quando forem registrados.');
+    if (items.isEmpty) return _emptyState('Sem abastecimentos', 'Os dados aparecerão aqui quando forem registrados.');
     return Container(padding: EdgeInsets.all(16), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(children: items.take(4).map((item) { final ratio = total > 0 ? item.value / total : 0.0; return Padding(padding: EdgeInsets.only(bottom: 13), child: Column(children: [Row(children: [Icon(icon, color: color, size: 16), SizedBox(width: 8), Text(item.key, style: TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w700)), Spacer(), Text(_money(item.value), style: TextStyle(color: textMuted, fontSize: 11, fontWeight: FontWeight.w700))]), SizedBox(height: 7), ClipRRect(borderRadius: BorderRadius.circular(5), child: LinearProgressIndicator(value: ratio, minHeight: 6, backgroundColor: Colors.white.withOpacity(.07), color: color))])); }).toList()));
   }
 
   Widget _placesCard(List<MapEntry<String, int>> places) {
-    if (places.isEmpty) return _emptyState('Sem locais registrados', 'O posto ou local aparece quando vocÃª informa uma observaÃ§Ã£o.');
+    if (places.isEmpty) return _emptyState('Sem locais registrados', 'O posto ou local aparece quando você informa uma observação.');
     return Container(padding: EdgeInsets.all(10), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(children: places.take(5).toList().asMap().entries.map((entry) { final item = entry.value; return ListTile(dense: true, leading: CircleAvatar(radius: 15, backgroundColor: mint.withOpacity(.11), child: Text('${entry.key + 1}', style: TextStyle(color: mint, fontSize: 11, fontWeight: FontWeight.w800))), title: Text(item.key, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w700)), trailing: Text('${item.value}x', style: TextStyle(color: textMuted, fontSize: 11, fontWeight: FontWeight.w700))); }).toList()));
   }
 
@@ -787,18 +787,18 @@ class _CarHomeState extends State<CarHome> {
     final service = list.where((event) {
       if (event.fuel) return false;
       final text = '${event.title} ${event.note}'.toLowerCase();
-      return ['oleo', 'Ã³leo', 'filtro', 'revis', 'troca'].any(text.contains);
+      return ['oleo', 'óleo', 'filtro', 'revis', 'troca'].any(text.contains);
     }).toList()
       ..sort((a, b) => '${a.date}${a.odometer}'.compareTo('${b.date}${b.odometer}'));
     final latestService = service.isEmpty ? null : service.last;
     final currentOdometer = _maxOdometer(list);
     final nextService = latestService != null && latestService.odometer > 0 ? latestService.odometer + 5000 : 0.0;
     final serviceLabel = latestService == null || nextService == 0
-        ? 'Registre troca de Ã³leo ou revisÃ£o'
+        ? 'Registre troca de óleo ou revisão'
         : currentOdometer >= nextService
-            ? 'RevisÃ£o atrasada Â· ${currentOdometer.round() - nextService.round()} km'
+            ? 'Revisão atrasada · ${currentOdometer.round() - nextService.round()} km'
             : '${(nextService - currentOdometer).round()} km restantes';
-    return Container(padding: EdgeInsets.all(16), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: amber.withOpacity(.13), borderRadius: BorderRadius.circular(11)), child: Icon(Icons.build_circle_outlined, color: amber, size: 19)), SizedBox(width: 10), Expanded(child: Text('Cuidados do veÃ­culo', style: TextStyle(color: textMain, fontSize: 13, fontWeight: FontWeight.w800))), Icon(Icons.chevron_right_rounded, color: textSoft)]), SizedBox(height: 14), _maintenanceLine('Maior despesa registrada', expenses.isEmpty ? 'Nenhuma ainda' : '${_categoryLabel(expenses.first.category)} Â· ${_money(expenses.first.amount)}'), SizedBox(height: 8), _maintenanceLine('Ãšltimo hodÃ´metro conhecido', '${currentOdometer.round()} km'), SizedBox(height: 8), _maintenanceLine('PrÃ³xima revisÃ£o', serviceLabel) ]));
+    return Container(padding: EdgeInsets.all(16), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(width: 34, height: 34, alignment: Alignment.center, decoration: BoxDecoration(color: amber.withOpacity(.13), borderRadius: BorderRadius.circular(11)), child: Icon(Icons.build_circle_outlined, color: amber, size: 19)), SizedBox(width: 10), Expanded(child: Text('Cuidados do veículo', style: TextStyle(color: textMain, fontSize: 13, fontWeight: FontWeight.w800))), Icon(Icons.chevron_right_rounded, color: textSoft)]), SizedBox(height: 14), _maintenanceLine('Maior despesa registrada', expenses.isEmpty ? 'Nenhuma ainda' : '${_categoryLabel(expenses.first.category)} · ${_money(expenses.first.amount)}'), SizedBox(height: 8), _maintenanceLine('Último hodômetro conhecido', '${currentOdometer.round()} km'), SizedBox(height: 8), _maintenanceLine('Próxima revisão', serviceLabel) ]));
   }
 
   Widget _maintenanceLine(String label, String value) => Container(padding: EdgeInsets.symmetric(horizontal: 11, vertical: 10), decoration: BoxDecoration(color: panelSoft, borderRadius: BorderRadius.circular(11)), child: Row(children: [Expanded(child: Text(label, style: TextStyle(color: textMuted, fontSize: 10))), SizedBox(width: 8), Flexible(child: Text(value, textAlign: TextAlign.right, style: TextStyle(color: textMain, fontSize: 10, fontWeight: FontWeight.w700)))]));
@@ -806,19 +806,19 @@ class _CarHomeState extends State<CarHome> {
   Widget _vehicleTab() {
     final list = allVehicleEvents;
     return ListView(padding: EdgeInsets.fromLTRB(20, 8, 20, 30), children: [
-      _pageIntro('Seu veÃ­culo', 'Cadastro, desempenho e dados locais', Icons.directions_car_rounded, amber),
+      _pageIntro('Seu veículo', 'Cadastro, desempenho e dados locais', Icons.directions_car_rounded, amber),
       SizedBox(height: 17),
-      Container(padding: EdgeInsets.all(19), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(22), border: Border.all(color: Colors.white.withOpacity(.14))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(width: 45, height: 45, alignment: Alignment.center, decoration: BoxDecoration(color: amber.withOpacity(.14), borderRadius: BorderRadius.circular(14)), child: Icon(Icons.directions_car_rounded, color: amber, size: 25)), SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(currentVehicle.name, style: TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 20, fontWeight: FontWeight.w700)), Text(currentVehicle.model.isEmpty ? 'Modelo nÃ£o informado' : currentVehicle.model, style: TextStyle(color: textMuted, fontSize: 12))])), IconButton(onPressed: () => _vehicleSheet(currentVehicle), icon: Icon(Icons.edit_outlined, color: textMuted))]), SizedBox(height: 20), Row(children: [Expanded(child: _vehicleInfo('HodÃ´metro', '${_maxOdometer(list).round()} km')), Expanded(child: _vehicleInfo('Registros', '${list.length}')), Expanded(child: _vehicleInfo('Placa', currentVehicle.plate.isEmpty ? 'â€”' : currentVehicle.plate))]) ])),
+      Container(padding: EdgeInsets.all(19), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(22), border: Border.all(color: Colors.white.withOpacity(.14))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Container(width: 45, height: 45, alignment: Alignment.center, decoration: BoxDecoration(color: amber.withOpacity(.14), borderRadius: BorderRadius.circular(14)), child: Icon(Icons.directions_car_rounded, color: amber, size: 25)), SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(currentVehicle.name, style: TextStyle(fontFamily: 'Syne', color: textMain, fontSize: 20, fontWeight: FontWeight.w700)), Text(currentVehicle.model.isEmpty ? 'Modelo não informado' : currentVehicle.model, style: TextStyle(color: textMuted, fontSize: 12))])), IconButton(onPressed: () => _vehicleSheet(currentVehicle), icon: Icon(Icons.edit_outlined, color: textMuted))]), SizedBox(height: 20), Row(children: [Expanded(child: _vehicleInfo('Hodômetro', '${_maxOdometer(list).round()} km')), Expanded(child: _vehicleInfo('Registros', '${list.length}')), Expanded(child: _vehicleInfo('Placa', currentVehicle.plate.isEmpty ? '—' : currentVehicle.plate))]) ])),
       SizedBox(height: 19),
-      _sectionTitle('Meus veÃ­culos', 'Toque para alternar o veÃ­culo ativo', trailing: IconButton(onPressed: () => _vehicleSheet(), icon: Icon(Icons.add_circle_outline_rounded, color: lime))),
+      _sectionTitle('Meus veículos', 'Toque para alternar o veículo ativo', trailing: IconButton(onPressed: () => _vehicleSheet(), icon: Icon(Icons.add_circle_outline_rounded, color: lime))),
       SizedBox(height: 9),
       ...vehicles.map((vehicle) => _vehicleRow(vehicle)),
       SizedBox(height: 19),
       _sectionTitle('Dados e backup', 'Tudo fica salvo localmente no aparelho'),
       SizedBox(height: 9),
-      Container(padding: EdgeInsets.all(16), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(children: [Row(children: [Container(width: 36, height: 36, alignment: Alignment.center, decoration: BoxDecoration(color: mint.withOpacity(.12), borderRadius: BorderRadius.circular(11)), child: Icon(Icons.lock_outline_rounded, color: mint, size: 19)), SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Dados somente neste dispositivo', style: TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w800)), SizedBox(height: 3), Text('Sem sincronizaÃ§Ã£o externa ou conta obrigatÃ³ria.', style: TextStyle(color: textMuted, fontSize: 10))])), Icon(Icons.verified_user_outlined, color: mint, size: 18)]), SizedBox(height: 13), Row(children: [Expanded(child: OutlinedButton.icon(onPressed: _copyBackup, icon: Icon(Icons.content_copy_rounded, size: 16), label: Text('Copiar JSON'), style: OutlinedButton.styleFrom(foregroundColor: textMain, side: BorderSide(color: Color(0x25ffffff)), padding: EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))), SizedBox(width: 9), Expanded(child: OutlinedButton.icon(onPressed: _restoreBackup, icon: Icon(Icons.restore_rounded, size: 16), label: Text('Restaurar'), style: OutlinedButton.styleFrom(foregroundColor: mint, side: BorderSide(color: mint.withOpacity(.35)), padding: EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)))))]) ])),
+      Container(padding: EdgeInsets.all(16), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withOpacity(.07))), child: Column(children: [Row(children: [Container(width: 36, height: 36, alignment: Alignment.center, decoration: BoxDecoration(color: mint.withOpacity(.12), borderRadius: BorderRadius.circular(11)), child: Icon(Icons.lock_outline_rounded, color: mint, size: 19)), SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Dados somente neste dispositivo', style: TextStyle(color: textMain, fontSize: 12, fontWeight: FontWeight.w800)), SizedBox(height: 3), Text('Sem sincronização externa ou conta obrigatória.', style: TextStyle(color: textMuted, fontSize: 10))])), Icon(Icons.verified_user_outlined, color: mint, size: 18)]), SizedBox(height: 13), Row(children: [Expanded(child: OutlinedButton.icon(onPressed: _copyBackup, icon: Icon(Icons.content_copy_rounded, size: 16), label: Text('Copiar JSON'), style: OutlinedButton.styleFrom(foregroundColor: textMain, side: BorderSide(color: Color(0x25ffffff)), padding: EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))), SizedBox(width: 9), Expanded(child: OutlinedButton.icon(onPressed: _restoreBackup, icon: Icon(Icons.restore_rounded, size: 16), label: Text('Restaurar'), style: OutlinedButton.styleFrom(foregroundColor: mint, side: BorderSide(color: mint.withOpacity(.35)), padding: EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)))))]) ])),
       SizedBox(height: 13),
-      Center(child: Text('Fonte: CSV Drivvo Â· ${events.length} registros importados', style: TextStyle(color: textSoft, fontSize: 10))),
+      Center(child: Text('Fonte: CSV Drivvo · ${events.length} registros importados', style: TextStyle(color: textSoft, fontSize: 10))),
     ]);
   }
 
@@ -842,7 +842,7 @@ class _CarHomeState extends State<CarHome> {
           SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(vehicle.name, style: TextStyle(color: selected ? lime : textMain, fontSize: 13, fontWeight: FontWeight.w800)),
-            Text(vehicle.model.isEmpty ? 'Modelo nÃ£o informado' : vehicle.model, style: TextStyle(color: textMuted, fontSize: 10)),
+            Text(vehicle.model.isEmpty ? 'Modelo não informado' : vehicle.model, style: TextStyle(color: textMuted, fontSize: 10)),
           ])),
           if (selected) Icon(Icons.check_circle_rounded, color: lime, size: 19),
           IconButton(onPressed: () => _vehicleSheet(vehicle), icon: Icon(Icons.more_horiz_rounded, color: textSoft, size: 19)),
@@ -871,7 +871,7 @@ class _CarHomeState extends State<CarHome> {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final raw = data?.text?.trim() ?? '';
     if (raw.isEmpty) {
-      _snack('Nenhum JSON encontrado na Ã¡rea de transferÃªncia.');
+      _snack('Nenhum JSON encontrado na área de transferência.');
       return;
     }
     try {
@@ -896,7 +896,7 @@ class _CarHomeState extends State<CarHome> {
         builder: (dialogContext) => AlertDialog(
           backgroundColor: panelRaised,
           title: Text('Restaurar backup?'),
-          content: Text('${loadedEvents.length} registros e ${loadedVehicles.length} veÃ­culo(s) substituirÃ£o os dados atuais.'),
+          content: Text('${loadedEvents.length} registros e ${loadedVehicles.length} veículo(s) substituirão os dados atuais.'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text('Cancelar')),
             FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text('Restaurar')),
@@ -913,16 +913,16 @@ class _CarHomeState extends State<CarHome> {
       await _save();
       _snack('Backup restaurado com sucesso.');
     } catch (_) {
-      _snack('O conteÃºdo copiado nÃ£o Ã© um backup vÃ¡lido do Finanza Auto.');
+      _snack('O conteúdo copiado não é um backup válido do Finanza Auto.');
     }
   }
 
   Future<void> _deleteEvent(CarEvent event) async {
-    final shouldDelete = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(backgroundColor: panelRaised, title: Text('Excluir lanÃ§amento?'), content: Text('Esta aÃ§Ã£o remove o registro somente deste dispositivo.'), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text('Excluir'))]));
+    final shouldDelete = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(backgroundColor: panelRaised, title: Text('Excluir lançamento?'), content: Text('Esta ação remove o registro somente deste dispositivo.'), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text('Excluir'))]));
     if (shouldDelete != true) return;
     setState(() => events.removeWhere((item) => item.id == event.id));
     await _save();
-    _snack('LanÃ§amento excluÃ­do.');
+    _snack('Lançamento excluído.');
   }
 
   /*
@@ -936,11 +936,11 @@ class _CarHomeState extends State<CarHome> {
     final note = TextEditingController(text: edit?.note ?? '');
     var selectedFuel = edit?.fuelType ?? 'Etanol';
     var selectedCategory = edit?.category ?? 'Maintenance';
-    final categories = {'Maintenance': 'ManutenÃ§Ã£o', 'Insurance': 'Seguro', 'Tax': 'Imposto / documento', 'Parking': 'Estacionamento', 'Wash': 'Lavagem', 'Fine': 'Multa', 'Other': 'Outro'};
+    final categories = {'Maintenance': 'Manutenção', 'Insurance': 'Seguro', 'Tax': 'Imposto / documento', 'Parking': 'Estacionamento', 'Wash': 'Lavagem', 'Fine': 'Multa', 'Other': 'Outro'};
     try {
       await showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: panel, shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(27))), builder: (sheetContext) => SafeArea(child: Padding(padding: EdgeInsets.fromLTRB(20, 14, 20, MediaQuery.viewInsetsOf(sheetContext).bottom + 18), child: StatefulBuilder(builder: (context, setModalState) {
         final calculated = _number(liters.text) * _number(price.text);
-        return SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Center(child: Container(width: 38, height: 4, decoration: BoxDecoration(color: textSoft, borderRadius: BorderRadius.circular(4)))), SizedBox(height: 20), Row(children: [Expanded(child: Text(edit == null ? (fuel ? 'Novo abastecimento' : 'Nova despesa') : 'Editar lanÃ§amento', style: TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -.5))), IconButton(onPressed: () => Navigator.pop(sheetContext), icon: Icon(Icons.close_rounded, color: textMuted))]), SizedBox(height: 5), Text(fuel ? 'Registre o abastecimento e acompanhe o consumo.' : 'Mantenha todas as despesas do carro no mesmo lugar.', style: TextStyle(color: textMuted, fontSize: 12)), SizedBox(height: 19), _formRow([Expanded(child: TextField(controller: date, readOnly: true, onTap: () async { final picked = await showDatePicker(context: context, firstDate: DateTime(2000), lastDate: DateTime.now().add(Duration(days: 365)), initialDate: _parseDate(date.text) ?? DateTime.now(), builder: (context, child) => Theme(data: Theme.of(context).copyWith(colorScheme: ColorScheme.dark(primary: lime, surface: panelRaised)), child: child!)); if (picked != null) { date.text = DateFormat('yyyy-MM-dd').format(picked); setModalState(() {}); } }, decoration: InputDecoration(labelText: 'Data', prefixIcon: Icon(Icons.calendar_today_outlined, size: 17)))), SizedBox(width: 10), Expanded(child: TextField(controller: odo, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'HodÃ´metro', suffixText: 'km')))]), SizedBox(height: 10), if (fuel) ...[DropdownButtonFormField<String>(value: selectedFuel, decoration: InputDecoration(labelText: 'CombustÃ­vel', prefixIcon: Icon(Icons.local_gas_station_outlined, size: 18)), items: ['Etanol', 'Gasolina', 'Diesel', 'GNV', 'Flex'].map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(), onChanged: (value) => setModalState(() => selectedFuel = value ?? selectedFuel)), SizedBox(height: 10), _formRow([Expanded(child: TextField(controller: liters, onChanged: (_) => setModalState(() {}), keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Litros'))), SizedBox(width: 10), Expanded(child: TextField(controller: price, onChanged: (_) => setModalState(() {}), keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'PreÃ§o / litro', prefixText: 'R\$ ')))]), SizedBox(height: 10), TextField(controller: amount, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Total pago', prefixText: 'R\$ ', hintText: calculated > 0 ? calculated.toStringAsFixed(2) : null)),] else ...[DropdownButtonFormField<String>(value: selectedCategory, decoration: InputDecoration(labelText: 'Categoria', prefixIcon: Icon(Icons.category_outlined, size: 18)), items: categories.entries.map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value))).toList(), onChanged: (value) => setModalState(() => selectedCategory = value ?? selectedCategory)), SizedBox(height: 10), TextField(controller: amount, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Valor', prefixText: 'R\$ ')), SizedBox(height: 10), TextField(controller: title, decoration: InputDecoration(labelText: 'DescriÃ§Ã£o', hintText: 'Ex.: troca de Ã³leo, IPVA, seguro'))], SizedBox(height: 10), TextField(controller: note, decoration: InputDecoration(labelText: fuel ? 'Posto ou observaÃ§Ã£o' : 'ObservaÃ§Ã£o', hintText: fuel ? 'Ex.: Posto Central' : 'Detalhes opcionais')), SizedBox(height: 20), SizedBox(width: double.infinity, child: FilledButton(onPressed: () async { final value = _number(amount.text) > 0 ? _number(amount.text) : calculated; if (value <= 0) { _snack('Informe um valor vÃ¡lido.'); return; } final event = edit ?? CarEvent(id: 'local-${DateTime.now().microsecondsSinceEpoch}', vehicleId: activeVehicle, type: fuel ? 'fuel' : 'expense', date: date.text, amount: value); event.vehicleId = activeVehicle; event.type = fuel ? 'fuel' : 'expense'; event.date = date.text.isEmpty ? _isoToday() : date.text; event.amount = value; event.odometer = _number(odo.text); event.liters = _number(liters.text); event.pricePerLiter = _number(price.text); event.fuelType = selectedFuel; event.title = title.text.trim(); event.category = selectedCategory; event.note = note.text.trim(); setState(() { if (edit == null) events.insert(0, event); final vehicle = currentVehicle; if (event.odometer > vehicle.odometer) vehicle.odometer = event.odometer; }); await _save(); if (sheetContext.mounted) Navigator.pop(sheetContext); _snack(edit == null ? 'LanÃ§amento salvo.' : 'LanÃ§amento atualizado.'); }, style: FilledButton.styleFrom(backgroundColor: lime, foregroundColor: Color(0xff111707), padding: EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)), textStyle: TextStyle(fontWeight: FontWeight.w800)), child: Text(edit == null ? 'Salvar lanÃ§amento' : 'Salvar alteraÃ§Ãµes'))), if (edit != null) Padding(padding: EdgeInsets.only(top: 7), child: Center(child: TextButton.icon(onPressed: () { Navigator.pop(sheetContext); _deleteEvent(edit); }, icon: Icon(Icons.delete_outline_rounded, color: coral, size: 17), label: Text('Excluir lanÃ§amento', style: TextStyle(color: coral, fontSize: 12)))))]);;
+        return SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Center(child: Container(width: 38, height: 4, decoration: BoxDecoration(color: textSoft, borderRadius: BorderRadius.circular(4)))), SizedBox(height: 20), Row(children: [Expanded(child: Text(edit == null ? (fuel ? 'Novo abastecimento' : 'Nova despesa') : 'Editar lançamento', style: TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -.5))), IconButton(onPressed: () => Navigator.pop(sheetContext), icon: Icon(Icons.close_rounded, color: textMuted))]), SizedBox(height: 5), Text(fuel ? 'Registre o abastecimento e acompanhe o consumo.' : 'Mantenha todas as despesas do carro no mesmo lugar.', style: TextStyle(color: textMuted, fontSize: 12)), SizedBox(height: 19), _formRow([Expanded(child: TextField(controller: date, readOnly: true, onTap: () async { final picked = await showDatePicker(context: context, firstDate: DateTime(2000), lastDate: DateTime.now().add(Duration(days: 365)), initialDate: _parseDate(date.text) ?? DateTime.now(), builder: (context, child) => Theme(data: Theme.of(context).copyWith(colorScheme: ColorScheme.dark(primary: lime, surface: panelRaised)), child: child!)); if (picked != null) { date.text = DateFormat('yyyy-MM-dd').format(picked); setModalState(() {}); } }, decoration: InputDecoration(labelText: 'Data', prefixIcon: Icon(Icons.calendar_today_outlined, size: 17)))), SizedBox(width: 10), Expanded(child: TextField(controller: odo, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'Hodômetro', suffixText: 'km')))]), SizedBox(height: 10), if (fuel) ...[DropdownButtonFormField<String>(value: selectedFuel, decoration: InputDecoration(labelText: 'Combustível', prefixIcon: Icon(Icons.local_gas_station_outlined, size: 18)), items: ['Etanol', 'Gasolina', 'Diesel', 'GNV', 'Flex'].map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(), onChanged: (value) => setModalState(() => selectedFuel = value ?? selectedFuel)), SizedBox(height: 10), _formRow([Expanded(child: TextField(controller: liters, onChanged: (_) => setModalState(() {}), keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Litros'))), SizedBox(width: 10), Expanded(child: TextField(controller: price, onChanged: (_) => setModalState(() {}), keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Preço / litro', prefixText: 'R\$ ')))]), SizedBox(height: 10), TextField(controller: amount, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Total pago', prefixText: 'R\$ ', hintText: calculated > 0 ? calculated.toStringAsFixed(2) : null)),] else ...[DropdownButtonFormField<String>(value: selectedCategory, decoration: InputDecoration(labelText: 'Categoria', prefixIcon: Icon(Icons.category_outlined, size: 18)), items: categories.entries.map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value))).toList(), onChanged: (value) => setModalState(() => selectedCategory = value ?? selectedCategory)), SizedBox(height: 10), TextField(controller: amount, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Valor', prefixText: 'R\$ ')), SizedBox(height: 10), TextField(controller: title, decoration: InputDecoration(labelText: 'Descrição', hintText: 'Ex.: troca de óleo, IPVA, seguro'))], SizedBox(height: 10), TextField(controller: note, decoration: InputDecoration(labelText: fuel ? 'Posto ou observação' : 'Observação', hintText: fuel ? 'Ex.: Posto Central' : 'Detalhes opcionais')), SizedBox(height: 20), SizedBox(width: double.infinity, child: FilledButton(onPressed: () async { final value = _number(amount.text) > 0 ? _number(amount.text) : calculated; if (value <= 0) { _snack('Informe um valor válido.'); return; } final event = edit ?? CarEvent(id: 'local-${DateTime.now().microsecondsSinceEpoch}', vehicleId: activeVehicle, type: fuel ? 'fuel' : 'expense', date: date.text, amount: value); event.vehicleId = activeVehicle; event.type = fuel ? 'fuel' : 'expense'; event.date = date.text.isEmpty ? _isoToday() : date.text; event.amount = value; event.odometer = _number(odo.text); event.liters = _number(liters.text); event.pricePerLiter = _number(price.text); event.fuelType = selectedFuel; event.title = title.text.trim(); event.category = selectedCategory; event.note = note.text.trim(); setState(() { if (edit == null) events.insert(0, event); final vehicle = currentVehicle; if (event.odometer > vehicle.odometer) vehicle.odometer = event.odometer; }); await _save(); if (sheetContext.mounted) Navigator.pop(sheetContext); _snack(edit == null ? 'Lançamento salvo.' : 'Lançamento atualizado.'); }, style: FilledButton.styleFrom(backgroundColor: lime, foregroundColor: Color(0xff111707), padding: EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)), textStyle: TextStyle(fontWeight: FontWeight.w800)), child: Text(edit == null ? 'Salvar lançamento' : 'Salvar alterações'))), if (edit != null) Padding(padding: EdgeInsets.only(top: 7), child: Center(child: TextButton.icon(onPressed: () { Navigator.pop(sheetContext); _deleteEvent(edit); }, icon: Icon(Icons.delete_outline_rounded, color: coral, size: 17), label: Text('Excluir lançamento', style: TextStyle(color: coral, fontSize: 12)))))]);;
       }))),
     );
     } finally {
@@ -956,7 +956,7 @@ class _CarHomeState extends State<CarHome> {
     final title = TextEditingController();
     var category = 'Other';
     final categories = <String, String>{
-      'Maintenance': 'ManutenÃ§Ã£o',
+      'Maintenance': 'Manutenção',
       'Insurance': 'Seguro',
       'Tax': 'Imposto / documento',
       'Parking': 'Estacionamento',
@@ -981,7 +981,7 @@ class _CarHomeState extends State<CarHome> {
                   Center(child: Container(width: 38, height: 4, decoration: BoxDecoration(color: textSoft, borderRadius: BorderRadius.circular(4)))),
                   SizedBox(height: 20),
                   Row(children: [
-                    Expanded(child: Text('LanÃ§amento rÃ¡pido', style: TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900))),
+                    Expanded(child: Text('Lançamento rápido', style: TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900))),
                     IconButton(onPressed: () => Navigator.pop(sheetContext), icon: Icon(Icons.close_rounded, color: textMuted)),
                   ]),
                   Text('Anote uma despesa agora e complete os detalhes depois, se quiser.', style: TextStyle(color: textMuted, fontSize: 12)),
@@ -990,15 +990,15 @@ class _CarHomeState extends State<CarHome> {
                   SizedBox(height: 10),
                   DropdownButtonFormField<String>(value: category, decoration: InputDecoration(labelText: 'Categoria', prefixIcon: Icon(Icons.category_outlined, size: 18)), items: categories.entries.map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value))).toList(), onChanged: (value) => setModalState(() => category = value ?? category)),
                   SizedBox(height: 10),
-                  TextField(controller: title, textInputAction: TextInputAction.done, decoration: InputDecoration(labelText: 'DescriÃ§Ã£o', hintText: 'Ex.: estacionamento, pedÃ¡gio...')),
+                  TextField(controller: title, textInputAction: TextInputAction.done, decoration: InputDecoration(labelText: 'Descrição', hintText: 'Ex.: estacionamento, pedágio...')),
                   SizedBox(height: 20),
                   SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () async {
                     final value = _number(amount.text);
                     if (value <= 0) {
-                      _snack('Informe um valor vÃ¡lido.');
+                      _snack('Informe um valor válido.');
                       return;
                     }
-                    final event = CarEvent(id: 'local-${DateTime.now().microsecondsSinceEpoch}', vehicleId: activeVehicle, type: 'expense', date: _isoToday(), amount: value, odometer: _maxOdometer(allVehicleEvents), title: title.text.trim().isEmpty ? _categoryLabel(category) : title.text.trim(), category: category, note: 'LanÃ§amento rÃ¡pido');
+                    final event = CarEvent(id: 'local-${DateTime.now().microsecondsSinceEpoch}', vehicleId: activeVehicle, type: 'expense', date: _isoToday(), amount: value, odometer: _maxOdometer(allVehicleEvents), title: title.text.trim().isEmpty ? _categoryLabel(category) : title.text.trim(), category: category, note: 'Lançamento rápido');
                     setState(() => events.insert(0, event));
                     await _save();
                     if (sheetContext.mounted) Navigator.pop(sheetContext);
@@ -1029,7 +1029,7 @@ class _CarHomeState extends State<CarHome> {
     var selectedFuel = edit?.fuelType ?? 'Etanol';
     var selectedCategory = edit?.category ?? 'Maintenance';
     final categories = <String, String>{
-      'Maintenance': 'ManutenÃ§Ã£o',
+      'Maintenance': 'Manutenção',
       'Insurance': 'Seguro',
       'Tax': 'Imposto / documento',
       'Parking': 'Estacionamento',
@@ -1054,7 +1054,7 @@ class _CarHomeState extends State<CarHome> {
                     Center(child: Container(width: 38, height: 4, decoration: BoxDecoration(color: textSoft, borderRadius: BorderRadius.circular(4)))),
                     SizedBox(height: 20),
                     Row(children: [
-                      Expanded(child: Text(edit == null ? (fuel ? 'Novo abastecimento' : 'Nova despesa') : 'Editar lanÃ§amento', style: TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -.5))),
+                      Expanded(child: Text(edit == null ? (fuel ? 'Novo abastecimento' : 'Nova despesa') : 'Editar lançamento', style: TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -.5))),
                       IconButton(onPressed: () => Navigator.pop(sheetContext), icon: Icon(Icons.close_rounded, color: textMuted)),
                     ]),
                     Text(fuel ? 'Registre o abastecimento e acompanhe o consumo.' : 'Mantenha todas as despesas do carro no mesmo lugar.', style: TextStyle(color: textMuted, fontSize: 12)),
@@ -1068,16 +1068,16 @@ class _CarHomeState extends State<CarHome> {
                         }
                       }, decoration: InputDecoration(labelText: 'Data', prefixIcon: Icon(Icons.calendar_today_outlined, size: 17)))),
                       SizedBox(width: 10),
-                      Expanded(child: TextField(controller: odo, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'HodÃ´metro', suffixText: 'km'))),
+                      Expanded(child: TextField(controller: odo, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'Hodômetro', suffixText: 'km'))),
                     ]),
                     SizedBox(height: 10),
                     if (fuel) ...[
-                      DropdownButtonFormField<String>(value: selectedFuel, decoration: InputDecoration(labelText: 'CombustÃ­vel', prefixIcon: Icon(Icons.local_gas_station_outlined, size: 18)), items: ['Etanol', 'Gasolina', 'Diesel', 'GNV', 'Flex'].map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(), onChanged: (value) => setModalState(() => selectedFuel = value ?? selectedFuel)),
+                      DropdownButtonFormField<String>(value: selectedFuel, decoration: InputDecoration(labelText: 'Combustível', prefixIcon: Icon(Icons.local_gas_station_outlined, size: 18)), items: ['Etanol', 'Gasolina', 'Diesel', 'GNV', 'Flex'].map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(), onChanged: (value) => setModalState(() => selectedFuel = value ?? selectedFuel)),
                       SizedBox(height: 10),
                       _formRow([
                         Expanded(child: TextField(controller: liters, onChanged: (_) => setModalState(() {}), keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Litros'))),
                         SizedBox(width: 10),
-                        Expanded(child: TextField(controller: price, onChanged: (_) => setModalState(() {}), keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'PreÃ§o / litro', prefixText: 'R\$ '))),
+                        Expanded(child: TextField(controller: price, onChanged: (_) => setModalState(() {}), keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Preço / litro', prefixText: 'R\$ '))),
                       ]),
                       SizedBox(height: 10),
                       TextField(controller: amount, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Total pago', prefixText: 'R\$ ', hintText: calculated > 0 ? calculated.toStringAsFixed(2) : null)),
@@ -1086,15 +1086,15 @@ class _CarHomeState extends State<CarHome> {
                       SizedBox(height: 10),
                       TextField(controller: amount, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Valor', prefixText: 'R\$ ')),
                       SizedBox(height: 10),
-                      TextField(controller: title, decoration: InputDecoration(labelText: 'DescriÃ§Ã£o', hintText: 'Ex.: troca de Ã³leo, IPVA, seguro')),
+                      TextField(controller: title, decoration: InputDecoration(labelText: 'Descrição', hintText: 'Ex.: troca de óleo, IPVA, seguro')),
                     ],
                     SizedBox(height: 10),
-                    TextField(controller: note, decoration: InputDecoration(labelText: fuel ? 'Posto ou observaÃ§Ã£o' : 'ObservaÃ§Ã£o', hintText: fuel ? 'Ex.: Posto Central' : 'Detalhes opcionais')),
+                    TextField(controller: note, decoration: InputDecoration(labelText: fuel ? 'Posto ou observação' : 'Observação', hintText: fuel ? 'Ex.: Posto Central' : 'Detalhes opcionais')),
                     SizedBox(height: 20),
                     SizedBox(width: double.infinity, child: FilledButton(onPressed: () async {
                       final value = _number(amount.text) > 0 ? _number(amount.text) : calculated;
                       if (value <= 0) {
-                        _snack('Informe um valor vÃ¡lido.');
+                        _snack('Informe um valor válido.');
                         return;
                       }
                       final event = edit ?? CarEvent(id: 'local-${DateTime.now().microsecondsSinceEpoch}', vehicleId: activeVehicle, type: fuel ? 'fuel' : 'expense', date: date.text, amount: value);
@@ -1115,9 +1115,9 @@ class _CarHomeState extends State<CarHome> {
                       });
                       await _save();
                       if (sheetContext.mounted) Navigator.pop(sheetContext);
-                      _snack(edit == null ? 'LanÃ§amento salvo.' : 'LanÃ§amento atualizado.');
-                    }, style: FilledButton.styleFrom(backgroundColor: lime, foregroundColor: Color(0xff111707), padding: EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)), textStyle: TextStyle(fontWeight: FontWeight.w800)), child: Text(edit == null ? 'Salvar lanÃ§amento' : 'Salvar alteraÃ§Ãµes'))),
-                    if (edit != null) Center(child: TextButton.icon(onPressed: () { Navigator.pop(sheetContext); _deleteEvent(edit); }, icon: Icon(Icons.delete_outline_rounded, color: coral, size: 17), label: Text('Excluir lanÃ§amento', style: TextStyle(color: coral, fontSize: 12)))),
+                      _snack(edit == null ? 'Lançamento salvo.' : 'Lançamento atualizado.');
+                    }, style: FilledButton.styleFrom(backgroundColor: lime, foregroundColor: Color(0xff111707), padding: EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)), textStyle: TextStyle(fontWeight: FontWeight.w800)), child: Text(edit == null ? 'Salvar lançamento' : 'Salvar alterações'))),
+                    if (edit != null) Center(child: TextButton.icon(onPressed: () { Navigator.pop(sheetContext); _deleteEvent(edit); }, icon: Icon(Icons.delete_outline_rounded, color: coral, size: 17), label: Text('Excluir lançamento', style: TextStyle(color: coral, fontSize: 12)))),
                   ]),
                 );
               },
@@ -1139,7 +1139,7 @@ class _CarHomeState extends State<CarHome> {
     final plate = TextEditingController(text: edit?.plate ?? '');
     final odometer = TextEditingController(text: edit == null || edit.odometer == 0 ? '' : edit.odometer.round().toString());
     try {
-      await showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: panel, shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(27))), builder: (sheetContext) => SafeArea(child: Padding(padding: EdgeInsets.fromLTRB(20, 14, 20, MediaQuery.viewInsetsOf(sheetContext).bottom + 18), child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Center(child: Container(width: 38, height: 4, decoration: BoxDecoration(color: textSoft, borderRadius: BorderRadius.circular(4)))), SizedBox(height: 20), Row(children: [Expanded(child: Text(edit == null ? 'Adicionar veÃ­culo' : 'Editar veÃ­culo', style: TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900))), IconButton(onPressed: () => Navigator.pop(sheetContext), icon: Icon(Icons.close_rounded, color: textMuted))]), SizedBox(height: 5), Text('Cadastre os detalhes para identificar seus registros.', style: TextStyle(color: textMuted, fontSize: 12)), SizedBox(height: 19), TextField(controller: name, decoration: InputDecoration(labelText: 'Nome do veÃ­culo', hintText: 'Ex.: Meu carro')), SizedBox(height: 10), _formRow([Expanded(child: TextField(controller: model, decoration: InputDecoration(labelText: 'Modelo / ano'))), SizedBox(width: 10), Expanded(child: TextField(controller: plate, textCapitalization: TextCapitalization.characters, decoration: InputDecoration(labelText: 'Placa')))]), SizedBox(height: 10), TextField(controller: odometer, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'HodÃ´metro atual', suffixText: 'km')), SizedBox(height: 21), SizedBox(width: double.infinity, child: FilledButton(onPressed: () async { if (name.text.trim().isEmpty) { _snack('Informe um nome para o veÃ­culo.'); return; } setState(() { if (edit == null) { final vehicle = CarVehicle(id: 'local-${DateTime.now().microsecondsSinceEpoch}', name: name.text.trim(), model: model.text.trim(), plate: plate.text.trim(), odometer: _number(odometer.text)); vehicles.add(vehicle); activeVehicle = vehicle.id; } else { edit.name = name.text.trim(); edit.model = model.text.trim(); edit.plate = plate.text.trim(); edit.odometer = _number(odometer.text); } }); await _save(); if (sheetContext.mounted) Navigator.pop(sheetContext); _snack(edit == null ? 'VeÃ­culo adicionado.' : 'VeÃ­culo atualizado.'); }, style: FilledButton.styleFrom(backgroundColor: lime, foregroundColor: Color(0xff111707), padding: EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)), textStyle: TextStyle(fontWeight: FontWeight.w800)), child: Text(edit == null ? 'Adicionar veÃ­culo' : 'Salvar alteraÃ§Ãµes'))), if (edit != null && vehicles.length > 1) Center(child: TextButton.icon(onPressed: () async { Navigator.pop(sheetContext); await _deleteVehicle(edit); }, icon: Icon(Icons.delete_outline_rounded, color: coral, size: 17), label: Text('Excluir veÃ­culo', style: TextStyle(color: coral, fontSize: 12))))]))));
+      await showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: panel, shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(27))), builder: (sheetContext) => SafeArea(child: Padding(padding: EdgeInsets.fromLTRB(20, 14, 20, MediaQuery.viewInsetsOf(sheetContext).bottom + 18), child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Center(child: Container(width: 38, height: 4, decoration: BoxDecoration(color: textSoft, borderRadius: BorderRadius.circular(4)))), SizedBox(height: 20), Row(children: [Expanded(child: Text(edit == null ? 'Adicionar veículo' : 'Editar veículo', style: TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900))), IconButton(onPressed: () => Navigator.pop(sheetContext), icon: Icon(Icons.close_rounded, color: textMuted))]), SizedBox(height: 5), Text('Cadastre os detalhes para identificar seus registros.', style: TextStyle(color: textMuted, fontSize: 12)), SizedBox(height: 19), TextField(controller: name, decoration: InputDecoration(labelText: 'Nome do veículo', hintText: 'Ex.: Meu carro')), SizedBox(height: 10), _formRow([Expanded(child: TextField(controller: model, decoration: InputDecoration(labelText: 'Modelo / ano'))), SizedBox(width: 10), Expanded(child: TextField(controller: plate, textCapitalization: TextCapitalization.characters, decoration: InputDecoration(labelText: 'Placa')))]), SizedBox(height: 10), TextField(controller: odometer, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'Hodômetro atual', suffixText: 'km')), SizedBox(height: 21), SizedBox(width: double.infinity, child: FilledButton(onPressed: () async { if (name.text.trim().isEmpty) { _snack('Informe um nome para o veículo.'); return; } setState(() { if (edit == null) { final vehicle = CarVehicle(id: 'local-${DateTime.now().microsecondsSinceEpoch}', name: name.text.trim(), model: model.text.trim(), plate: plate.text.trim(), odometer: _number(odometer.text)); vehicles.add(vehicle); activeVehicle = vehicle.id; } else { edit.name = name.text.trim(); edit.model = model.text.trim(); edit.plate = plate.text.trim(); edit.odometer = _number(odometer.text); } }); await _save(); if (sheetContext.mounted) Navigator.pop(sheetContext); _snack(edit == null ? 'Veículo adicionado.' : 'Veículo atualizado.'); }, style: FilledButton.styleFrom(backgroundColor: lime, foregroundColor: Color(0xff111707), padding: EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)), textStyle: TextStyle(fontWeight: FontWeight.w800)), child: Text(edit == null ? 'Adicionar veículo' : 'Salvar alterações'))), if (edit != null && vehicles.length > 1) Center(child: TextButton.icon(onPressed: () async { Navigator.pop(sheetContext); await _deleteVehicle(edit); }, icon: Icon(Icons.delete_outline_rounded, color: coral, size: 17), label: Text('Excluir veículo', style: TextStyle(color: coral, fontSize: 12))))]))));
     } finally {
       for (final controller in [name, model, plate, odometer]) {
         controller.dispose();
@@ -1149,11 +1149,11 @@ class _CarHomeState extends State<CarHome> {
 
   */
   Future<void> _deleteVehicle(CarVehicle vehicle) async {
-    final confirmed = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(backgroundColor: panelRaised, title: Text('Excluir veÃ­culo?'), content: Text('Os registros deste veÃ­culo tambÃ©m serÃ£o removidos.'), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text('Excluir'))]));
+    final confirmed = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(backgroundColor: panelRaised, title: Text('Excluir veículo?'), content: Text('Os registros deste veículo também serão removidos.'), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text('Excluir'))]));
     if (confirmed != true) return;
     setState(() { vehicles.removeWhere((item) => item.id == vehicle.id); events.removeWhere((event) => event.vehicleId == vehicle.id); activeVehicle = vehicles.first.id; });
     await _save();
-    _snack('VeÃ­culo excluÃ­do.');
+    _snack('Veículo excluído.');
   }
 
   Future<void> _vehicleSheet([CarVehicle? edit]) async {
@@ -1175,12 +1175,12 @@ class _CarHomeState extends State<CarHome> {
                 Center(child: Container(width: 38, height: 4, decoration: BoxDecoration(color: textSoft, borderRadius: BorderRadius.circular(4)))),
                 SizedBox(height: 20),
                 Row(children: [
-                  Expanded(child: Text(edit == null ? 'Adicionar veÃ­culo' : 'Editar veÃ­culo', style: TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900))),
+                  Expanded(child: Text(edit == null ? 'Adicionar veículo' : 'Editar veículo', style: TextStyle(color: textMain, fontSize: 22, fontWeight: FontWeight.w900))),
                   IconButton(onPressed: () => Navigator.pop(sheetContext), icon: Icon(Icons.close_rounded, color: textMuted)),
                 ]),
                 Text('Cadastre os detalhes para identificar seus registros.', style: TextStyle(color: textMuted, fontSize: 12)),
                 SizedBox(height: 19),
-                TextField(controller: name, decoration: InputDecoration(labelText: 'Nome do veÃ­culo', hintText: 'Ex.: Meu carro')),
+                TextField(controller: name, decoration: InputDecoration(labelText: 'Nome do veículo', hintText: 'Ex.: Meu carro')),
                 SizedBox(height: 10),
                 _formRow([
                   Expanded(child: TextField(controller: model, decoration: InputDecoration(labelText: 'Modelo / ano'))),
@@ -1188,11 +1188,11 @@ class _CarHomeState extends State<CarHome> {
                   Expanded(child: TextField(controller: plate, textCapitalization: TextCapitalization.characters, decoration: InputDecoration(labelText: 'Placa'))),
                 ]),
                 SizedBox(height: 10),
-                TextField(controller: odometer, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'HodÃ´metro atual', suffixText: 'km')),
+                TextField(controller: odometer, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'Hodômetro atual', suffixText: 'km')),
                 SizedBox(height: 21),
                 SizedBox(width: double.infinity, child: FilledButton(onPressed: () async {
                   if (name.text.trim().isEmpty) {
-                    _snack('Informe um nome para o veÃ­culo.');
+                    _snack('Informe um nome para o veículo.');
                     return;
                   }
                   setState(() {
@@ -1209,9 +1209,9 @@ class _CarHomeState extends State<CarHome> {
                   });
                   await _save();
                   if (sheetContext.mounted) Navigator.pop(sheetContext);
-                  _snack(edit == null ? 'VeÃ­culo adicionado.' : 'VeÃ­culo atualizado.');
-                }, style: FilledButton.styleFrom(backgroundColor: lime, foregroundColor: Color(0xff111707), padding: EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)), textStyle: TextStyle(fontWeight: FontWeight.w800)), child: Text(edit == null ? 'Adicionar veÃ­culo' : 'Salvar alteraÃ§Ãµes'))),
-                if (edit != null && vehicles.length > 1) Center(child: TextButton.icon(onPressed: () async { Navigator.pop(sheetContext); await _deleteVehicle(edit); }, icon: Icon(Icons.delete_outline_rounded, color: coral, size: 17), label: Text('Excluir veÃ­culo', style: TextStyle(color: coral, fontSize: 12)))),
+                  _snack(edit == null ? 'Veículo adicionado.' : 'Veículo atualizado.');
+                }, style: FilledButton.styleFrom(backgroundColor: lime, foregroundColor: Color(0xff111707), padding: EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)), textStyle: TextStyle(fontWeight: FontWeight.w800)), child: Text(edit == null ? 'Adicionar veículo' : 'Salvar alterações'))),
+                if (edit != null && vehicles.length > 1) Center(child: TextButton.icon(onPressed: () async { Navigator.pop(sheetContext); await _deleteVehicle(edit); }, icon: Icon(Icons.delete_outline_rounded, color: coral, size: 17), label: Text('Excluir veículo', style: TextStyle(color: coral, fontSize: 12)))),
               ]),
             ),
           ),
