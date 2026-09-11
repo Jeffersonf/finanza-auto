@@ -756,7 +756,7 @@ class _CarHomeState extends State<CarHome> {
   }
 
   Widget _filterChips() {
-    values = ['Todos', 'Abastecimentos', 'Despesas'];
+    final values = ['Todos', 'Abastecimentos', 'Despesas'];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -1002,7 +1002,7 @@ class _CarHomeState extends State<CarHome> {
     final amount = TextEditingController();
     final title = TextEditingController();
     var category = 'Other';
-    categories = <String, String>{
+    final categories = <String, String>{
       'Maintenance': 'ManutenÃ§Ã£o',
       'Insurance': 'Seguro',
       'Tax': 'Imposto / documento',
