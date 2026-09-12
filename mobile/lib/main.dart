@@ -11,11 +11,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 final ValueNotifier<bool> _darkMode = ValueNotifier<bool>(true);
 bool get isDarkTheme => _darkMode.value;
 
-Color get ink => isDarkTheme ? const Color(0xff090a0f) : const Color(0xfff4f5f8);
-Color get panel => isDarkTheme ? const Color(0xff16181f) : const Color(0xffffffff);
-Color get panelSoft => isDarkTheme ? const Color(0xff21242d) : const Color(0xffeceef2);
-Color get panelRaised => isDarkTheme ? const Color(0xff282b36) : const Color(0xffffffff);
-Color get strokeColor => isDarkTheme ? const Color(0x1fffffff) : const Color(0x14000000);
+Color get ink => isDarkTheme ? const Color(0xff000000) : const Color(0xfff4f5f8);
+Color get panel => isDarkTheme ? const Color(0xff141416) : const Color(0xffffffff);
+Color get panelSoft => isDarkTheme ? const Color(0xff1e1e22) : const Color(0xffeceef2);
+Color get panelRaised => isDarkTheme ? const Color(0xff25252b) : const Color(0xffffffff);
+Color get strokeColor => isDarkTheme ? const Color(0xff222226) : const Color(0x14000000);
 
 const mint = Color(0xff34c759);
 const amber = Color(0xffff9f0a);
@@ -23,9 +23,9 @@ const coral = Color(0xffff453a);
 const blue = Color(0xff0a84ff);
 const purple = Color(0xffaf52de);
 
-Color get textMain => isDarkTheme ? const Color(0xfff8fafc) : const Color(0xff0f172a);
-Color get textMuted => isDarkTheme ? const Color(0xff94a3b8) : const Color(0xff64748b);
-Color get textSoft => isDarkTheme ? const Color(0xff64748b) : const Color(0xff94a3b8);
+Color get textMain => isDarkTheme ? const Color(0xffffffff) : const Color(0xff0f172a);
+Color get textMuted => isDarkTheme ? const Color(0xff8e8e93) : const Color(0xff64748b);
+Color get textSoft => isDarkTheme ? const Color(0xff66666a) : const Color(0xff94a3b8);
 
 class GlassPanel extends StatelessWidget {
   const GlassPanel({
@@ -523,176 +523,221 @@ class _CarHomeState extends State<CarHome> {
 
   String get _tabTitle => ['Visão geral', 'Histórico', 'Análises', 'Meu carro'][tab];
 
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Bom dia, Jefferson';
+    if (hour < 18) return 'Boa tarde, Jefferson';
+    return 'Boa noite, Jefferson';
+  }
+
+  String _periodBadgeText() {
+    if (period == 'Mês atual') {
+      try {
+        return DateFormat('MMM', 'pt_BR')
+            .format(DateTime.now())
+            .toUpperCase()
+            .replaceAll('.', '');
+      } catch (_) {
+        return 'MÊS';
+      }
+    }
+    if (period == '30 dias') return '30D';
+    if (period == '90 dias') return '90D';
+    if (period == 'Ano atual') return '${DateTime.now().year}';
+    return 'TUDO';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loading) {
       return Scaffold(
+        backgroundColor: ink,
         body: Center(child: CircularProgressIndicator(color: blue)),
       );
     }
     return Scaffold(
       backgroundColor: ink,
       body: SafeArea(
-        child: Stack(
+        bottom: false,
+        child: Column(
           children: [
-            const Positioned.fill(child: _AmbientBackdrop()),
-            Column(
-              children: [
-                _nextTopBar(),
-                if (loadError.isNotEmpty) _errorBanner(),
-                Expanded(
-                  child: IndexedStack(
-                    index: tab,
-                    children: [
-                      _homeTab(),
-                      _historyTab(),
-                      _analyticsTab(),
-                      _vehicleTab(),
-                    ],
-                  ),
-                ),
-              ],
+            _nextTopBar(),
+            if (loadError.isNotEmpty) _errorBanner(),
+            Expanded(
+              child: IndexedStack(
+                index: tab,
+                children: [
+                  _homeTab(),
+                  _historyTab(),
+                  _analyticsTab(),
+                  _vehicleTab(),
+                ],
+              ),
             ),
           ],
         ),
       ),
       bottomNavigationBar: _glassBottomNavigation(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _quickExpenseSheet,
-        backgroundColor: blue,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        tooltip: 'Lançamento rápido',
-        child: const Icon(Icons.bolt_rounded, size: 24),
+    );
+  }
+
+  Widget _nextTopBar() {
+    final isHome = tab == 0;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 18, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isHome ? 'Visão geral' : 'Finanza · Carro',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isHome ? _greeting() : _tabTitle,
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: textMain,
+                        fontSize: 27,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: _quickActionChooserSheet,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.add_rounded, color: Colors.black, size: 24),
+                ),
+              ),
+            ],
+          ),
+          if (isHome) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${currentVehicle.name} · ${_maxOdometer(allVehicleEvents).round()} km',
+                    style: TextStyle(
+                      fontFamily: 'DM Sans',
+                      color: textMuted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _filterSheet,
+                  tooltip: 'Filtros e veículo',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: Icon(Icons.tune_rounded, color: textMuted, size: 20),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  Widget _nextTopBar() => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 14, 10),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: blue,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'MÓDULO DE VEÍCULO',
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: blue,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.15,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _tabTitle,
-                    style: TextStyle(
-                      fontFamily: 'DM Sans',
-                      color: textMain,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.6,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              onPressed: _toggleTheme,
-              tooltip: isDarkTheme ? 'Usar tema claro' : 'Usar tema escuro',
-              icon: Icon(
-                isDarkTheme ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                color: textMuted,
-              ),
-            ),
-            PopupMenuButton<String>(
-              tooltip: 'Mais opções',
-              color: panelRaised,
-              icon: Icon(Icons.more_horiz_rounded, color: textMuted),
-              onSelected: (value) {
-                if (value == 'backup') _copyBackup();
-                if (value == 'restore') _restoreBackup();
-                if (value == 'vehicle') _vehicleSheet();
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(value: 'backup', child: Text('Copiar backup local')),
-                const PopupMenuItem(value: 'restore', child: Text('Restaurar backup')),
-                const PopupMenuItem(value: 'vehicle', child: Text('Adicionar veículo')),
-              ],
-            ),
-          ],
-        ),
-      );
-
   Widget _glassBottomNavigation() => SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: GlassPanel(
-            radius: 26,
-            opacity: isDarkTheme ? .88 : .96,
-            blur: 24,
-            borderColor: strokeColor,
-            padding: const EdgeInsets.all(4),
-            child: NavigationBar(
-              height: 60,
-              selectedIndex: tab,
-              onDestinationSelected: (index) => setState(() => tab = index),
-              backgroundColor: Colors.transparent,
-              surfaceTintColor: Colors.transparent,
-              elevation: 0,
-              indicatorColor: blue.withOpacity(0.16),
-              labelTextStyle: WidgetStatePropertyAll(
-                TextStyle(
-                  fontFamily: 'DM Sans',
-                  color: textMain,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Container(
+            height: 62,
+            decoration: BoxDecoration(
+              color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(
+                color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
+                width: 1,
               ),
-              destinations: [
-                NavigationDestination(
-                  icon: Icon(Icons.grid_view_outlined, color: textMuted),
-                  selectedIcon: const Icon(Icons.grid_view_rounded, color: blue),
-                  label: 'Início',
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDarkTheme ? 0.35 : 0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.receipt_long_outlined, color: textMuted),
-                  selectedIcon: const Icon(Icons.receipt_long, color: blue),
-                  label: 'Histórico',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.insights_outlined, color: textMuted),
-                  selectedIcon: const Icon(Icons.insights, color: blue),
-                  label: 'Análises',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.directions_car_outlined, color: textMuted),
-                  selectedIcon: const Icon(Icons.directions_car, color: blue),
-                  label: 'Carro',
-                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _navItem(0, Icons.home_rounded, 'Início'),
+                _navItem(1, Icons.receipt_long_rounded, 'Histórico'),
+                _navItem(2, Icons.insights_rounded, 'Análise'),
+                _navItem(3, Icons.directions_car_rounded, 'Carro'),
               ],
             ),
           ),
         ),
       );
+
+  Widget _navItem(int index, IconData icon, String label) {
+    final active = tab == index;
+    return GestureDetector(
+      onTap: () => setState(() => tab = index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: active
+            ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
+            : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: active
+              ? (isDarkTheme ? const Color(0xFF25252B) : const Color(0xFF1E1E22))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: active
+                  ? Colors.white
+                  : (isDarkTheme ? const Color(0xFF7E7E84) : const Color(0xFF8E8E93)),
+            ),
+            if (active) ...[
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: 'DM Sans',
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _errorBanner() => Container(
         width: double.infinity,
@@ -730,48 +775,19 @@ class _CarHomeState extends State<CarHome> {
       onRefresh: _load,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
         children: [
-          _glassVehicleSwitcher(),
-          const SizedBox(height: 16),
+          _centralDeRecursosPill(),
+          const SizedBox(height: 14),
           _heroCardGlass(list, total),
-          const SizedBox(height: 22),
-          _sectionTitle(
-            'Resumo do período',
-            'Tudo que foi registrado no carro',
-            trailing: _periodDropdown(),
-          ),
-          const SizedBox(height: 12),
-          _metricsGrid(list),
-          const SizedBox(height: 22),
-          _sectionTitle('Atalhos', 'Registre um novo movimento em segundos'),
-          const SizedBox(height: 12),
-          _quickActions(),
-          const SizedBox(height: 22),
-          _sectionTitle(
-            'Evolução dos gastos',
-            'Últimos meses com dados registrados',
-            trailing: Text(
-              _shortMoney(total),
-              style: const TextStyle(
-                fontFamily: 'DM Sans',
-                color: blue,
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
+          _ritmoSemanalCard(list),
+          const SizedBox(height: 14),
+          _ritmoMensalCard(list),
+          const SizedBox(height: 14),
           _chartCard(list),
-          const SizedBox(height: 22),
-          _sectionTitle(
-            'Lançamentos recentes',
-            'Os últimos movimentos do veículo',
-            trailing: TextButton(
-              onPressed: () => setState(() => tab = 1),
-              child: const Text('Ver todos'),
-            ),
-          ),
+          const SizedBox(height: 20),
+          _ultimasTransacoesHeader(),
           const SizedBox(height: 10),
           _recentList(list),
         ],
@@ -779,121 +795,112 @@ class _CarHomeState extends State<CarHome> {
     );
   }
 
-  Widget _glassVehicleSwitcher() => GlassPanel(
-        radius: 20,
-        opacity: isDarkTheme ? .88 : .96,
-        blur: 16,
-        borderColor: strokeColor,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: blue.withOpacity(.12),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: blue.withOpacity(.20)),
+  Widget _centralDeRecursosPill() => InkWell(
+        onTap: _quickActionChooserSheet,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isDarkTheme ? const Color(0xFF222226) : const Color(0xFFF1F3F6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.directions_car_rounded,
+                  size: 20,
+                  color: isDarkTheme ? Colors.white : const Color(0xFF0F172A),
+                ),
               ),
-              child: const Icon(Icons.directions_car_rounded, size: 20, color: blue),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    currentVehicle.name,
-                    style: TextStyle(
-                      fontFamily: 'DM Sans',
-                      color: textMain,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Central do veículo',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: textMain,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 1),
-                  Text(
-                    currentVehicle.model.isEmpty ? 'Seu veículo principal' : currentVehicle.model,
-                    style: TextStyle(
-                      fontFamily: 'DM Sans',
-                      color: textMuted,
-                      fontSize: 11,
+                    const SizedBox(height: 2),
+                    Text(
+                      'Planejamento, consumo e manutenções',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: textMuted,
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            PopupMenuButton<String>(
-              tooltip: 'Trocar veículo',
-              onSelected: (value) async {
-                setState(() => activeVehicle = value);
-                await _save();
-              },
-              color: panelRaised,
-              icon: Icon(Icons.keyboard_arrow_down_rounded, color: textMuted),
-              itemBuilder: (context) => vehicles
-                  .map((vehicle) => PopupMenuItem(value: vehicle.id, child: Text(vehicle.name)))
-                  .toList(),
-            ),
-          ],
+              Icon(Icons.history_rounded, size: 20, color: textMuted),
+              const SizedBox(width: 6),
+              Icon(Icons.chevron_right_rounded, size: 20, color: textMuted),
+            ],
+          ),
         ),
       );
 
-  Widget _heroCardGlass(List<CarEvent> list, double total) => GlassPanel(
-        radius: 28,
-        opacity: isDarkTheme ? .92 : .98,
-        blur: 20,
-        borderColor: strokeColor,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDarkTheme
-              ? const [Color(0xff161822), Color(0xff1c1e2b)]
-              : const [Color(0xffffffff), Color(0xfff8f9fc)],
+  Widget _heroCardGlass(List<CarEvent> list, double total) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
+          ),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: blue.withOpacity(.12),
-                    borderRadius: BorderRadius.circular(99),
-                    border: Border.all(color: blue.withOpacity(.20)),
-                  ),
-                  child: const Text(
-                    'VISÃO GERAL',
-                    style: TextStyle(
-                      fontFamily: 'DM Sans',
-                      color: blue,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                    ),
+                Text(
+                  'GASTOS NO PERÍODO',
+                  style: TextStyle(
+                    fontFamily: 'DM Sans',
+                    color: textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
                   ),
                 ),
                 const Spacer(),
                 Container(
-                  width: 32,
-                  height: 32,
-                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: (isDarkTheme ? Colors.white : Colors.black).withOpacity(.06),
-                    shape: BoxShape.circle,
+                    color: isDarkTheme ? const Color(0xFF222226) : const Color(0xFFE9ECEF),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    Icons.auto_awesome_rounded,
-                    color: isDarkTheme ? Colors.white : textMain,
-                    size: 16,
+                  child: Text(
+                    _periodBadgeText(),
+                    style: TextStyle(
+                      fontFamily: 'DM Sans',
+                      color: textMain,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
@@ -903,92 +910,359 @@ class _CarHomeState extends State<CarHome> {
                 style: TextStyle(
                   fontFamily: 'DM Sans',
                   color: textMain,
-                  fontSize: 34,
+                  fontSize: 36,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -1.0,
                 ),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              '${list.length} registros em ${period.toLowerCase()}',
-              style: TextStyle(
-                fontFamily: 'DM Sans',
-                color: textMuted,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
             const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: panelSoft.withOpacity(isDarkTheme ? 0.6 : 0.7),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: strokeColor),
-              ),
-              child: Row(
-                children: [
-                  Expanded(child: _heroStat('Combustível', _money(_fuelTotal(list)), amber)),
-                  Container(width: 1, height: 28, color: strokeColor),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 14),
-                      child: _heroStat('Despesas', _money(_expenseTotal(list)), coral),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () => _entrySheet(fuel: true),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Registrar abastecimento'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                  textStyle: const TextStyle(
-                    fontFamily: 'DM Sans',
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Combustível',
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _money(_fuelTotal(list)),
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: textMain,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Despesas',
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _money(_expenseTotal(list)),
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: textMain,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Divider(
+              color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
+              height: 1,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '${list.length} lançamento(s) considerados no período.',
+              style: TextStyle(
+                fontFamily: 'DM Sans',
+                color: isDarkTheme ? const Color(0xFF66666A) : const Color(0xFF94A3B8),
+                fontSize: 12,
               ),
             ),
           ],
         ),
       );
 
-  Widget _heroStat(String label, String value, Color color) => Column(
+  Widget _ritmoSemanalCard(List<CarEvent> list) {
+    final distance = _distance(list);
+    final consumption = _consumption(list);
+    final costPerKm = distance > 0 ? _total(list) / distance : 0.0;
+    final fuelEvents = list.where((e) => e.fuel && e.pricePerLiter > 0).toList();
+    final avgPrice = fuelEvents.isNotEmpty
+        ? fuelEvents.fold<double>(0, (s, e) => s + e.pricePerLiter) / fuelEvents.length
+        : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.speed_rounded, size: 18, color: textMain),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Eficiência e consumo',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: textMain,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      'Indicadores de desempenho',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: textMuted,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, size: 20, color: textMuted),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _microCard(
+                  label: 'Consumo médio',
+                  value: consumption > 0
+                      ? '${consumption.toStringAsFixed(1).replaceAll('.', ',')} km/l'
+                      : '—',
+                  valueColor: consumption > 0 ? const Color(0xFF4ADE80) : textMain,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _microCard(
+                  label: 'Custo por km',
+                  value: costPerKm > 0
+                      ? '-R\$ ${costPerKm.toStringAsFixed(2).replaceAll('.', ',')}'
+                      : '—',
+                  wineTint: true,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _microCard(
+                  label: 'Km rodados',
+                  value: distance > 0 ? '${distance.round()} km' : '—',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _microCard(
+                  label: 'Preço médio / L',
+                  value: avgPrice > 0
+                      ? 'R\$ ${avgPrice.toStringAsFixed(2).replaceAll('.', ',')}'
+                      : '—',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '${list.length} lançamento(s) considerados no período.',
+            style: TextStyle(
+              fontFamily: 'DM Sans',
+              color: isDarkTheme ? const Color(0xFF66666A) : const Color(0xFF94A3B8),
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ritmoMensalCard(List<CarEvent> list) {
+    final now = DateTime.now();
+    final monthList = allVehicleEvents.where((e) {
+      final d = _parseDate(e.date);
+      return d != null && d.year == now.year && d.month == now.month;
+    }).toList();
+    final monthSpent = _total(monthList);
+    final dailyAvg = monthSpent > 0 ? monthSpent / (now.day > 0 ? now.day : 1) : 0.0;
+    final currentOdo = _maxOdometer(allVehicleEvents);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.build_circle_outlined, size: 18, color: textMain),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Revisão e alertas',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: textMain,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      'Manutenção preventiva do Astra',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: textMuted,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, size: 20, color: textMuted),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _microCard(
+                  label: 'Troca de óleo',
+                  value: 'em 2.800 km',
+                  wineTint: true,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _microCard(
+                  label: 'Gasto no mês',
+                  value: monthSpent > 0 ? '-${_money(monthSpent)}' : 'R\$ 0,00',
+                  wineTint: monthSpent > 0,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _microCard(
+                  label: 'Média diária',
+                  value: dailyAvg > 0 ? '-${_money(dailyAvg)}' : 'R\$ 0,00',
+                  wineTint: dailyAvg > 0,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _microCard(
+                  label: 'Hodômetro atual',
+                  value: currentOdo > 0 ? '${currentOdo.round()} km' : '—',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Próxima revisão recomendada aos ${(currentOdo > 0 ? (currentOdo + 2800).round() : 165000)} km.',
+            style: TextStyle(
+              fontFamily: 'DM Sans',
+              color: isDarkTheme ? const Color(0xFF66666A) : const Color(0xFF94A3B8),
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _microCard({
+    required String label,
+    required String value,
+    Color? valueColor,
+    bool wineTint = false,
+  }) {
+    Color bg;
+    Color labelCol;
+    Color valCol;
+
+    if (wineTint) {
+      bg = isDarkTheme ? const Color(0xFF271416) : const Color(0xFFFEE2E2);
+      labelCol = isDarkTheme ? const Color(0xFFFFAAAA) : const Color(0xFFDC2626);
+      valCol = isDarkTheme ? const Color(0xFFFF5555) : const Color(0xFFB91C1C);
+    } else {
+      bg = isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF1F3F6);
+      labelCol = textMuted;
+      valCol = valueColor ?? textMain;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontFamily: 'DM Sans',
-              color: textMuted,
+              color: labelCol,
               fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 4),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontFamily: 'DM Sans',
-              color: color,
+              color: valCol,
               fontSize: 15,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.3,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
-      );
+      ),
+    );
+  }
 
   Widget _sectionTitle(String title, String subtitle, {Widget? trailing}) => Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -1049,225 +1323,70 @@ class _CarHomeState extends State<CarHome> {
         ),
       );
 
-  Widget _metricsGrid(List<CarEvent> list) {
-    final distance = _distance(list);
-    final consumption = _consumption(list);
-    final cards = [
-      _MetricData(
-        'Km rodados',
-        distance > 0 ? '${distance.round()} km' : '—',
-        distance > 0 ? 'entre abastecimentos' : 'precisa de 2 leituras',
-        mint,
-        Icons.route_rounded,
-      ),
-      _MetricData(
-        'Consumo médio',
-        consumption > 0 ? '${consumption.toStringAsFixed(1).replaceAll('.', ',')} km/l' : '—',
-        _liters(list) > 0 ? '${_liters(list).toStringAsFixed(0)} L registrados' : 'sem litros suficientes',
-        blue,
-        Icons.speed_rounded,
-      ),
-      _MetricData(
-        'Custo por km',
-        distance > 0 ? _money(_total(list) / distance) : '—',
-        'combustível + despesas',
-        amber,
-        Icons.payments_outlined,
-      ),
-      _MetricData(
-        'Hodômetro',
-        '${_maxOdometer(allVehicleEvents).round()} km',
-        'maior leitura registrada',
-        purple,
-        Icons.speed_outlined,
-      ),
-    ];
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: 1.25,
-      children: cards.map(_glassMetricCard).toList(),
-    );
-  }
+  Widget _chartCard(List<CarEvent> list) {
+    final chart = _chartValues(list);
+    final maxValue = chart.values.fold<double>(0, (max, value) => value > max ? value : max);
+    final totalChart = chart.values.fold<double>(0, (sum, val) => sum + val);
 
-  Widget _glassMetricCard(_MetricData data) => GlassPanel(
-        radius: 18,
-        opacity: isDarkTheme ? .88 : .96,
-        blur: 16,
-        borderColor: strokeColor,
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 30,
-                  height: 30,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: data.color.withOpacity(.12),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: data.color.withOpacity(.20)),
-                  ),
-                  child: Icon(data.icon, color: data.color, size: 16),
-                ),
-                const Spacer(),
-                Icon(
-                  Icons.arrow_outward_rounded,
-                  color: textSoft.withOpacity(.6),
-                  size: 14,
-                ),
-              ],
-            ),
-            const Spacer(),
-            Text(
-              data.label.toUpperCase(),
-              style: TextStyle(
-                fontFamily: 'DM Sans',
-                color: textMuted,
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                letterSpacing: .6,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              data.value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'DM Sans',
-                color: textMain,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -.4,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              data.caption,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'DM Sans',
-                color: textSoft,
-                fontSize: 10,
-              ),
-            ),
-          ],
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
         ),
-      );
-
-  Widget _quickActions() => Row(
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: _glassQuickAction(
-              Icons.local_gas_station_rounded,
-              'Abastecer',
-              'Combustível',
-              mint,
-              () => _entrySheet(fuel: true),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _glassQuickAction(
-              Icons.build_rounded,
-              'Despesa',
-              'Manutenção/Taxas',
-              coral,
-              () => _entrySheet(fuel: false),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _glassQuickAction(
-              Icons.edit_rounded,
-              'Veículo',
-              'Editar dados',
-              blue,
-              () => _vehicleSheet(currentVehicle),
-            ),
-          ),
-        ],
-      );
-
-  Widget _glassQuickAction(
-    IconData icon,
-    String title,
-    String caption,
-    Color color,
-    VoidCallback action,
-  ) =>
-      InkWell(
-        onTap: action,
-        borderRadius: BorderRadius.circular(18),
-        child: GlassPanel(
-          radius: 18,
-          opacity: isDarkTheme ? .88 : .96,
-          blur: 16,
-          borderColor: strokeColor,
-          padding: const EdgeInsets.fromLTRB(12, 14, 10, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(.12),
-                  borderRadius: BorderRadius.circular(11),
-                  border: Border.all(color: color.withOpacity(.2)),
+              Icon(Icons.show_chart_rounded, size: 18, color: textMain),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Evolução mensal',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: textMain,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      'Gastos nos últimos 6 meses',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: textMuted,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
-                child: Icon(icon, color: color, size: 18),
               ),
-              const SizedBox(height: 12),
               Text(
-                title,
+                _shortMoney(totalChart),
                 style: TextStyle(
                   fontFamily: 'DM Sans',
                   color: textMain,
-                  fontSize: 13,
                   fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                caption,
-                style: TextStyle(
-                  fontFamily: 'DM Sans',
-                  color: textSoft,
-                  fontSize: 10,
+                  fontSize: 13,
                 ),
               ),
             ],
           ),
-        ),
-      );
-
-  Widget _chartCard(List<CarEvent> list) {
-    final chart = _chartValues(list);
-    final maxValue = chart.values.fold<double>(0, (max, value) => value > max ? value : max);
-    return GlassPanel(
-      radius: 20,
-      opacity: isDarkTheme ? .88 : .96,
-      blur: 16,
-      borderColor: strokeColor,
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          const SizedBox(height: 18),
           if (maxValue == 0)
             SizedBox(
-              height: 120,
+              height: 110,
               child: Center(
                 child: Text(
-                  'Ainda não há gastos neste período',
+                  'Ainda não há gastos registrados',
                   style: TextStyle(
                     fontFamily: 'DM Sans',
                     color: textMuted,
@@ -1278,36 +1397,32 @@ class _CarHomeState extends State<CarHome> {
             )
           else
             SizedBox(
-              height: 140,
+              height: 130,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: chart.entries.map((entry) {
-                  final height = maxValue == 0 ? 4.0 : 96 * entry.value / maxValue;
+                  final height = maxValue == 0 ? 4.0 : 88 * entry.value / maxValue;
                   final isPositive = entry.value > 0;
                   return Column(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Container(
                         width: 28,
-                        height: height.clamp(4.0, 96.0).toDouble(),
+                        height: height.clamp(4.0, 88.0).toDouble(),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: isPositive
-                                ? [blue.withOpacity(0.8), blue]
-                                : [panelSoft, panelSoft],
-                          ),
+                          color: isPositive
+                              ? (isDarkTheme ? const Color(0xFF2A2A32) : const Color(0xFFD1D5DB))
+                              : (isDarkTheme ? const Color(0xFF1A1A1E) : const Color(0xFFF1F3F6)),
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        entry.key,
+                        entry.key.toUpperCase(),
                         style: TextStyle(
                           fontFamily: 'DM Sans',
-                          color: textSoft,
+                          color: textMuted,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1317,32 +1432,30 @@ class _CarHomeState extends State<CarHome> {
                 }).toList(),
               ),
             ),
-          Divider(height: 24, color: strokeColor),
+          const SizedBox(height: 12),
+          Divider(
+            color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
+            height: 1,
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(color: blue, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 8),
               Text(
-                'Total dos últimos 6 meses',
+                'Total no período recente',
                 style: TextStyle(
                   fontFamily: 'DM Sans',
                   color: textMuted,
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
                 ),
               ),
               const Spacer(),
               Text(
-                _money(chart.values.fold<double>(0, (sum, value) => sum + value)),
+                _money(totalChart),
                 style: TextStyle(
                   fontFamily: 'DM Sans',
                   color: textMain,
                   fontSize: 13,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -1367,36 +1480,68 @@ class _CarHomeState extends State<CarHome> {
     return result;
   }
 
+  Widget _ultimasTransacoesHeader() => Row(
+        children: [
+          Text(
+            'Últimos lançamentos',
+            style: TextStyle(
+              fontFamily: 'DM Sans',
+              color: textMain,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: () => setState(() => tab = 1),
+            child: Text(
+              'Ver todos',
+              style: TextStyle(
+                fontFamily: 'DM Sans',
+                color: textMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      );
+
   Widget _recentList(List<CarEvent> list) => list.isEmpty
-      ? _emptyState('Nenhum lançamento ainda', 'Use um dos atalhos acima para começar.')
+      ? _emptyState('Nenhum lançamento ainda', 'Use o botão + no topo para começar.')
       : Column(children: list.take(5).map(_glassEventTile).toList());
 
   Widget _glassEventTile(CarEvent event) {
-    final color = event.fuel ? mint : coral;
     final icon = event.fuel ? Icons.local_gas_station_rounded : _expenseIcon(event.category);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: () => _entrySheet(fuel: event.fuel, edit: event),
         borderRadius: BorderRadius.circular(18),
-        child: GlassPanel(
-          radius: 18,
-          opacity: isDarkTheme ? .88 : .96,
-          blur: 16,
-          borderColor: strokeColor,
+        child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
+            ),
+          ),
           child: Row(
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 40,
+                height: 40,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(.12),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: color.withOpacity(.18)),
+                  color: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF1F3F6),
+                  shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: 18),
+                child: Icon(
+                  icon,
+                  color: isDarkTheme ? Colors.white : const Color(0xFF0F172A),
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1412,23 +1557,23 @@ class _CarHomeState extends State<CarHome> {
                       style: TextStyle(
                         fontFamily: 'DM Sans',
                         color: textMain,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     Text(
                       [
                         _dateLabel(event.date),
                         if (event.odometer > 0) '${event.odometer.round()} km',
                         if (event.note.isNotEmpty) event.note,
-                      ].join('  ·  '),
+                      ].join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: 'DM Sans',
                         color: textMuted,
-                        fontSize: 11,
+                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -1436,15 +1581,339 @@ class _CarHomeState extends State<CarHome> {
               ),
               const SizedBox(width: 8),
               Text(
-                _money(event.amount),
-                style: TextStyle(
+                '-${_money(event.amount)}',
+                style: const TextStyle(
                   fontFamily: 'DM Sans',
-                  color: textMain,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
+                  color: Color(0xFFFF5555),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _quickActionChooserSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Central de Ações',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: textMain,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(sheetContext),
+                    icon: Icon(Icons.close_rounded, color: textMuted),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _actionTile(
+                icon: Icons.local_gas_station_rounded,
+                title: 'Registrar abastecimento',
+                subtitle: 'Litros, preço por litro, combustível e odômetro',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _entrySheet(fuel: true);
+                },
+              ),
+              _actionTile(
+                icon: Icons.build_rounded,
+                title: 'Registrar manutenção ou serviço',
+                subtitle: 'Troca de óleo, revisão, peças, oficina',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _entrySheet(fuel: false);
+                },
+              ),
+              _actionTile(
+                icon: Icons.receipt_long_rounded,
+                title: 'Lançamento rápido de despesa',
+                subtitle: 'Pedágio, lava-rápido, estacionamento ou taxas',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _quickExpenseSheet();
+                },
+              ),
+              _actionTile(
+                icon: Icons.directions_car_rounded,
+                title: 'Gerenciar veículo e odômetro',
+                subtitle: 'Atualizar quilometragem e configurações',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _vehicleSheet(currentVehicle);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _actionTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) =>
+      Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF8F9FB),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDarkTheme ? const Color(0xFF26262C) : const Color(0x0F000000),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isDarkTheme ? const Color(0xFF27272E) : Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: textMain, size: 20),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: textMain,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: textMuted, size: 20),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Future<void> _filterSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: StatefulBuilder(
+          builder: (ctx, setSheetState) => Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Filtros e Veículo',
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: textMain,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      icon: Icon(Icons.close_rounded, color: textMuted),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'VEÍCULO ATIVO',
+                  style: TextStyle(
+                    fontFamily: 'DM Sans',
+                    color: textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: vehicles.map((v) {
+                    final isSel = activeVehicle == v.id;
+                    return ChoiceChip(
+                      label: Text(v.name),
+                      selected: isSel,
+                      onSelected: (val) async {
+                        if (val) {
+                          setState(() => activeVehicle = v.id);
+                          setSheetState(() {});
+                          await _save();
+                        }
+                      },
+                      labelStyle: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: isSel ? Colors.white : textMuted,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                      selectedColor: isDarkTheme ? const Color(0xFF25252B) : const Color(0xFF0F172A),
+                      backgroundColor: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF1F3F6),
+                      side: BorderSide.none,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'PERÍODO',
+                  style: TextStyle(
+                    fontFamily: 'DM Sans',
+                    color: textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: ['Tudo', 'Mês atual', '30 dias', '90 dias', 'Ano atual'].map((p) {
+                    final isSel = period == p;
+                    return ChoiceChip(
+                      label: Text(p),
+                      selected: isSel,
+                      onSelected: (val) {
+                        if (val) {
+                          setState(() => period = p);
+                          setSheetState(() {});
+                        }
+                      },
+                      labelStyle: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: isSel ? Colors.white : textMuted,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                      selectedColor: isDarkTheme ? const Color(0xFF25252B) : const Color(0xFF0F172A),
+                      backgroundColor: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF1F3F6),
+                      side: BorderSide.none,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'TEMA',
+                  style: TextStyle(
+                    fontFamily: 'DM Sans',
+                    color: textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          _toggleTheme();
+                          setSheetState(() {});
+                        },
+                        icon: Icon(
+                          isDarkTheme ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                          size: 18,
+                        ),
+                        label: Text(isDarkTheme ? 'Mudar para tema claro' : 'Mudar para tema escuro'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: textMain,
+                          side: BorderSide(
+                            color: isDarkTheme ? const Color(0xFF26262C) : const Color(0x1F000000),
+                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
