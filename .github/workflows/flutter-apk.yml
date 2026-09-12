@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,22 +30,44 @@ jobs:
         working-directory: mobile
         run: sed -i 's/android:label="finanza_auto"/android:label="Finanza Auto"/' android/app/src/main/AndroidManifest.xml
 
-      - name: Add Android summary widget
+      - name: Configure Android native integration & updater
         working-directory: mobile
         run: |
           mkdir -p android/app/src/main/kotlin/com/jeffersonf/finanza_auto
           mkdir -p android/app/src/main/res/layout android/app/src/main/res/drawable android/app/src/main/res/xml android/app/src/main/assets
+          cp android-addon/src/main/kotlin/com/jeffersonf/finanza_auto/MainActivity.kt android/app/src/main/kotlin/com/jeffersonf/finanza_auto/
           cp android-addon/src/main/kotlin/com/jeffersonf/finanza_auto/FinanzaSummaryWidget.kt android/app/src/main/kotlin/com/jeffersonf/finanza_auto/
           cp android-addon/src/main/res/layout/widget_finanza_summary.xml android/app/src/main/res/layout/
           cp android-addon/src/main/res/drawable/finanza_widget_background.xml android/app/src/main/res/drawable/
           cp android-addon/src/main/res/xml/finanza_summary_widget_info.xml android/app/src/main/res/xml/
+          cp android-addon/src/main/res/xml/file_provider_paths.xml android/app/src/main/res/xml/
           cp assets/finanza-auto-backup.json android/app/src/main/assets/
-          sed -i '/<\/application>/i\        <receiver android:name=".FinanzaSummaryWidget" android:exported="true">\
-                  <intent-filter>\
-                      <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />\
-                  </intent-filter>\
-                  <meta-data android:name="android.appwidget.provider" android:resource="@xml/finanza_summary_widget_info" />\
-              </receiver>' android/app/src/main/AndroidManifest.xml
+          cp finanza-release.jks android/app/finanza-release.jks
+
+          # Add permissions before <application
+          sed -i '/<application/i\    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />' android/app/src/main/AndroidManifest.xml
+
+          # Add FileProvider and Widget Receiver before </application>
+          sed -i '/<\/application>/i\        <receiver android:name=".FinanzaSummaryWidget" android:exported="true">\n            <intent-filter>\n                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />\n            </intent-filter>\n            <meta-data android:name="android.appwidget.provider" android:resource="@xml/finanza_summary_widget_info" />\n        </receiver>\n        <provider\n            android:name="androidx.core.content.FileProvider"\n            android:authorities="com.jeffersonf.finanza_auto.fileprovider"\n            android:exported="false"\n            android:grantUriPermissions="true">\n            <meta-data\n                android:name="android.support.FILE_PROVIDER_PATHS"\n                android:resource="@xml/file_provider_paths" />\n        </provider>' android/app/src/main/AndroidManifest.xml
+
+          # Configure release signing in android/app/build.gradle.kts
+          python3 -c "
+          with open('android/app/build.gradle.kts', 'r') as f:
+              content = f.read()
+          signing_block = '''
+              signingConfigs {
+                  getByName(\"debug\") {
+                      storeFile = file(\"finanza-release.jks\")
+                      storePassword = \"finanza_auto_secret\"
+                      keyAlias = \"finanza_key\"
+                      keyPassword = \"finanza_auto_secret\"
+                  }
+              }
+          '''
+          content = content.replace('android {', 'android {\n' + signing_block, 1)
+          with open('android/app/build.gradle.kts', 'w') as f:
+              f.write(content)
+          "
 
       - name: Install dependencies
         working-directory: mobile
@@ -73,3 +98,16 @@ jobs:
           name: finanza-auto-apk
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(grep '^version:' mobile/pubspec.yaml | sed 's/version: //' | cut -d'+' -f1 | tr -d ' ')
+          TAG="v$VERSION"
+          echo "Publishing GitHub Release $TAG..."
+          gh release create "$TAG" mobile/build/app/outputs/flutter-apk/app-release.apk version.json \
+            --title "Finanza Auto $TAG" \
+            --notes "Versão $TAG do Finanza Auto com auto-updater integrado e redesign visual Finanza Next OLED." \
+            --latest || \
+          gh release upload "$TAG" mobile/build/app/outputs/flutter-apk/app-release.apk version.json --clobber

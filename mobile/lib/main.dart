@@ -7,6 +7,11 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'updater_service.dart';
+
+const String appVersion = '1.1.4';
+const int appBuildNumber = 6;
+
 // Finanza Next design system tokens for Flutter
 final ValueNotifier<bool> _darkMode = ValueNotifier<bool>(true);
 bool get isDarkTheme => _darkMode.value;
@@ -353,11 +358,15 @@ class _CarHomeState extends State<CarHome> {
   String loadError = '';
   int tab = 0;
   bool loading = true;
+  bool _checkingUpdate = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAppUpdates(manual: false);
+    });
   }
 
   @override
@@ -2561,6 +2570,10 @@ class _CarHomeState extends State<CarHome> {
             ],
           ),
         ),
+        const SizedBox(height: 22),
+        _sectionTitle('Atualizações do aplicativo', 'Mantenha o Finanza Auto sempre atualizado'),
+        const SizedBox(height: 10),
+        _appUpdateCard(),
         const SizedBox(height: 16),
         Center(
           child: Text(
@@ -2573,6 +2586,392 @@ class _CarHomeState extends State<CarHome> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _appUpdateCard() => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
+          ),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF1F3F6),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.cloud_sync_rounded, color: textMain, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Versão instalada: v$appVersion',
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: textMain,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Atualizações distribuídas diretamente via GitHub',
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: textMuted,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _checkingUpdate ? null : () => _checkAppUpdates(manual: true),
+                    icon: _checkingUpdate
+                        ? SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: textMain),
+                          )
+                        : const Icon(Icons.refresh_rounded, size: 16),
+                    label: Text(_checkingUpdate ? 'Verificando...' : 'Verificar atualizações'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: textMain,
+                      side: BorderSide(
+                        color: isDarkTheme ? const Color(0xFF26262C) : const Color(0x1F000000),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      textStyle: const TextStyle(
+                        fontFamily: 'DM Sans',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+  Future<void> _checkAppUpdates({bool manual = false}) async {
+    if (_checkingUpdate) return;
+    setState(() => _checkingUpdate = true);
+    try {
+      final info = await UpdaterService.checkUpdate(
+        currentVersion: appVersion,
+        currentBuild: appBuildNumber,
+      );
+      if (!mounted) return;
+      if (info != null && info.hasUpdate) {
+        _showUpdateDialog(info);
+      } else if (manual) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFF0F172A),
+            content: Text(
+              'Você já está na versão mais recente (v$appVersion).',
+              style: const TextStyle(fontFamily: 'DM Sans', color: Colors.white),
+            ),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _checkingUpdate = false);
+    }
+  }
+
+  Future<void> _showUpdateDialog(AppUpdateInfo info) async {
+    double progress = 0.0;
+    bool downloading = false;
+    String statusText = '';
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF1F3F6),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        Icons.rocket_launch_rounded,
+                        color: isDarkTheme ? Colors.white : Colors.black,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Nova versão disponível',
+                                style: TextStyle(
+                                  fontFamily: 'DM Sans',
+                                  color: textMain,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF34C759).withOpacity(0.18),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  'v${info.version}',
+                                  style: const TextStyle(
+                                    fontFamily: 'DM Sans',
+                                    color: Color(0xFF34C759),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Versão atual instalada: v$appVersion',
+                            style: TextStyle(
+                              fontFamily: 'DM Sans',
+                              color: textMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDarkTheme ? const Color(0xFF1A1A1E) : const Color(0xFFF8F9FA),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'NOVIDADES',
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: textMuted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        info.releaseNotes,
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: textMain,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (downloading) ...[
+                  const SizedBox(height: 18),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            statusText.isEmpty ? 'Baixando atualização...' : statusText,
+                            style: TextStyle(
+                              fontFamily: 'DM Sans',
+                              color: textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '${(progress * 100).toInt()}%',
+                            style: TextStyle(
+                              fontFamily: 'DM Sans',
+                              color: textMain,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: progress > 0 ? progress : null,
+                          minHeight: 6,
+                          backgroundColor: isDarkTheme ? const Color(0xFF25252B) : const Color(0xFFE2E8F0),
+                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: downloading
+                            ? null
+                            : () async {
+                                setSheetState(() {
+                                  downloading = true;
+                                  statusText = 'Baixando APK...';
+                                });
+                                final filePath = await UpdaterService.downloadApk(
+                                  info.downloadUrl,
+                                  onProgress: (p) {
+                                    setSheetState(() => progress = p);
+                                  },
+                                );
+                                if (filePath != null) {
+                                  setSheetState(() {
+                                    statusText = 'Abrindo instalador...';
+                                  });
+                                  final installed = await UpdaterService.installApk(filePath);
+                                  if (!installed && mounted) {
+                                    await UpdaterService.openInBrowser(info.downloadUrl);
+                                  }
+                                } else {
+                                  setSheetState(() {
+                                    downloading = false;
+                                    statusText = 'Falha no download direto. Tente pelo navegador.';
+                                  });
+                                  if (mounted) {
+                                    await UpdaterService.openInBrowser(info.downloadUrl);
+                                  }
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isDarkTheme ? Colors.white : const Color(0xFF0F172A),
+                          foregroundColor: isDarkTheme ? Colors.black : Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          downloading ? 'Instalando...' : 'Instalar atualização',
+                          style: const TextStyle(
+                            fontFamily: 'DM Sans',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: () => UpdaterService.openInBrowser(info.downloadUrl),
+                        icon: const Icon(Icons.open_in_browser_rounded, size: 16),
+                        label: const Text('Baixar pelo navegador'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: textMuted,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          textStyle: const TextStyle(
+                            fontFamily: 'DM Sans',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(sheetCtx),
+                      style: TextButton.styleFrom(
+                        foregroundColor: textMuted,
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        textStyle: const TextStyle(
+                          fontFamily: 'DM Sans',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      child: const Text('Depois'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

@@ -1,7 +1,7 @@
 name: finanza_auto
 description: Módulo Carro do Finanza com dados locais reais.
 publish_to: 'none'
-version: 1.1.3+5
+version: 1.1.4+6
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
@@ -11,6 +11,8 @@ dependencies:
     sdk: flutter
   intl: ^0.20.2
   shared_preferences: ^2.5.3
+  path_provider: ^2.1.5
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
