@@ -4502,7 +4502,7 @@ class _CarHomeState extends State<CarHome> {
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           onChanged: (_) => calculate(),
                           decoration: const InputDecoration(
-                            labelText: 'Preço Etanol (R$)',
+                            labelText: 'Preço Etanol (R\$)',
                             hintText: 'Ex: 3,89',
                           ),
                         ),
@@ -4514,7 +4514,7 @@ class _CarHomeState extends State<CarHome> {
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           onChanged: (_) => calculate(),
                           decoration: const InputDecoration(
-                            labelText: 'Preço Gasolina (R$)',
+                            labelText: 'Preço Gasolina (R\$)',
                             hintText: 'Ex: 5,79',
                           ),
                         ),
@@ -4639,7 +4639,7 @@ class _CarHomeState extends State<CarHome> {
                   maxLines: 6,
                   decoration: InputDecoration(
                     labelText: 'Texto extraído do print / relatório Drivvo',
-                    hintText: 'Exemplo:\nAbastecimento Etanol\nOdômetro: 161.461 km\nValor: R$ 193,00\nLitros: 46,06 L\nPreço/L: 4,19\nData: 26/03/2026\nPosto Rafaela',
+                    hintText: 'Exemplo:\nAbastecimento Etanol\nOdômetro: 161.461 km\nValor: R\$ 193,00\nLitros: 46,06 L\nPreço/L: 4,19\nData: 26/03/2026\nPosto Rafaela',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                 ),
@@ -4893,8 +4893,8 @@ class _CarHomeState extends State<CarHome> {
                           controller: amountCtrl,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: const InputDecoration(
-                            labelText: 'Valor Total (R$)',
-                            prefixText: 'R$ ',
+                            labelText: 'Valor Total (R\$)',
+                            prefixText: 'R\$ ',
                           ),
                         ),
                       ),
@@ -4932,7 +4932,7 @@ class _CarHomeState extends State<CarHome> {
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             decoration: const InputDecoration(
                               labelText: 'Preço por Litro',
-                              prefixText: 'R$ ',
+                              prefixText: 'R\$ ',
                             ),
                           ),
                         ),
@@ -4993,7 +4993,7 @@ class _CarHomeState extends State<CarHome> {
                             final newEvent = CarEvent(
                               id: 'drivvo-${DateTime.now().microsecondsSinceEpoch}',
                               vehicleId: currentVehicle.id,
-                              fuel: isFuel,
+                              type: isFuel ? 'fuel' : 'expense',
                               date: dt,
                               odometer: km,
                               fuelType: isFuel ? fuelType : '',
