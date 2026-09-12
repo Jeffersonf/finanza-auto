@@ -13,11 +13,36 @@ import java.io.File
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.jeffersonf.finanza_auto/updater"
+    private var pendingAction: String? = null
+
+    override fun onResume() {
+        super.onResume()
+        if (intent?.action == "ACTION_QUICK_FUEL") {
+            pendingAction = "ACTION_QUICK_FUEL"
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.action == "ACTION_QUICK_FUEL") {
+            pendingAction = "ACTION_QUICK_FUEL"
+        }
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        if (intent?.action == "ACTION_QUICK_FUEL") {
+            pendingAction = "ACTION_QUICK_FUEL"
+        }
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
+                "getPendingAction" -> {
+                    val act = pendingAction
+                    pendingAction = null
+                    result.success(act)
+                }
                 "canRequestPackageInstalls" -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         result.success(packageManager.canRequestPackageInstalls())
@@ -46,7 +71,7 @@ class MainActivity: FlutterActivity() {
                     try {
                         val file = File(filePath)
                         if (!file.exists()) {
-                            result.error("FILE_NOT_FOUND", "Arquivo APK nao encontrado em $filePath", null)
+                            result.error("FILE_NOT_FOUND", "Arquivo APK-nao encontrado em $filePath", null)
                             return@setMethodCallHandler
                         }
                         val contentUri = FileProvider.getUriForFile(

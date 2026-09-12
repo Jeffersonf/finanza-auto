@@ -9,8 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
 
-const String appVersion = '1.1.4';
-const int appBuildNumber = 6;
+const String appVersion = '1.1.5';
+const int appBuildNumber = 7;
 
 // Finanza Next design system tokens for Flutter
 final ValueNotifier<bool> _darkMode = ValueNotifier<bool>(true);
@@ -238,6 +238,9 @@ class CarVehicle {
     this.model = '',
     this.plate = '',
     this.odometer = 0,
+    this.targetConsumption = 0,
+    this.tankCapacity = 0,
+    this.serviceIntervalKm = 10000,
   });
 
   String id;
@@ -245,6 +248,9 @@ class CarVehicle {
   String model;
   String plate;
   double odometer;
+  double targetConsumption;
+  double tankCapacity;
+  double serviceIntervalKm;
 
   factory CarVehicle.fromMap(Map<String, dynamic> map) => CarVehicle(
         id: '${_firstValue(map, ['id', 'vehicleId', 'vehicle_id']) ?? 'vehicle-${DateTime.now().microsecondsSinceEpoch}'}',
@@ -252,6 +258,11 @@ class CarVehicle {
         model: '${_firstValue(map, ['model', 'modelYear', 'model_year']) ?? ''}',
         plate: '${_firstValue(map, ['plate', 'licensePlate', 'license_plate']) ?? ''}',
         odometer: _number(_firstValue(map, ['odometer', 'odometerKm', 'km', 'mileage'])),
+        targetConsumption: _number(_firstValue(map, ['targetConsumption', 'target_consumption', 'meta_consumo'])),
+        tankCapacity: _number(_firstValue(map, ['tankCapacity', 'tank_capacity', 'tanque'])),
+        serviceIntervalKm: _number(_firstValue(map, ['serviceIntervalKm', 'service_interval_km', 'intervalo_revisao'])) > 0
+            ? _number(_firstValue(map, ['serviceIntervalKm', 'service_interval_km', 'intervalo_revisao']))
+            : 10000,
       );
 
   Map<String, dynamic> toMap() => {
@@ -260,6 +271,9 @@ class CarVehicle {
         'model': model,
         'plate': plate,
         'odometer': odometer,
+        'targetConsumption': targetConsumption,
+        'tankCapacity': tankCapacity,
+        'serviceIntervalKm': serviceIntervalKm,
       };
 }
 
@@ -359,18 +373,33 @@ class _CarHomeState extends State<CarHome> {
   int tab = 0;
   bool loading = true;
   bool _checkingUpdate = false;
+  late final PageController _pageController;
+  DateTime? _lastBackPress;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: tab);
     _load();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAppUpdates(manual: false);
+      _checkPendingWidgetAction();
     });
+  }
+
+  Future<void> _checkPendingWidgetAction() async {
+    try {
+      const channel = MethodChannel('com.jeffersonf.finanza_auto/updater');
+      final action = await channel.invokeMethod<String>('getPendingAction');
+      if (action == 'ACTION_QUICK_FUEL' && mounted) {
+        _entrySheet(fuel: true);
+      }
+    } catch (_) {}
   }
 
   @override
   void dispose() {
+    _pageController.dispose();
     searchController.dispose();
     super.dispose();
   }
@@ -564,36 +593,58 @@ class _CarHomeState extends State<CarHome> {
         body: Center(child: CircularProgressIndicator(color: blue)),
       );
     }
-    return Scaffold(
-      backgroundColor: ink,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _nextTopBar(),
-            if (loadError.isNotEmpty) _errorBanner(),
-            Expanded(
-              child: IndexedStack(
-                index: tab,
-                children: [
-                  _homeTab(),
-                  _historyTab(),
-                  _analyticsTab(),
-                  _vehicleTab(),
-                ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (tab != 0) {
+          _pageController.animateToPage(
+            0,
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeInOutCubic,
+          );
+          return;
+        }
+        final now = DateTime.now();
+        if (_lastBackPress == null || now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+          _lastBackPress = now;
+          _snack('Pressione voltar novamente para sair do Finanza Auto.');
+          return;
+        }
+        SystemNavigator.pop();
+      },
+      child: Scaffold(
+        backgroundColor: ink,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              if (loadError.isNotEmpty) _errorBanner(),
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  onPageChanged: (index) => setState(() => tab = index),
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    _homeTab(),
+                    _historyTab(),
+                    _analyticsTab(),
+                    _vehicleTab(),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        bottomNavigationBar: _glassBottomNavigation(),
       ),
-      bottomNavigationBar: _glassBottomNavigation(),
     );
   }
 
   Widget _nextTopBar() {
     final isHome = tab == 0;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 18, 8),
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -631,11 +682,22 @@ class _CarHomeState extends State<CarHome> {
                 child: Container(
                   width: 40,
                   height: 40,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: isDarkTheme ? Colors.white : const Color(0xFF0F172A),
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isDarkTheme ? Colors.white : Colors.black).withOpacity(0.12),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.add_rounded, color: Colors.black, size: 24),
+                  child: Icon(
+                    Icons.add_rounded,
+                    color: isDarkTheme ? Colors.black : Colors.white,
+                    size: 24,
+                  ),
                 ),
               ),
             ],
@@ -674,31 +736,42 @@ class _CarHomeState extends State<CarHome> {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-          child: Container(
-            height: 62,
-            decoration: BoxDecoration(
-              color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(
-                color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDarkTheme ? 0.35 : 0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(34),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: Container(
+                height: 64,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: isDarkTheme
+                      ? const Color(0xFF141416).withOpacity(0.72)
+                      : Colors.white.withOpacity(0.82),
+                  borderRadius: BorderRadius.circular(34),
+                  border: Border.all(
+                    color: isDarkTheme
+                        ? Colors.white.withOpacity(0.12)
+                        : Colors.black.withOpacity(0.08),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDarkTheme ? 0.45 : 0.10),
+                      blurRadius: 28,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _navItem(0, Icons.home_rounded, 'Início'),
-                _navItem(1, Icons.receipt_long_rounded, 'Histórico'),
-                _navItem(2, Icons.insights_rounded, 'Análise'),
-                _navItem(3, Icons.directions_car_rounded, 'Carro'),
-              ],
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _navItem(0, Icons.home_rounded, 'Início'),
+                    _navItem(1, Icons.receipt_long_rounded, 'Histórico'),
+                    _navItem(2, Icons.insights_rounded, 'Análise'),
+                    _navItem(3, Icons.directions_car_rounded, 'Carro'),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -707,7 +780,14 @@ class _CarHomeState extends State<CarHome> {
   Widget _navItem(int index, IconData icon, String label) {
     final active = tab == index;
     return GestureDetector(
-      onTap: () => setState(() => tab = index),
+      onTap: () {
+        setState(() => tab = index);
+        _pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeInOutCubic,
+        );
+      },
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -716,9 +796,18 @@ class _CarHomeState extends State<CarHome> {
             : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: active
-              ? (isDarkTheme ? const Color(0xFF25252B) : const Color(0xFF1E1E22))
+              ? (isDarkTheme ? const Color(0xFF282830) : const Color(0xFF1E1E22))
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDarkTheme ? 0.3 : 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -728,7 +817,7 @@ class _CarHomeState extends State<CarHome> {
               size: 20,
               color: active
                   ? Colors.white
-                  : (isDarkTheme ? const Color(0xFF7E7E84) : const Color(0xFF8E8E93)),
+                  : (isDarkTheme ? const Color(0xFF8E8E94) : const Color(0xFF8E8E93)),
             ),
             if (active) ...[
               const SizedBox(width: 6),
@@ -786,6 +875,7 @@ class _CarHomeState extends State<CarHome> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
         children: [
+          _nextTopBar(),
           _centralDeRecursosPill(),
           const SizedBox(height: 14),
           _heroCardGlass(list, total),
@@ -1934,6 +2024,7 @@ class _CarHomeState extends State<CarHome> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
       children: [
+        _nextTopBar(),
         _pageIntro(
           'Histórico completo',
           '${allVehicleEvents.length} registros salvos neste dispositivo',
@@ -2049,6 +2140,7 @@ class _CarHomeState extends State<CarHome> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
       children: [
+        _nextTopBar(),
         _pageIntro(
           'Análises do carro',
           'Entenda para onde seu dinheiro está indo',
@@ -2370,6 +2462,7 @@ class _CarHomeState extends State<CarHome> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
       children: [
+        _nextTopBar(),
         _pageIntro(
           'Seu veículo',
           'Cadastro, desempenho e dados locais',
@@ -2459,6 +2552,41 @@ class _CarHomeState extends State<CarHome> {
                   ],
                 ),
               ),
+              if (currentVehicle.targetConsumption > 0 || currentVehicle.tankCapacity > 0) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: panelSoft.withOpacity(isDarkTheme ? 0.6 : 0.7),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: strokeColor),
+                  ),
+                  child: Row(
+                    children: [
+                      if (currentVehicle.targetConsumption > 0)
+                        Expanded(
+                          child: _vehicleInfo('Meta', '${currentVehicle.targetConsumption.toStringAsFixed(1)} km/L'),
+                        ),
+                      if (currentVehicle.targetConsumption > 0 && currentVehicle.tankCapacity > 0)
+                        Container(width: 1, height: 28, color: strokeColor),
+                      if (currentVehicle.tankCapacity > 0)
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 12),
+                            child: _vehicleInfo('Tanque', '${currentVehicle.tankCapacity.toStringAsFixed(0)} L'),
+                          ),
+                        ),
+                      Container(width: 1, height: 28, color: strokeColor),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 12),
+                          child: _vehicleInfo('Revisão', '${currentVehicle.serviceIntervalKm.round()} km'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -3342,17 +3470,52 @@ class _CarHomeState extends State<CarHome> {
                         prefixText: 'R\$ ',
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: category,
-                      decoration: const InputDecoration(
-                        labelText: 'Categoria',
-                        prefixIcon: Icon(Icons.category_outlined, size: 18),
+                    const SizedBox(height: 14),
+                    Text(
+                      'CATEGORIA',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: textMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.1,
                       ),
-                      items: categories.entries
-                          .map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value)))
-                          .toList(),
-                      onChanged: (value) => setModalState(() => category = value ?? category),
+                    ),
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: categories.entries.map((entry) {
+                          final isSel = category == entry.key;
+                          final icon = _expenseIcon(entry.key);
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: FilterChip(
+                              showCheckmark: false,
+                              avatar: Icon(
+                                icon,
+                                size: 16,
+                                color: isSel ? Colors.white : textMuted,
+                              ),
+                              label: Text(entry.value),
+                              selected: isSel,
+                              onSelected: (_) => setModalState(() => category = entry.key),
+                              selectedColor: isDarkTheme ? const Color(0xFF282832) : const Color(0xFF1E1E22),
+                              backgroundColor: panelSoft,
+                              side: BorderSide(
+                                color: isSel ? blue.withOpacity(0.6) : strokeColor,
+                              ),
+                              labelStyle: TextStyle(
+                                fontFamily: 'DM Sans',
+                                color: isSel ? Colors.white : textMuted,
+                                fontSize: 12,
+                                fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -3603,18 +3766,53 @@ class _CarHomeState extends State<CarHome> {
                           ),
                         ),
                       ] else ...[
-                        DropdownButtonFormField<String>(
-                          value: selectedCategory,
-                          decoration: const InputDecoration(
-                            labelText: 'Categoria',
-                            prefixIcon: Icon(Icons.category_outlined, size: 18),
+                        Text(
+                          'CATEGORIA',
+                          style: TextStyle(
+                            fontFamily: 'DM Sans',
+                            color: textMuted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.1,
                           ),
-                          items: categories.entries
-                              .map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value)))
-                              .toList(),
-                          onChanged: (value) => setModalState(() => selectedCategory = value ?? selectedCategory),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: categories.entries.map((entry) {
+                              final isSel = selectedCategory == entry.key;
+                              final icon = _expenseIcon(entry.key);
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: FilterChip(
+                                  showCheckmark: false,
+                                  avatar: Icon(
+                                    icon,
+                                    size: 16,
+                                    color: isSel ? Colors.white : textMuted,
+                                  ),
+                                  label: Text(entry.value),
+                                  selected: isSel,
+                                  onSelected: (_) => setModalState(() => selectedCategory = entry.key),
+                                  selectedColor: isDarkTheme ? const Color(0xFF282832) : const Color(0xFF1E1E22),
+                                  backgroundColor: panelSoft,
+                                  side: BorderSide(
+                                    color: isSel ? blue.withOpacity(0.6) : strokeColor,
+                                  ),
+                                  labelStyle: TextStyle(
+                                    fontFamily: 'DM Sans',
+                                    color: isSel ? Colors.white : textMuted,
+                                    fontSize: 12,
+                                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                  ),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
                         TextField(
                           controller: amount,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -3765,6 +3963,15 @@ class _CarHomeState extends State<CarHome> {
     final odometer = TextEditingController(
       text: edit == null || edit.odometer == 0 ? '' : edit.odometer.round().toString(),
     );
+    final targetConsumption = TextEditingController(
+      text: edit == null || edit.targetConsumption == 0 ? '' : edit.targetConsumption.toString(),
+    );
+    final tankCapacity = TextEditingController(
+      text: edit == null || edit.tankCapacity == 0 ? '' : edit.tankCapacity.toString(),
+    );
+    final serviceInterval = TextEditingController(
+      text: edit == null || edit.serviceIntervalKm == 0 ? '10000' : edit.serviceIntervalKm.round().toString(),
+    );
     try {
       await showModalBottomSheet<void>(
         context: context,
@@ -3816,7 +4023,7 @@ class _CarHomeState extends State<CarHome> {
                     ],
                   ),
                   Text(
-                    'Cadastre os dados para organizar o histórico dos seus veículos.',
+                    'Cadastre os dados e metas para organizar o consumo e manutenção.',
                     style: TextStyle(
                       fontFamily: 'DM Sans',
                       color: textMuted,
@@ -3863,6 +4070,42 @@ class _CarHomeState extends State<CarHome> {
                       suffixText: 'km',
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  _formRow([
+                    Expanded(
+                      child: TextField(
+                        controller: targetConsumption,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Meta de consumo',
+                          suffixText: 'km/L',
+                          hintText: 'Ex.: 10.5',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: tankCapacity,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Tanque total',
+                          suffixText: 'L',
+                          hintText: 'Ex.: 52',
+                        ),
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: serviceInterval,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Intervalo de revisão / óleo',
+                      suffixText: 'km',
+                      hintText: 'Padrão: 10000 km',
+                    ),
+                  ),
                   const SizedBox(height: 22),
                   SizedBox(
                     width: double.infinity,
@@ -3880,6 +4123,11 @@ class _CarHomeState extends State<CarHome> {
                               model: model.text.trim(),
                               plate: plate.text.trim(),
                               odometer: _number(odometer.text),
+                              targetConsumption: _number(targetConsumption.text),
+                              tankCapacity: _number(tankCapacity.text),
+                              serviceIntervalKm: _number(serviceInterval.text) > 0
+                                  ? _number(serviceInterval.text)
+                                  : 10000,
                             );
                             vehicles.add(vehicle);
                             activeVehicle = vehicle.id;
@@ -3888,6 +4136,11 @@ class _CarHomeState extends State<CarHome> {
                             edit.model = model.text.trim();
                             edit.plate = plate.text.trim();
                             edit.odometer = _number(odometer.text);
+                            edit.targetConsumption = _number(targetConsumption.text);
+                            edit.tankCapacity = _number(tankCapacity.text);
+                            edit.serviceIntervalKm = _number(serviceInterval.text) > 0
+                                ? _number(serviceInterval.text)
+                                : 10000;
                           }
                         });
                         await _save();
@@ -3937,7 +4190,7 @@ class _CarHomeState extends State<CarHome> {
         ),
       );
     } finally {
-      for (final controller in [name, model, plate, odometer]) {
+      for (final controller in [name, model, plate, odometer, targetConsumption, tankCapacity, serviceInterval]) {
         controller.dispose();
       }
     }

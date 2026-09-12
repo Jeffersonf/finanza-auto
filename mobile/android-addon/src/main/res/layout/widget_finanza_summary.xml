@@ -9,13 +9,32 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="finanza. · CARRO"
-        android:textColor="#C8F55A"
-        android:textSize="11sp"
-        android:textStyle="bold" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="finanza. VEICULO"
+            android:textColor="#C8F55A"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/widget_quick_fuel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:text="+ Abastecer"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/widget_total"
@@ -30,7 +49,7 @@
     <TextView
         android:id="@+id/widget_count"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+         android:layout_height="wrap_content"
         android:layout_marginTop="3dp"
         android:text="0 registros no carro"
         android:textColor="#9AA4B5"
@@ -39,9 +58,10 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="Toque para abrir"
+        android:layout_marginTop="10dp"
+        android:text="Finanza Next OLED"
         android:textColor="#5AF5C8"
-        android:textSize="11sp"
+        android:textSize="10sp"
+
         android:textStyle="bold" />
 </LinearLayout>

@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090a0f">
+  <title>Finanza · Carro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=next-ui">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a class="brand" href="#inicio">
+          <span class="brand-mark">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/>
+              <circle cx="7" cy="17" r="2"/>
+              <path d="M9 17h6"/>
+              <circle cx="17" cy="17" r="2"/>
+            </svg>
+          </span>
+          <span class="brand-text">finanza<span class="brand-dot">.</span><small class="brand-module">auto</small></span>
+        </a>
+      </div>
+
+      <div class="sidebar-label">MÓDULO</div>
+      <nav class="side-nav" aria-label="Navegação do módulo">
+        <a class="nav-item active" href="#inicio">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Visão Geral</span>
+        </a>
+        <a class="nav-item" href="#manutencao">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          <span>Manutenção</span>
+        </a>
+        <a class="nav-item" href="#evolucao">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span>Evolução</span>
+        </a>
+        <a class="nav-item" href="#historico">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span>Histórico</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-label sidebar-spaced">DADOS & BACKUP</div>
+      <div class="side-actions">
+        <button class="side-action" id="exportButton">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Exportar backup</span>
+        </button>
+        <label class="side-action" for="sideImport">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>Importar CSV</span>
+          <input id="sideImport" type="file" accept=".csv,text/csv,.txt" hidden>
+        </label>
+      </div>
+
+      <div class="sidebar-label sidebar-spaced">APARÊNCIA</div>
+      <button class="side-action" id="themeToggleBtn">
+        <span id="themeIcon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </span>
+        <span id="themeLabel">Alternar tema</span>
+      </button>
+
+      <div class="sidebar-foot">
+        <div class="status-indicator">
+          <span class="online-dot"></span>
+          <span>Dados locais salvos</span>
+        </div>
+        <small>Privado neste navegador</small>
+      </div>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <main class="main" id="inicio">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu" id="mobileMenu" aria-label="Abrir menu lateral">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="crumb">
+            <span>Finanza</span>
+            <span class="crumb-sep">/</span>
+            <strong>Módulo Carro</strong>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="top-meta">
+            <span class="meta-tag" id="dataSourceLabel">CSV Drivvo</span>
+            <span class="top-divider"></span>
+            <span class="meta-date" id="lastUpdated">—</span>
+          </div>
+          <button class="topbar-icon-btn" id="topThemeToggle" aria-label="Alternar tema claro/escuro" title="Alternar tema">
+            <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="page-wrap">
+        <!-- Hero Header -->
+        <section class="page-head">
+          <div class="page-head-content">
+            <div class="eyebrow">
+              <span class="live-dot"></span>
+              <span>MÓDULO DE VEÍCULO</span>
+            </div>
+            <h1 class="page-title">
+              <span class="car-title-icon">🚗</span>
+              <span id="carTitleView">Meu carro</span>
+            </h1>
+            <p class="page-sub" id="carSubView">Consumo, abastecimentos e despesas organizadas</p>
+          </div>
+          <div class="car-actions">
+            <button class="btn btn-ghost" id="newVehicleButton">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Veículo
+            </button>
+            <button class="btn btn-ghost" id="editVehicleButton">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Editar
+            </button>
+            <label class="btn btn-ghost" for="carCsvFile">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              CSV
+            </label>
+            <input id="carCsvFile" type="file" accept=".csv,text/csv,.txt" hidden>
+            <button class="btn btn-secondary" id="newExpenseButton">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Despesa
+            </button>
+            <button class="btn btn-primary" id="newFuelButton">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/><path d="M15 11h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2 2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L20.5 6.5"/><path d="M3 9h12"/></svg>
+              Abastecimento
+            </button>
+          </div>
+        </section>
+
+        <!-- Filters Bar -->
+        <section class="filterbar-card" aria-label="Filtros e busca do histórico">
+          <div class="filterbar">
+            <div class="filter-field">
+              <label for="carVehicleFilter">Veículo</label>
+              <select id="carVehicleFilter" aria-label="Filtrar por Veículo"></select>
+            </div>
+            <div class="filter-field">
+              <label for="carPeriodFilter">Período</label>
+              <select id="carPeriodFilter" aria-label="Filtrar por Período">
+                <option value="month">Mês atual</option>
+                <option value="30d">Últimos 30 dias</option>
+                <option value="90d">Últimos 90 dias</option>
+                <option value="year">Ano atual</option>
+                <option value="all">Todo o histórico</option>
+                <option value="custom">Personalizado</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="carTypeFilter">Tipo</label>
+              <select id="carTypeFilter" aria-label="Filtrar por Tipo">
+                <option value="all">Todos os tipos</option>
+                <option value="fuel">Abastecimento</option>
+                <option value="expense">Despesa</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="carKindFilter">Combustível / Categoria</label>
+              <select id="carKindFilter" aria-label="Filtrar por Categoria"></select>
+            </div>
+            <div class="filter-field">
+              <label for="carSortFilter">Ordenar por</label>
+              <select id="carSortFilter" aria-label="Ordenar">
+                <option value="date_desc">Mais recentes</option>
+                <option value="date_asc">Mais antigos</option>
+                <option value="odo_desc">Maior quilometragem</option>
+                <option value="odo_asc">Menor quilometragem</option>
+                <option value="amount_desc">Maior valor</option>
+                <option value="amount_asc">Menor valor</option>
+              </select>
+            </div>
+            <div class="filter-field filter-search">
+              <label for="carSearchFilter">Busca</label>
+              <div class="search-input-wrap">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input id="carSearchFilter" type="search" placeholder="Posto, serviço, placa..." aria-label="Buscar no histórico">
+              </div>
+            </div>
+          </div>
+          <div class="custom-range" id="customRange">
+            <div class="range-wrap">
+              <label>De: <input id="carFromFilter" type="date" aria-label="Data inicial"></label>
+              <span class="range-sep">até</span>
+              <label>Até: <input id="carToFilter" type="date" aria-label="Data final"></label>
+            </div>
+          </div>
+        </section>
+
+        <!-- KPI Metrics Grid -->
+        <section class="insight-grid" id="carStats"></section>
+
+        <!-- Preventive Maintenance Panel -->
+        <section class="panel maintenance-panel" id="manutencao">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title-wrap">
+                <span class="panel-icon-badge badge-amber">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                </span>
+                <h2 class="panel-title">Manutenção preventiva</h2>
+              </div>
+              <p class="panel-sub">Acompanhe os próximos cuidados e revisões recomendadas</p>
+            </div>
+            <div class="panel-kicker">CÁLCULO AUTOMÁTICO</div>
+          </div>
+          <div id="carMaintenancePanel"></div>
+        </section>
+
+        <!-- Evolution Chart Panel -->
+        <section class="panel chart-panel" id="evolucao">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title-wrap">
+                <span class="panel-icon-badge badge-blue">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </span>
+                <h2 class="panel-title">Evolução de gastos</h2>
+              </div>
+              <p class="panel-sub">Distribuição mensal dos custos no período filtrado</p>
+            </div>
+            <div class="view-toggle">
+              <button class="view-btn active" id="carChartBars">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="4" width="4" height="17" rx="1"/><rect x="17" y="13" width="4" height="8" rx="1"/></svg>
+                Barras
+              </button>
+              <button class="view-btn" id="carChartLine">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Linha
+              </button>
+            </div>
+          </div>
+
+          <div class="chart-shell">
+            <div class="chart-axis">
+              <span id="axisTop">R$ 1.000</span>
+              <span>R$ 750</span>
+              <span>R$ 500</span>
+              <span>R$ 250</span>
+              <span>R$ 0</span>
+            </div>
+            <div class="chart-box">
+              <div class="chart-gridline g1"></div>
+              <div class="chart-gridline g2"></div>
+              <div class="chart-gridline g3"></div>
+              <div class="chart-gridline g4"></div>
+              <div class="chart-bars" id="spendChart"></div>
+              <div class="chart-labels" id="spendLabels"></div>
+            </div>
+          </div>
+
+          <div class="chart-legend">
+            <div class="legend-items">
+              <span class="legend-item"><i class="legend-current"></i> Período atual</span>
+              <span class="legend-item"><i class="legend-previous"></i> Período anterior</span>
+            </div>
+            <strong class="chart-total-badge" id="chartTotal">R$ 0,00 no período</strong>
+          </div>
+        </section>
+
+        <!-- History Panel -->
+        <section class="panel history-panel" id="historico">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title-wrap">
+                <span class="panel-icon-badge badge-mint">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </span>
+                <h2 class="panel-title">Histórico completo</h2>
+              </div>
+              <p class="panel-sub">Lançamentos de abastecimentos, despesas e manutenções</p>
+            </div>
+            <span class="result-count" id="resultCount">0 registros</span>
+          </div>
+          <div class="history-list" id="carList"></div>
+          <div class="import-status" id="carImportStatus"></div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+          <div class="footer-left">
+            <span>Finanza Auto · Ecossistema Finanza Next</span>
+            <span class="footer-sep">·</span>
+            <span>Standalone & Offline</span>
+          </div>
+          <div class="footer-right">
+            <span class="online-dot"></span>
+            <span>Tudo salvo localmente no seu dispositivo</span>
+          </div>
+        </footer>
+      </div>
+    </main>
+  </div>
+
+  <!-- Entry Modal -->
+  <div class="modal-overlay" id="carModal">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="carModalTitle">
+      <button class="modal-close" data-close="carModal" aria-label="Fechar modal">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="modal-eyebrow">REGISTRO VEICULAR</div>
+      <h2 class="modal-title" id="carModalTitle">Novo registro</h2>
+      <p class="modal-sub">Controle combustível, consumo e despesas com precisão.</p>
+
+      <div class="type-toggle">
+        <button class="type-btn active" id="fuelTypeTab" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/><path d="M15 11h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2 2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L20.5 6.5"/><path d="M3 9h12"/></svg>
+          Abastecimento
+        </button>
+        <button class="type-btn" id="expenseTypeTab" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          Despesa
+        </button>
+      </div>
+
+      <div class="form-grid">
+        <label>Veículo<select id="carEntryVehicle"></select></label>
+        <label>Data<input type="date" id="carDate"></label>
+        <label>Hodômetro (km)<input type="number" id="carOdo" min="0" step="1" placeholder="Ex.: 162000"></label>
+      </div>
+
+      <div id="fuelFields">
+        <div class="form-grid">
+          <label>Combustível
+            <select id="carFuelType">
+              <option>Gasolina</option>
+              <option>Etanol</option>
+              <option>Diesel</option>
+              <option>GNV</option>
+              <option>Flex</option>
+            </select>
+          </label>
+          <label>Litros<input type="number" id="carLiters" min="0" step="0.001" placeholder="Ex.: 45.2"></label>
+          <label>Preço / Litro (R$)<input type="number" id="carPrice" min="0" step="0.001" placeholder="Ex.: 5.89"></label>
+          <label>Total pago (R$)<input type="number" id="carAmount" min="0" step="0.01" placeholder="Ex.: 266.23"></label>
+        </div>
+      </div>
+
+      <div id="expenseFields" hidden>
+        <div class="form-grid">
+          <label>Categoria
+            <select id="carCategory">
+              <option value="Maintenance">Manutenção</option>
+              <option value="Insurance">Seguro</option>
+              <option value="Tax">Imposto / documento</option>
+              <option value="Parking">Estacionamento</option>
+              <option value="Wash">Lavagem</option>
+              <option value="Fine">Multa</option>
+              <option value="Other">Outro</option>
+            </select>
+          </label>
+          <label>Valor (R$)<input type="number" id="carAmountExpense" min="0" step="0.01" placeholder="Ex.: 350.00"></label>
+        </div>
+        <label>Descrição<input type="text" id="carTitle" placeholder="Ex.: Troca de óleo, IPVA, alinhamento..."></label>
+      </div>
+
+      <label>Posto ou Observação<input type="text" id="carNote" placeholder="Ex.: Posto Ipiranga, Oficina Silva..."></label>
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-close="carModal" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="saveCarButton" type="button">Salvar registro</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Vehicle Modal -->
+  <div class="modal-overlay" id="carVehicleModal">
+    <section class="modal small-modal" role="dialog" aria-modal="true" aria-labelledby="vehicleModalTitle">
+      <button class="modal-close" data-close="carVehicleModal" aria-label="Fechar modal">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="modal-eyebrow">CADASTRO</div>
+      <h2 class="modal-title" id="vehicleModalTitle">Novo veículo</h2>
+      <p class="modal-sub">Cadastre carro, moto ou veículo utilitário para acompanhar.</p>
+      <input type="hidden" id="carVehicleId">
+
+      <div class="form-grid">
+        <label>Nome do veículo<input id="carVehicleName" type="text" placeholder="Ex.: Astra, Honda Civic, Moto R3"></label>
+        <label>Placa<input id="carPlate" type="text" placeholder="ABC1D23" style="text-transform: uppercase;"></label>
+        <label>Modelo / Ano<input id="carModel" type="text" placeholder="Ex.: 2.0 2011"></label>
+        <label>Hodômetro inicial (km)<input id="carVehicleOdo" type="number" min="0" placeholder="Ex.: 160000"></label>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-danger" id="deleteVehicleButton" type="button">Excluir</button>
+        <button class="btn btn-ghost" data-close="carVehicleModal" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="saveVehicleButton" type="button">Salvar veículo</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="data/real-data.js?v=next-ui"></script>
+  <script src="app.js?v=next-ui"></script>
+</body>
+</html>

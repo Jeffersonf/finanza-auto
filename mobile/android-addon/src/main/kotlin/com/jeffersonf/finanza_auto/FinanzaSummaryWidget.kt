@@ -13,7 +13,7 @@ import java.util.Locale
 
 class FinanzaSummaryWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
-        ids.forEach { update(context, manager, it) }
+        ids.forEach{ update(context, manager, it) }
     }
 
     override fun onEnabled(context: Context) {
@@ -42,9 +42,20 @@ class FinanzaSummaryWidget : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.widget_finanza_summary)
             views.setTextViewText(R.id.widget_total, money(total))
             views.setTextViewText(R.id.widget_count, "$count registros no carro")
+
+            // Open App
             val intent = Intent(context, MainActivity::class.java)
             val pending = PendingIntent.getActivity(context, 4101, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             views.setOnClickPendingIntent(R.id.widget_open, pending)
+
+            // Quick Fuel Action - similar to Finnext
+            val fuelIntent = Intent(context, MainActivity::class.java).apply {
+                action = "ACTION_QUICK_FUEL"
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val fuelPending = PendingIntent.getActivity(context, 4102, fuelIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            views.setOnClickPendingIntent(R.id.widget_quick_fuel, fuelPending)
+
             manager.updateAppWidget(id, views)
         }
 
