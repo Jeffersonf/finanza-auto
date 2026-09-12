@@ -9,8 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
 
-const String appVersion = '1.1.5';
-const int appBuildNumber = 7;
+const String appVersion = '1.1.6';
+const int appBuildNumber = 8;
 
 // Finanza Next design system tokens for Flutter
 final ValueNotifier<bool> _darkMode = ValueNotifier<bool>(true);
@@ -3025,17 +3025,28 @@ class _CarHomeState extends State<CarHome> {
                                   },
                                 );
                                 if (filePath != null) {
+                                  final canInstall = await UpdaterService.canRequestPackageInstalls();
+                                  if (!canInstall) {
+                                    setSheetState(() {
+                                      statusText = 'Autorize a instalação de apps nas configurações...';
+                                    });
+                                    await UpdaterService.openInstallPermissionSettings();
+                                  }
                                   setSheetState(() {
                                     statusText = 'Abrindo instalador...';
                                   });
                                   final installed = await UpdaterService.installApk(filePath);
                                   if (!installed && mounted) {
+                                    setSheetState(() {
+                                      downloading = false;
+                                      statusText = 'Abrindo no navegador para concluir...';
+                                    });
                                     await UpdaterService.openInBrowser(info.downloadUrl);
                                   }
                                 } else {
                                   setSheetState(() {
                                     downloading = false;
-                                    statusText = 'Falha no download direto. Tente pelo navegador.';
+                                    statusText = 'Falha no download direto. Abrindo navegador...';
                                   });
                                   if (mounted) {
                                     await UpdaterService.openInBrowser(info.downloadUrl);

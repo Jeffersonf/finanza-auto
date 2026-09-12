@@ -158,7 +158,7 @@ class UpdaterService {
 
       final contentLength = response.contentLength;
       final tempDir = await getTemporaryDirectory();
-      final targetFile = File('/finanza-auto-update.apk');
+      final targetFile = File('${tempDir.path}/finanza-auto-update.apk');
       if (await targetFile.exists()) {
         await targetFile.delete();
       }
@@ -182,6 +182,21 @@ class UpdaterService {
     } catch (e) {
       return null;
     }
+  }
+
+  static Future<bool> canRequestPackageInstalls() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('canRequestPackageInstalls');
+      return res ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  static Future<void> openInstallPermissionSettings() async {
+    try {
+      await _channel.invokeMethod<bool>('openInstallPermissionSettings');
+    } catch (_) {}
   }
 
   static Future<bool> installApk(String filePath) async {

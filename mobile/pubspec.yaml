@@ -1,7 +1,7 @@
 name: finanza_auto
 description: Módulo Carro do Finanza com dados locais reais.
 publish_to: 'none'
-version: 1.1.5+7
+version: 1.1.6+8
 
 environment:
   sdk: '>=3.6.0 <4.0.0'

@@ -1,8 +1,8 @@
 {
-  "version": "1.1.5",
-  "buildNumber": 7,
-  "releaseTag": "v1.1.5",
+  "version": "1.1.6",
+  "buildNumber": 8,
+  "releaseTag": "v1.1.6",
   "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/latest/download/app-release.apk",
-  "releaseNotes": "Aviso duplo ao sair, swipe entre abas, navbar estilo Apple glassmorphism, widget de abastecimento rápido e novas configurações de veículo.",
+  "releaseNotes": "Correção do instalador automático de APK (caminho temporário absoluto e permissão de fontes desconhecidas) e melhorias visuais.",
   "releasedAt": "2026-09-12"
 }
