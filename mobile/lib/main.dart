@@ -10,8 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
 
-const String appVersion = '1.1.8';
-const int appBuildNumber = 10;
+const String appVersion = '1.1.9';
+const int appBuildNumber = 11;
 
 // Finanza Next design system tokens for Flutter
 final ValueNotifier<bool> _darkMode = ValueNotifier<bool>(true);
@@ -599,11 +599,7 @@ class _CarHomeState extends State<CarHome> {
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         if (tab != 0) {
-          _pageController.animateToPage(
-            0,
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeInOutCubic,
-          );
+          setState(() => tab = 0);
           return;
         }
         final now = DateTime.now();
@@ -622,16 +618,42 @@ class _CarHomeState extends State<CarHome> {
             children: [
               if (loadError.isNotEmpty) _errorBanner(),
               Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  onPageChanged: (index) => setState(() => tab = index),
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    _homeTab(),
-                    _historyTab(),
-                    _analyticsTab(),
-                    _vehicleTab(),
-                  ],
+                child: GestureDetector(
+                  onHorizontalDragEnd: (details) {
+                    if (details.primaryVelocity == null) return;
+                    if (details.primaryVelocity! < -300) {
+                      // Deslizar para a esquerda -> próxima tela
+                      if (tab < 3) {
+                        HapticFeedback.selectionClick();
+                        setState(() => tab = tab + 1);
+                      }
+                    } else if (details.primaryVelocity! > 300) {
+                      // Deslizar para a direita -> tela anterior
+                      if (tab > 0) {
+                        HapticFeedback.selectionClick();
+                        setState(() => tab = tab - 1);
+                      }
+                    }
+                  },
+                  behavior: HitTestBehavior.translucent,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    ),
+                    child: KeyedSubtree(
+                      key: ValueKey<int>(tab),
+                      child: [
+                        _homeTab(),
+                        _historyTab(),
+                        _analyticsTab(),
+                        _vehicleTab(),
+                      ][tab],
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -678,54 +700,24 @@ class _CarHomeState extends State<CarHome> {
                   ],
                 ),
               ),
-              GestureDetector(
-                onTap: _quickActionChooserSheet,
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: isDarkTheme ? Colors.white : const Color(0xFF0F172A),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: (isDarkTheme ? Colors.white : Colors.black).withOpacity(0.12),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.add_rounded,
-                    color: isDarkTheme ? Colors.black : Colors.white,
-                    size: 24,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (isHome) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${currentVehicle.name} · ${_maxOdometer(allVehicleEvents).round()} km',
-                    style: TextStyle(
-                      fontFamily: 'DM Sans',
-                      color: textMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
+              if (isHome)
                 IconButton(
                   onPressed: _filterSheet,
                   tooltip: 'Filtros e veículo',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: Icon(Icons.tune_rounded, color: textMuted, size: 20),
+                  icon: Icon(Icons.tune_rounded, color: textMuted, size: 22),
                 ),
-              ],
+            ],
+          ),
+          if (isHome) ...[
+            const SizedBox(height: 10),
+            Text(
+              '${currentVehicle.name} · ${_maxOdometer(allVehicleEvents).round()} km',
+              style: TextStyle(
+                fontFamily: 'DM Sans',
+                color: textMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ],
@@ -736,30 +728,47 @@ class _CarHomeState extends State<CarHome> {
   Widget _glassBottomNavigation() => SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 0, 28, 18),
+          padding: const EdgeInsets.fromLTRB(22, 0, 22, 16),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(36),
+            borderRadius: BorderRadius.circular(32),
             child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+              filter: ui.ImageFilter.blur(sigmaX: 36, sigmaY: 36),
               child: Container(
-                height: 60,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                height: 62,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
-                  color: isDarkTheme
-                      ? const Color(0xFF16161A).withOpacity(0.78)
-                      : Colors.white.withOpacity(0.85),
-                  borderRadius: BorderRadius.circular(36),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: isDarkTheme
+                        ? [
+                            const Color(0xFF2C2C32).withOpacity(0.55),
+                            const Color(0xFF16161A).withOpacity(0.75),
+                          ]
+                        : [
+                            Colors.white.withOpacity(0.92),
+                            Colors.white.withOpacity(0.78),
+                          ],
+                  ),
+                  borderRadius: BorderRadius.circular(32),
                   border: Border.all(
                     color: isDarkTheme
-                        ? Colors.white.withOpacity(0.14)
-                        : Colors.black.withOpacity(0.09),
+                        ? Colors.white.withOpacity(0.18)
+                        : Colors.white.withOpacity(0.85),
                     width: 1.2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDarkTheme ? 0.45 : 0.12),
-                      blurRadius: 30,
-                      offset: const Offset(0, 10),
+                      color: Colors.black.withOpacity(isDarkTheme ? 0.55 : 0.08),
+                      blurRadius: 36,
+                      offset: const Offset(0, 14),
+                    ),
+                    BoxShadow(
+                      color: isDarkTheme
+                          ? Colors.white.withOpacity(0.04)
+                          : Colors.black.withOpacity(0.03),
+                      blurRadius: 1,
+                      offset: const Offset(0, 1),
                     ),
                   ],
                 ),
@@ -783,65 +792,58 @@ class _CarHomeState extends State<CarHome> {
     return Expanded(
       child: GestureDetector(
         onTap: () {
+          if (tab == index) return;
           HapticFeedback.selectionClick();
           setState(() => tab = index);
-          _pageController.animateToPage(
-            index,
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeInOutCubic,
-          );
         },
         behavior: HitTestBehavior.opaque,
         child: Center(
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeInOutCubic,
-            width: active ? 54 : 44,
-            height: 44,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            width: active ? 58 : 46,
+            height: 46,
             decoration: BoxDecoration(
-              color: active
-                  ? (isDarkTheme ? const Color(0xFF2C2C34) : const Color(0xFFE5E7EB))
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(22),
+              gradient: active
+                  ? LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: isDarkTheme
+                          ? [
+                              const Color(0xFF383842).withOpacity(0.95),
+                              const Color(0xFF26262E).withOpacity(0.90),
+                            ]
+                          : [
+                              const Color(0xFF0F172A),
+                              const Color(0xFF1E293B),
+                            ],
+                    )
+                  : null,
+              borderRadius: BorderRadius.circular(23),
+              border: active
+                  ? Border.all(
+                      color: isDarkTheme
+                          ? Colors.white.withOpacity(0.22)
+                          : Colors.black.withOpacity(0.08),
+                      width: 1.0,
+                    )
+                  : null,
               boxShadow: active
                   ? [
                       BoxShadow(
-                        color: (isDarkTheme ? Colors.black : Colors.black12).withOpacity(0.25),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
+                        color: (isDarkTheme ? Colors.black : Colors.black12).withOpacity(0.35),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
                     ]
                   : null,
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: active ? 23 : 21,
-                  color: active
-                      ? (isDarkTheme ? Colors.white : const Color(0xFF111827))
-                      : (isDarkTheme ? const Color(0xFF8E8E94) : const Color(0xFF9CA3AF)),
-                ),
-                if (active)
-                  Positioned(
-                    bottom: 4,
-                    child: Container(
-                      width: 4,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: blue,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: blue.withOpacity(0.8),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
+            child: Icon(
+              icon,
+              size: active ? 22 : 20,
+              color: active
+                  ? Colors.white
+                  : (isDarkTheme ? const Color(0xFF8E8E94) : const Color(0xFF94A3B8)),
             ),
           ),
         ),
@@ -888,6 +890,7 @@ class _CarHomeState extends State<CarHome> {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
         children: [
           _nextTopBar(),
+          _quickAddPill(),
           _centralDeRecursosPill(),
           const SizedBox(height: 14),
           _heroCardGlass(list, total),
@@ -905,6 +908,97 @@ class _CarHomeState extends State<CarHome> {
       ),
     );
   }
+
+  Widget _quickAddPill() => Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: InkWell(
+          onTap: _quickAddTransactionSheet,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDarkTheme
+                    ? [const Color(0xFF222634), const Color(0xFF161822)]
+                    : [const Color(0xFF0F172A), const Color(0xFF1E293B)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isDarkTheme ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: (isDarkTheme ? Colors.black : Colors.black26).withOpacity(0.25),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: blue.withOpacity(0.20),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    size: 22,
+                    color: blue,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Adicionar lançamento rápido',
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Abastecimento ou gasto direto em 1 janela',
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: Colors.white.withOpacity(0.68),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text(
+                    '+ NOVO',
+                    style: TextStyle(
+                      fontFamily: 'DM Sans',
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 
   Widget _centralDeRecursosPill() => InkWell(
         onTap: _quickActionChooserSheet,
@@ -960,9 +1054,7 @@ class _CarHomeState extends State<CarHome> {
                   ],
                 ),
               ),
-              Icon(Icons.history_rounded, size: 20, color: textMuted),
-              const SizedBox(width: 6),
-              Icon(Icons.chevron_right_rounded, size: 20, color: textMuted),
+              Icon(Icons.tune_rounded, size: 18, color: textMuted),
             ],
           ),
         ),
@@ -1150,7 +1242,6 @@ class _CarHomeState extends State<CarHome> {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, size: 20, color: textMuted),
             ],
           ),
           const SizedBox(height: 16),
@@ -1262,7 +1353,6 @@ class _CarHomeState extends State<CarHome> {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, size: 20, color: textMuted),
             ],
           ),
           const SizedBox(height: 16),
@@ -1787,15 +1877,6 @@ class _CarHomeState extends State<CarHome> {
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _vehicleSheet(currentVehicle);
-                },
-              ),
-              _actionTile(
-                icon: Icons.document_scanner_rounded,
-                title: 'Importar do Drivvo (Print / Texto)',
-                subtitle: 'Lê dados de print do Drivvo com revisão antes de salvar',
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _drivvoSmartImportSheet();
                 },
               ),
               _actionTile(
@@ -2738,25 +2819,6 @@ class _CarHomeState extends State<CarHome> {
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFFF6821F),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        textStyle: const TextStyle(
-                          fontFamily: 'DM Sans',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _drivvoSmartImportSheet,
-                      icon: const Icon(Icons.document_scanner_rounded, size: 16),
-                      label: const Text('Importar Drivvo'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: mint,
-                        side: BorderSide(color: mint.withOpacity(.35)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         textStyle: const TextStyle(
@@ -4560,9 +4622,29 @@ class _CarHomeState extends State<CarHome> {
     );
   }
 
-  // --- FERRAMENTA 3: Importador de Print e Texto do Drivvo com Confirmação ---
-  Future<void> _drivvoSmartImportSheet() async {
-    final rawTextCtrl = TextEditingController();
+  // --- Adição Rápida Simplificada (estilo Finanza Next: janela única e direta) ---
+  Future<void> _quickAddTransactionSheet() async {
+    bool isFuel = true;
+    final amountCtrl = TextEditingController();
+    final odoCtrl = TextEditingController(
+      text: _maxOdometer(allVehicleEvents) > 0 ? _maxOdometer(allVehicleEvents).round().toString() : '',
+    );
+    final litersCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    final dateCtrl = TextEditingController(text: _isoToday());
+    String selectedFuel = 'Etanol';
+    String selectedCategory = 'Maintenance';
+
+    final categories = <String, String>{
+      'Maintenance': 'Manutenção',
+      'Insurance': 'Seguro',
+      'Tax': 'Imposto',
+      'Parking': 'Estacionamento',
+      'Wash': 'Lavagem',
+      'Fine': 'Multa',
+      'Other': 'Outro',
+    };
 
     await showModalBottomSheet<void>(
       context: context,
@@ -4572,559 +4654,363 @@ class _CarHomeState extends State<CarHome> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (sheetContext) => StatefulBuilder(
-        builder: (ctx, setSheetState) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(22, 14, 22, MediaQuery.of(ctx).viewInsets.bottom + 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Row(
+        builder: (ctx, setSheetState) {
+          final lit = _number(litersCtrl.text);
+          final prc = _number(priceCtrl.text);
+          final calculatedTotal = lit > 0 && prc > 0 ? lit * prc : 0.0;
+
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, 14, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: mint.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
-                      child: const Icon(Icons.document_scanner_rounded, color: mint, size: 22),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: blue.withOpacity(0.16),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(
+                            isFuel ? Icons.local_gas_station_rounded : Icons.receipt_long_rounded,
+                            color: blue,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isFuel ? 'Novo Abastecimento' : 'Nova Despesa',
+                                style: TextStyle(
+                                  fontFamily: 'DM Sans',
+                                  color: textMain,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                'Preencha e salve direto sem enrolação',
+                                style: TextStyle(
+                                  fontFamily: 'DM Sans',
+                                  color: textMuted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          icon: Icon(Icons.close_rounded, color: textMuted),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Toggle Abastecimento vs Despesa
+                    Container(
+                      height: 44,
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: isDarkTheme ? const Color(0xFF1E1E24) : const Color(0xFFE9ECEF),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
                         children: [
-                          Text(
-                            'Importar do Drivvo',
-                            style: TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: textMain,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setSheetState(() => isFuel = true),
+                              child: Container(
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: isFuel
+                                      ? (isDarkTheme ? const Color(0xFF2E2E38) : Colors.white)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(11),
+                                  boxShadow: isFuel
+                                      ? [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.12),
+                                            blurRadius: 6,
+                                          )
+                                        ]
+                                      : null,
+                                ),
+                                child: Text(
+                                  'Abastecimento',
+                                  style: TextStyle(
+                                    fontFamily: 'DM Sans',
+                                    fontWeight: isFuel ? FontWeight.w700 : FontWeight.w500,
+                                    fontSize: 13,
+                                    color: isFuel ? textMain : textMuted,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                          Text(
-                            'Importar do Drivvo',
-                            style: TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: textMain,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            'Selecione o print da tela do Drivvo ou cole o texto',
-                            style: TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: textMuted,
-                              fontSize: 12,
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setSheetState(() => isFuel = false),
+                              child: Container(
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: !isFuel
+                                      ? (isDarkTheme ? const Color(0xFF2E2E38) : Colors.white)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(11),
+                                  boxShadow: !isFuel
+                                      ? [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.12),
+                                            blurRadius: 6,
+                                          )
+                                        ]
+                                      : null,
+                                ),
+                                child: Text(
+                                  'Despesa / Manutenção',
+                                  style: TextStyle(
+                                    fontFamily: 'DM Sans',
+                                    fontWeight: !isFuel ? FontWeight.w700 : FontWeight.w500,
+                                    fontSize: 13,
+                                    color: !isFuel ? textMain : textMuted,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(sheetContext),
-                      icon: Icon(Icons.close_rounded, color: textMuted),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () async {
-                      try {
-                        const channel = MethodChannel('com.jeffersonf.finanza_auto/updater');
-                        _snack('Abrindo galeria para selecionar o print...');
-                        final ocrText = await channel.invokeMethod<String?>('pickAndRecognizeImage');
-                        if (ocrText != null && ocrText.trim().isNotEmpty) {
-                          if (sheetContext.mounted) Navigator.pop(sheetContext);
-                          _processDrivvoText(ocrText);
-                        } else if (ocrText == null) {
-                          _snack('Nenhuma imagem selecionada.');
-                        } else {
-                          _snack('Não foi possível reconhecer texto legível no print.');
-                        }
-                      } catch (e) {
-                        _snack('Erro ao ler print: $e. Você pode colar o texto abaixo.');
-                      }
-                    },
-                    icon: const Icon(Icons.photo_library_rounded, size: 20),
-                    label: const Text('Selecionar Print da Galeria'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: mint,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      textStyle: const TextStyle(
-                        fontFamily: 'DM Sans',
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(child: Container(height: 1, color: strokeColor)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Text(
-                        'OU COLE O TEXTO MANUALMENTE',
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMuted,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    Expanded(child: Container(height: 1, color: strokeColor)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: rawTextCtrl,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    labelText: 'Texto opcional',
-                    hintText: 'Cole o texto se preferir não usar a foto...',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          final clip = await Clipboard.getData(Clipboard.kTextPlain);
-                          if (clip?.text != null && clip!.text!.isNotEmpty) {
-                            setSheetState(() => rawTextCtrl.text = clip.text!);
-                          }
-                        },
-                        icon: const Icon(Icons.paste_rounded, size: 15),
-                        label: const Text('Colar Texto'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: () {
-                          final raw = rawTextCtrl.text.trim();
-                          if (raw.isEmpty) {
-                            _snack('Selecione um print ou cole o texto.');
-                            return;
-                          }
-                          Navigator.pop(sheetContext);
-                          _processDrivvoText(raw);
-                        },
-                        style: FilledButton.styleFrom(
-                          backgroundColor: panelSoft,
-                          foregroundColor: textMain,
-                        ),
-                        child: const Text('Processar Texto'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _processDrivvoText(String raw) {
-    // Parser inteligente e robusto para prints do Drivvo
-    bool isFuel = true;
-    final lower = raw.toLowerCase();
-    if (lower.contains('despesa') ||
-        lower.contains('serviço') ||
-        lower.contains('servico') ||
-        lower.contains('manutenção') ||
-        lower.contains('manutencao') ||
-        lower.contains('troca de óleo') ||
-        lower.contains('ipva') ||
-        lower.contains('estacionamento') ||
-        lower.contains('pedágio')) {
-      if (!lower.contains('abastec') && !lower.contains('litro') && !lower.contains('gasolina') && !lower.contains('etanol')) {
-        isFuel = false;
-      }
-    }
-
-    String fuelType = 'Etanol';
-    if (lower.contains('gasolina')) {
-      fuelType = 'Gasolina';
-    } else if (lower.contains('diesel')) {
-      fuelType = 'Diesel';
-    } else if (lower.contains('gnv')) {
-      fuelType = 'GNV';
-    } else if (lower.contains('etanol') || lower.contains('álcool') || lower.contains('alcool')) {
-      fuelType = 'Etanol';
-    }
-
-    // Odômetro (ex: "Odômetro 161.461 km", "161461 km", "km 161461")
-    double odo = 0;
-    final odoMatch = RegExp(r'(?:od[oô]metro|km|hod[oô]metro)[\s:]*([0-9.,]+)', caseSensitive: false).firstMatch(raw) ??
-        RegExp(r'([0-9]{4,6}(?:[.,][0-9]+)?)\s*km', caseSensitive: false).firstMatch(raw);
-    if (odoMatch != null) {
-      odo = _number(odoMatch.group(1));
-    }
-
-    // Valor Total (ex: "R$ 193,00", "Total: 193", "Valor: 193.00")
-    double totalVal = 0;
-    final totalMatch = RegExp(r'(?:total|valor|pago|r\$)[\s:]*(?:r\$\s*)?([0-9]+(?:[.,][0-9]{2}))', caseSensitive: false).firstMatch(raw) ??
-        RegExp(r'r\$\s*([0-9.,]+)', caseSensitive: false).firstMatch(raw) ??
-        RegExp(r'(?:total|valor)[\s:]*([0-9.,]+)', caseSensitive: false).firstMatch(raw);
-    if (totalMatch != null) {
-      totalVal = _number(totalMatch.group(1));
-    }
-
-    // Litros / Volume (ex: "46,06 L", "Litros: 46.06", "Volume 46,062")
-    double litersVal = 0;
-    final litersMatch = RegExp(r'(?:litros?|volume|qtd)[\s:]*([0-9.,]+)', caseSensitive: false).firstMatch(raw) ??
-        RegExp(r'([0-9]+(?:[.,][0-9]+)?)\s*l(?:\b|\s)', caseSensitive: false).firstMatch(raw);
-    if (litersMatch != null) {
-      litersVal = _number(litersMatch.group(1));
-    }
-
-    // Preço por litro (ex: "Preço / L 4,19", "Preço 4,190", "4,19/L")
-    double pricePerL = 0;
-    final priceMatch = RegExp(r'(?:preço\s*/\s*l|preço|unit[áa]rio)[\s:]*(?:r\$\s*)?([0-9.,]+)', caseSensitive: false).firstMatch(raw) ??
-        RegExp(r'([0-9]+[.,][0-9]{2,3})\s*/\s*l', caseSensitive: false).firstMatch(raw);
-    if (priceMatch != null) {
-      pricePerL = _number(priceMatch.group(1));
-    }
-
-    // CÁLCULOS AUTOMÁTICOS INTELIGENTES:
-    // Se tem total e litros mas falta preço/L -> calcula total / litros
-    if (pricePerL <= 0 && totalVal > 0 && litersVal > 0) {
-      pricePerL = totalVal / litersVal;
-    }
-    // Se tem total e preço/L mas falta litros -> calcula total / preço
-    if (litersVal <= 0 && totalVal > 0 && pricePerL > 0) {
-      litersVal = totalVal / pricePerL;
-    }
-    // Se tem litros e preço/L mas falta total -> calcula litros * preço
-    if (totalVal <= 0 && litersVal > 0 && pricePerL > 0) {
-      totalVal = litersVal * pricePerL;
-    }
-
-    // Data (ex: 26/03/2026, 2026-03-26, 26-03-2026)
-    String dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final dateMatch = RegExp(r'(\d{2})[/.-](\d{2})[/.-](\d{4})').firstMatch(raw);
-    if (dateMatch != null) {
-      dateStr = '${dateMatch.group(3)}-${dateMatch.group(2)}-${dateMatch.group(1)}';
-    } else {
-      final isoMatch = RegExp(r'(\d{4})[/.-](\d{2})[/.-](\d{2})').firstMatch(raw);
-      if (isoMatch != null) {
-        dateStr = '${isoMatch.group(1)}-${isoMatch.group(2)}-${isoMatch.group(3)}';
-      }
-    }
-
-    // Posto / Local / Observações
-    String note = '';
-    final postoMatch = RegExp(r'(?:posto|local|estabelecimento)[\s:]*([^\n\r]+)', caseSensitive: false).firstMatch(raw);
-    if (postoMatch != null) {
-      note = postoMatch.group(1)!.trim();
-    } else {
-      // Procura nomes conhecidos de postos caso não tenha etiqueta explícita
-      final lines = raw.split('\n');
-      for (final line in lines) {
-        final l = line.toLowerCase();
-        if (l.contains('posto') || l.contains('ipiranga') || l.contains('shell') || l.contains('br ') || l.contains('rafaela')) {
-          note = line.trim();
-          break;
-        }
-      }
-    }
-
-    // CRUCIAL: Exibe a tela de confirmação e revisão com os dados reconhecidos e calculados
-    _showDrivvoReviewConfirmationDialog(
-      initialFuel: isFuel,
-      initialFuelType: fuelType,
-      initialOdometer: odo,
-      initialAmount: totalVal,
-      initialLiters: litersVal,
-      initialPrice: pricePerL,
-      initialDate: dateStr,
-      initialNote: note,
-    );
-  }
-
-  Future<void> _showDrivvoReviewConfirmationDialog({
-    required bool initialFuel,
-    required String initialFuelType,
-    required double initialOdometer,
-    required double initialAmount,
-    required double initialLiters,
-    required double initialPrice,
-    required String initialDate,
-    required String initialNote,
-  }) async {
-    final odoCtrl = TextEditingController(text: initialOdometer > 0 ? initialOdometer.toStringAsFixed(0) : '');
-    final amountCtrl = TextEditingController(text: initialAmount > 0 ? initialAmount.toStringAsFixed(2) : '');
-    final litersCtrl = TextEditingController(text: initialLiters > 0 ? initialLiters.toStringAsFixed(2) : '');
-    final priceCtrl = TextEditingController(text: initialPrice > 0 ? initialPrice.toStringAsFixed(3) : '');
-    final dateCtrl = TextEditingController(text: initialDate);
-    final noteCtrl = TextEditingController(text: initialNote);
-    bool isFuel = initialFuel;
-    String fuelType = initialFuelType;
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (ctx, setSheetState) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(22, 14, 22, MediaQuery.of(ctx).viewInsets.bottom + 24),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: mint.withOpacity(0.16),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.fact_check_rounded, color: mint, size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Revisar Dados do Drivvo',
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
-                                color: textMain,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Text(
-                              'Confira os campos identificados antes de confirmar',
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
-                                color: textMuted,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(sheetContext),
-                        icon: Icon(Icons.close_rounded, color: textMuted),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SegmentedButton<bool>(
-                          segments: const [
-                            ButtonSegment(value: true, label: Text('Abastecimento')),
-                            ButtonSegment(value: false, label: Text('Despesa / Serviço')),
-                          ],
-                          selected: {isFuel},
-                          onSelectionChanged: (set) => setSheetState(() => isFuel = set.first),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: amountCtrl,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(
-                            labelText: 'Valor Total (R\$)',
-                            prefixText: 'R\$ ',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: odoCtrl,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Odômetro (km)',
-                            suffixText: 'km',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (isFuel) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
+                    // Valor e Km
                     Row(
                       children: [
                         Expanded(
+                          flex: 3,
                           child: TextField(
-                            controller: litersCtrl,
+                            controller: amountCtrl,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: 'Volume (Litros)',
-                              suffixText: 'L',
+                            autofocus: true,
+                            decoration: InputDecoration(
+                              labelText: 'Valor Pago (R\$)',
+                              prefixText: 'R\$ ',
+                              hintText: calculatedTotal > 0 ? calculatedTotal.toStringAsFixed(2) : '0,00',
                             ),
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
+                          flex: 2,
                           child: TextField(
-                            controller: priceCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            controller: odoCtrl,
+                            keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
-                              labelText: 'Preço por Litro',
-                              prefixText: 'R\$ ',
+                              labelText: 'Km atual',
+                              suffixText: 'km',
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: fuelType,
-                      decoration: const InputDecoration(labelText: 'Tipo de Combustível'),
-                      dropdownColor: panelRaised,
-                      items: const [
-                        DropdownMenuItem(value: 'Etanol', child: Text('Etanol')),
-                        DropdownMenuItem(value: 'Gasolina', child: Text('Gasolina')),
-                        DropdownMenuItem(value: 'Diesel', child: Text('Diesel')),
-                        DropdownMenuItem(value: 'GNV', child: Text('GNV')),
-                      ],
-                      onChanged: (val) => setSheetState(() => fuelType = val ?? 'Etanol'),
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: dateCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Data (AAAA-MM-DD)',
-                      hintText: 'Ex: 2026-04-12',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: noteCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Posto / Local / Observações',
-                      hintText: 'Ex: Posto Rafaela',
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(sheetContext),
-                          child: const Text('Cancelar'),
-                        ),
+                    if (isFuel) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: litersCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              onChanged: (_) => setSheetState(() {}),
+                              decoration: const InputDecoration(
+                                labelText: 'Litros',
+                                suffixText: 'L',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: priceCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              onChanged: (_) => setSheetState(() {}),
+                              decoration: const InputDecoration(
+                                labelText: 'Preço/L',
+                                prefixText: 'R\$ ',
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () async {
-                            final total = _number(amountCtrl.text);
-                            final km = _number(odoCtrl.text);
-                            final lit = _number(litersCtrl.text);
-                            final prc = _number(priceCtrl.text);
-                            final dt = dateCtrl.text.trim().isEmpty
-                                ? DateFormat('yyyy-MM-dd').format(DateTime.now())
-                                : dateCtrl.text.trim();
-                            final nt = noteCtrl.text.trim();
-
-                            final newEvent = CarEvent(
-                              id: 'drivvo-${DateTime.now().microsecondsSinceEpoch}',
-                              vehicleId: currentVehicle.id,
-                              type: isFuel ? 'fuel' : 'expense',
-                              date: dt,
-                              odometer: km,
-                              fuelType: isFuel ? fuelType : '',
-                              liters: isFuel ? lit : 0,
-                              pricePerLiter: isFuel ? prc : 0,
-                              amount: total,
-                              title: isFuel ? 'Abastecimento ($fuelType)' : (nt.isNotEmpty ? nt : 'Despesa'),
-                              category: isFuel ? 'Combustivel' : 'Maintenance',
-                              note: nt,
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: selectedFuel,
+                        decoration: const InputDecoration(
+                          labelText: 'Combustível',
+                          prefixIcon: Icon(Icons.local_gas_station_rounded, size: 18),
+                        ),
+                        dropdownColor: isDarkTheme ? const Color(0xFF222228) : Colors.white,
+                        items: ['Etanol', 'Gasolina', 'Diesel', 'GNV', 'Flex']
+                            .map((f) => DropdownMenuItem(value: f, child: Text(f)))
+                            .toList(),
+                        onChanged: (val) => setSheetState(() => selectedFuel = val ?? 'Etanol'),
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 14),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: categories.entries.map((c) {
+                            final isSel = selectedCategory == c.key;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(c.value),
+                                selected: isSel,
+                                onSelected: (_) => setSheetState(() => selectedCategory = c.key),
+                                selectedColor: isDarkTheme ? const Color(0xFF2A2A34) : const Color(0xFF1E1E24),
+                                labelStyle: TextStyle(
+                                  fontFamily: 'DM Sans',
+                                  fontSize: 12,
+                                  color: isSel ? Colors.white : textMuted,
+                                  fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                ),
+                              ),
                             );
-
-                            setState(() {
-                              events.insert(0, newEvent);
-                              if (km > currentVehicle.odometer) {
-                                currentVehicle.odometer = km;
-                              }
-                            });
-                            await _save();
-                            if (sheetContext.mounted) Navigator.pop(sheetContext);
-                            _snack('Registro do Drivvo importado e salvo com sucesso!');
-                          },
-                          icon: const Icon(Icons.check_rounded, size: 18),
-                          label: const Text('Confirmar e Salvar'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: mint,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            textStyle: const TextStyle(
-                              fontFamily: 'DM Sans',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
-                          ),
+                          }).toList(),
                         ),
                       ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: descCtrl,
+                      decoration: InputDecoration(
+                        labelText: isFuel ? 'Posto / Observação' : 'Descrição da despesa',
+                        hintText: isFuel ? 'Ex.: Posto Shell' : 'Ex.: Troca de óleo e filtro',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: dateCtrl,
+                      readOnly: true,
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                          initialDate: _parseDate(dateCtrl.text) ?? DateTime.now(),
+                          builder: (context, child) => Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: ColorScheme.dark(
+                                primary: blue,
+                                surface: panelRaised,
+                              ),
+                            ),
+                            child: child!,
+                          ),
+                        );
+                        if (picked != null) {
+                          dateCtrl.text = DateFormat('yyyy-MM-dd').format(picked);
+                          setSheetState(() {});
+                        }
+                      },
+                      decoration: const InputDecoration(
+                        labelText: 'Data',
+                        prefixIcon: Icon(Icons.calendar_today_rounded, size: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(sheetContext),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              foregroundColor: textMuted,
+                            ),
+                            child: const Text('Cancelar'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton.icon(
+                            onPressed: () async {
+                              final total = _number(amountCtrl.text) > 0 ? _number(amountCtrl.text) : calculatedTotal;
+                              if (total <= 0) {
+                                _snack('Informe o valor pago.');
+                                return;
+                              }
+                              final km = _number(odoCtrl.text);
+                              final event = CarEvent(
+                                id: 'quick-${DateTime.now().microsecondsSinceEpoch}',
+                                vehicleId: currentVehicle.id,
+                                type: isFuel ? 'fuel' : 'expense',
+                                date: dateCtrl.text.isEmpty ? _isoToday() : dateCtrl.text,
+                                amount: total,
+                                odometer: km,
+                                liters: isFuel ? _number(litersCtrl.text) : 0,
+                                pricePerLiter: isFuel ? _number(priceCtrl.text) : 0,
+                                fuelType: isFuel ? selectedFuel : '',
+                                title: isFuel ? 'Abastecimento ($selectedFuel)' : (descCtrl.text.trim().isEmpty ? categories[selectedCategory] ?? 'Despesa' : descCtrl.text.trim()),
+                                category: isFuel ? 'Combustivel' : selectedCategory,
+                                note: descCtrl.text.trim(),
+                              );
+
+                              setState(() {
+                                events.insert(0, event);
+                                if (km > currentVehicle.odometer) {
+                                  currentVehicle.odometer = km;
+                                }
+                              });
+                              await _save();
+                              if (sheetContext.mounted) Navigator.pop(sheetContext);
+                              _snack('${isFuel ? 'Abastecimento' : 'Despesa'} registrado com sucesso!');
+                            },
+                            icon: const Icon(Icons.check_rounded, size: 18),
+                            label: const Text('Salvar Lançamento'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: blue,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              textStyle: const TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
