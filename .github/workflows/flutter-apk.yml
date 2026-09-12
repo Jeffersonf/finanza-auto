@@ -50,7 +50,7 @@ jobs:
           # Add FileProvider and Widget Receiver before </application>
           sed -i '/<\/application>/i\        <receiver android:name=".FinanzaSummaryWidget" android:exported="true">\n            <intent-filter>\n                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />\n            </intent-filter>\n            <meta-data android:name="android.appwidget.provider" android:resource="@xml/finanza_summary_widget_info" />\n        </receiver>\n        <provider\n            android:name="androidx.core.content.FileProvider"\n            android:authorities="com.jeffersonf.finanza_auto.fileprovider"\n            android:exported="false"\n            android:grantUriPermissions="true">\n            <meta-data\n                android:name="android.support.FILE_PROVIDER_PATHS"\n                android:resource="@xml/file_provider_paths" />\n        </provider>' android/app/src/main/AndroidManifest.xml
 
-          # Configure release signing in android/app/build.gradle.kts
+          # Configure release signing and ML Kit text recognition dependency in android/app/build.gradle.kts
           python3 -c "
           with open('android/app/build.gradle.kts', 'r') as f:
               content = f.read()
@@ -65,6 +65,7 @@ jobs:
               }
           '''
           content = content.replace('android {', 'android {\n' + signing_block, 1)
+          content += '\ndependencies {\n    implementation(\"com.google.mlkit:text-recognition:16.0.1\")\n}\n'
           with open('android/app/build.gradle.kts', 'w') as f:
               f.write(content)
           "

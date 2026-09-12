@@ -10,8 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
 
-const String appVersion = '1.1.7';
-const int appBuildNumber = 9;
+const String appVersion = '1.1.8';
+const int appBuildNumber = 10;
 
 // Finanza Next design system tokens for Flutter
 final ValueNotifier<bool> _darkMode = ValueNotifier<bool>(true);
@@ -4617,7 +4617,16 @@ class _CarHomeState extends State<CarHome> {
                             ),
                           ),
                           Text(
-                            'Cole o texto copiado de um print ou relatório',
+                            'Importar do Drivvo',
+                            style: TextStyle(
+                              fontFamily: 'DM Sans',
+                              color: textMain,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'Selecione o print da tela do Drivvo ou cole o texto',
                             style: TextStyle(
                               fontFamily: 'DM Sans',
                               color: textMuted,
@@ -4633,45 +4642,29 @@ class _CarHomeState extends State<CarHome> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: rawTextCtrl,
-                  maxLines: 6,
-                  decoration: InputDecoration(
-                    labelText: 'Texto extraído do print / relatório Drivvo',
-                    hintText: 'Exemplo:\nAbastecimento Etanol\nOdômetro: 161.461 km\nValor: R\$ 193,00\nLitros: 46,06 L\nPreço/L: 4,19\nData: 26/03/2026\nPosto Rafaela',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () async {
-                      final clip = await Clipboard.getData(Clipboard.kTextPlain);
-                      if (clip?.text != null && clip!.text!.isNotEmpty) {
-                        setSheetState(() => rawTextCtrl.text = clip.text!);
-                      }
-                    },
-                    icon: const Icon(Icons.paste_rounded, size: 16),
-                    label: const Text('Colar da Área de Transferência'),
-                  ),
-                ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: () {
-                      final raw = rawTextCtrl.text.trim();
-                      if (raw.isEmpty) {
-                        _snack('Cole o texto antes de processar.');
-                        return;
+                    onPressed: () async {
+                      try {
+                        const channel = MethodChannel('com.jeffersonf.finanza_auto/updater');
+                        _snack('Abrindo galeria para selecionar o print...');
+                        final ocrText = await channel.invokeMethod<String?>('pickAndRecognizeImage');
+                        if (ocrText != null && ocrText.trim().isNotEmpty) {
+                          if (sheetContext.mounted) Navigator.pop(sheetContext);
+                          _processDrivvoText(ocrText);
+                        } else if (ocrText == null) {
+                          _snack('Nenhuma imagem selecionada.');
+                        } else {
+                          _snack('Não foi possível reconhecer texto legível no print.');
+                        }
+                      } catch (e) {
+                        _snack('Erro ao ler print: $e. Você pode colar o texto abaixo.');
                       }
-                      Navigator.pop(sheetContext);
-                      _processDrivvoText(raw);
                     },
-                    icon: const Icon(Icons.search_rounded, size: 18),
-                    label: const Text('Analisar e Revisar Dados'),
+                    icon: const Icon(Icons.photo_library_rounded, size: 20),
+                    label: const Text('Selecionar Print da Galeria'),
                     style: FilledButton.styleFrom(
                       backgroundColor: mint,
                       foregroundColor: Colors.black,
@@ -4679,11 +4672,76 @@ class _CarHomeState extends State<CarHome> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       textStyle: const TextStyle(
                         fontFamily: 'DM Sans',
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         fontSize: 14,
                       ),
                     ),
                   ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(child: Container(height: 1, color: strokeColor)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Text(
+                        'OU COLE O TEXTO MANUALMENTE',
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: textMuted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Container(height: 1, color: strokeColor)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: rawTextCtrl,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    labelText: 'Texto opcional',
+                    hintText: 'Cole o texto se preferir não usar a foto...',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final clip = await Clipboard.getData(Clipboard.kTextPlain);
+                          if (clip?.text != null && clip!.text!.isNotEmpty) {
+                            setSheetState(() => rawTextCtrl.text = clip.text!);
+                          }
+                        },
+                        icon: const Icon(Icons.paste_rounded, size: 15),
+                        label: const Text('Colar Texto'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () {
+                          final raw = rawTextCtrl.text.trim();
+                          if (raw.isEmpty) {
+                            _snack('Selecione um print ou cole o texto.');
+                            return;
+                          }
+                          Navigator.pop(sheetContext);
+                          _processDrivvoText(raw);
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: panelSoft,
+                          foregroundColor: textMain,
+                        ),
+                        child: const Text('Processar Texto'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -4694,62 +4752,82 @@ class _CarHomeState extends State<CarHome> {
   }
 
   void _processDrivvoText(String raw) {
-    // Parser inteligente de texto do Drivvo
+    // Parser inteligente e robusto para prints do Drivvo
     bool isFuel = true;
-    if (raw.toLowerCase().contains('despesa') ||
-        raw.toLowerCase().contains('serviço') ||
-        raw.toLowerCase().contains('manutenção') ||
-        raw.toLowerCase().contains('ipva') ||
-        raw.toLowerCase().contains('pedágio')) {
-      if (!raw.toLowerCase().contains('abastec')) {
+    final lower = raw.toLowerCase();
+    if (lower.contains('despesa') ||
+        lower.contains('serviço') ||
+        lower.contains('servico') ||
+        lower.contains('manutenção') ||
+        lower.contains('manutencao') ||
+        lower.contains('troca de óleo') ||
+        lower.contains('ipva') ||
+        lower.contains('estacionamento') ||
+        lower.contains('pedágio')) {
+      if (!lower.contains('abastec') && !lower.contains('litro') && !lower.contains('gasolina') && !lower.contains('etanol')) {
         isFuel = false;
       }
     }
 
     String fuelType = 'Etanol';
-    if (raw.toLowerCase().contains('gasolina')) {
+    if (lower.contains('gasolina')) {
       fuelType = 'Gasolina';
-    } else if (raw.toLowerCase().contains('diesel')) {
+    } else if (lower.contains('diesel')) {
       fuelType = 'Diesel';
-    } else if (raw.toLowerCase().contains('gnv')) {
+    } else if (lower.contains('gnv')) {
       fuelType = 'GNV';
+    } else if (lower.contains('etanol') || lower.contains('álcool') || lower.contains('alcool')) {
+      fuelType = 'Etanol';
     }
 
-    // Odômetro
+    // Odômetro (ex: "Odômetro 161.461 km", "161461 km", "km 161461")
     double odo = 0;
-    final odoMatch = RegExp(r'(?:od[oô]metro|km)[\s:]*([0-9.,]+)', caseSensitive: false).firstMatch(raw);
+    final odoMatch = RegExp(r'(?:od[oô]metro|km|hod[oô]metro)[\s:]*([0-9.,]+)', caseSensitive: false).firstMatch(raw) ??
+        RegExp(r'([0-9]{4,6}(?:[.,][0-9]+)?)\s*km', caseSensitive: false).firstMatch(raw);
     if (odoMatch != null) {
       odo = _number(odoMatch.group(1));
-    } else {
-      final standaloneKm = RegExp(r'([0-9]{4,6}(?:[.,][0-9]+)?)\s*km', caseSensitive: false).firstMatch(raw);
-      if (standaloneKm != null) odo = _number(standaloneKm.group(1));
     }
 
-    // Valor Total
+    // Valor Total (ex: "R$ 193,00", "Total: 193", "Valor: 193.00")
     double totalVal = 0;
-    final totalMatch = RegExp(r'(?:total|valor|pago|r\$)[\s:]*(?:r\$\s*)?([0-9.,]+)', caseSensitive: false).firstMatch(raw);
+    final totalMatch = RegExp(r'(?:total|valor|pago|r\$)[\s:]*(?:r\$\s*)?([0-9]+(?:[.,][0-9]{2}))', caseSensitive: false).firstMatch(raw) ??
+        RegExp(r'r\$\s*([0-9.,]+)', caseSensitive: false).firstMatch(raw) ??
+        RegExp(r'(?:total|valor)[\s:]*([0-9.,]+)', caseSensitive: false).firstMatch(raw);
     if (totalMatch != null) {
       totalVal = _number(totalMatch.group(1));
     }
 
-    // Litros
+    // Litros / Volume (ex: "46,06 L", "Litros: 46.06", "Volume 46,062")
     double litersVal = 0;
     final litersMatch = RegExp(r'(?:litros?|volume|qtd)[\s:]*([0-9.,]+)', caseSensitive: false).firstMatch(raw) ??
-        RegExp(r'([0-9.,]+)\s*l(?:\b|\s)', caseSensitive: false).firstMatch(raw);
+        RegExp(r'([0-9]+(?:[.,][0-9]+)?)\s*l(?:\b|\s)', caseSensitive: false).firstMatch(raw);
     if (litersMatch != null) {
       litersVal = _number(litersMatch.group(1));
     }
 
-    // Preço por litro
+    // Preço por litro (ex: "Preço / L 4,19", "Preço 4,190", "4,19/L")
     double pricePerL = 0;
-    final priceMatch = RegExp(r'(?:preço\s*/\s*l|preço|unit[áa]rio)[\s:]*(?:r\$\s*)?([0-9.,]+)', caseSensitive: false).firstMatch(raw);
+    final priceMatch = RegExp(r'(?:preço\s*/\s*l|preço|unit[áa]rio)[\s:]*(?:r\$\s*)?([0-9.,]+)', caseSensitive: false).firstMatch(raw) ??
+        RegExp(r'([0-9]+[.,][0-9]{2,3})\s*/\s*l', caseSensitive: false).firstMatch(raw);
     if (priceMatch != null) {
       pricePerL = _number(priceMatch.group(1));
-    } else if (totalVal > 0 && litersVal > 0) {
-      pricePerL = totalVal / litersVal;
     }
 
-    // Data
+    // CÁLCULOS AUTOMÁTICOS INTELIGENTES:
+    // Se tem total e litros mas falta preço/L -> calcula total / litros
+    if (pricePerL <= 0 && totalVal > 0 && litersVal > 0) {
+      pricePerL = totalVal / litersVal;
+    }
+    // Se tem total e preço/L mas falta litros -> calcula total / preço
+    if (litersVal <= 0 && totalVal > 0 && pricePerL > 0) {
+      litersVal = totalVal / pricePerL;
+    }
+    // Se tem litros e preço/L mas falta total -> calcula litros * preço
+    if (totalVal <= 0 && litersVal > 0 && pricePerL > 0) {
+      totalVal = litersVal * pricePerL;
+    }
+
+    // Data (ex: 26/03/2026, 2026-03-26, 26-03-2026)
     String dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final dateMatch = RegExp(r'(\d{2})[/.-](\d{2})[/.-](\d{4})').firstMatch(raw);
     if (dateMatch != null) {
@@ -4766,9 +4844,19 @@ class _CarHomeState extends State<CarHome> {
     final postoMatch = RegExp(r'(?:posto|local|estabelecimento)[\s:]*([^\n\r]+)', caseSensitive: false).firstMatch(raw);
     if (postoMatch != null) {
       note = postoMatch.group(1)!.trim();
+    } else {
+      // Procura nomes conhecidos de postos caso não tenha etiqueta explícita
+      final lines = raw.split('\n');
+      for (final line in lines) {
+        final l = line.toLowerCase();
+        if (l.contains('posto') || l.contains('ipiranga') || l.contains('shell') || l.contains('br ') || l.contains('rafaela')) {
+          note = line.trim();
+          break;
+        }
+      }
     }
 
-    // CRUCIAL: Exibe a tela de confirmação e revisão com os dados preenchidos
+    // CRUCIAL: Exibe a tela de confirmação e revisão com os dados reconhecidos e calculados
     _showDrivvoReviewConfirmationDialog(
       initialFuel: isFuel,
       initialFuelType: fuelType,

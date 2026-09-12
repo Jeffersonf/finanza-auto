@@ -90,8 +90,54 @@ class MainActivity: FlutterActivity() {
                         result.error("INSTALL_ERROR", e.message, null)
                     }
                 }
+                "pickAndRecognizeImage" -> {
+                    pendingOcrResult = result
+                    try {
+                        val intent = Intent(Intent.ACTION_PICK).apply {
+                            type = "image/*"
+                        }
+                        startActivityForResult(intent, REQ_PICK_IMAGE)
+                    } catch (e: Exception) {
+                        pendingOcrResult?.error("PICK_ERROR", e.message, null)
+                        pendingOcrResult = null
+                    }
+                }
                 else -> result.notImplemented()
             }
         }
     }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_PICK_IMAGE) {
+            val pending = pendingOcrResult
+            pendingOcrResult = null
+            if (resultCode == RESULT_OK && data?.data != null) {
+                val imageUri: Uri = data.data!!
+                try {
+                    val image = com.google.mlkit.vision.common.InputImage.fromFilePath(this, imageUri)
+                    val recognizer = com.google.mlkit.vision.text.TextRecognition.getClient(
+                        com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS
+                    )
+                    recognizer.process(image)
+                        .addOnSuccessListener { visionText ->
+                            pending?.success(visionText.text)
+                        }
+                        .addOnFailureListener { e ->
+                            pending?.error("OCR_ERROR", e.message, null)
+                        }
+                } catch (e: Exception) {
+                    pending?.error("OCR_EXCEPTION", e.message, null)
+                }
+            } else {
+                pending?.success(null)
+            }
+        }
+    }
+
+    companion object {
+        private const val REQ_PICK_IMAGE = 1001
+    }
+    private var pendingOcrResult: MethodChannel.Result? = null
 }
+

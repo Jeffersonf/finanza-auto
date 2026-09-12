@@ -1,8 +1,8 @@
 {
-  "version": "1.1.7",
-  "buildNumber": 9,
-  "releaseTag": "v1.1.7",
+  "version": "1.1.8",
+  "buildNumber": 10,
+  "releaseTag": "v1.1.8",
   "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/latest/download/app-release.apk",
-  "releaseNotes": "Navbar Apple cápsula sem texto, importador inteligente de prints do Drivvo com revisão prévia, Calculadora Flex, monitor de revisão e sincronização na Nuvem Cloudflare.",
+  "releaseNotes": "Leitor nativo de print do Drivvo direto da galeria com OCR inteligente e cálculo automático de valores (litros, preço/L e total).",
   "releasedAt": "2026-09-12"
 }
