@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -9,8 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
 
-const String appVersion = '1.1.6';
-const int appBuildNumber = 8;
+const String appVersion = '1.1.7';
+const int appBuildNumber = 9;
 
 // Finanza Next design system tokens for Flutter
 final ValueNotifier<bool> _darkMode = ValueNotifier<bool>(true);
@@ -735,40 +736,40 @@ class _CarHomeState extends State<CarHome> {
   Widget _glassBottomNavigation() => SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          padding: const EdgeInsets.fromLTRB(28, 0, 28, 18),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(34),
+            borderRadius: BorderRadius.circular(36),
             child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              filter: ui.ImageFilter.blur(sigmaX: 28, sigmaY: 28),
               child: Container(
-                height: 64,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                height: 60,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: isDarkTheme
-                      ? const Color(0xFF141416).withOpacity(0.72)
-                      : Colors.white.withOpacity(0.82),
-                  borderRadius: BorderRadius.circular(34),
+                      ? const Color(0xFF16161A).withOpacity(0.78)
+                      : Colors.white.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(36),
                   border: Border.all(
                     color: isDarkTheme
-                        ? Colors.white.withOpacity(0.12)
-                        : Colors.black.withOpacity(0.08),
-                    width: 1,
+                        ? Colors.white.withOpacity(0.14)
+                        : Colors.black.withOpacity(0.09),
+                    width: 1.2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDarkTheme ? 0.45 : 0.10),
-                      blurRadius: 28,
+                      color: Colors.black.withOpacity(isDarkTheme ? 0.45 : 0.12),
+                      blurRadius: 30,
                       offset: const Offset(0, 10),
                     ),
                   ],
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _navItem(0, Icons.home_rounded, 'Início'),
-                    _navItem(1, Icons.receipt_long_rounded, 'Histórico'),
-                    _navItem(2, Icons.insights_rounded, 'Análise'),
-                    _navItem(3, Icons.directions_car_rounded, 'Carro'),
+                    _navItem(0, Icons.home_rounded),
+                    _navItem(1, Icons.receipt_long_rounded),
+                    _navItem(2, Icons.insights_rounded),
+                    _navItem(3, Icons.directions_car_rounded),
                   ],
                 ),
               ),
@@ -777,61 +778,72 @@ class _CarHomeState extends State<CarHome> {
         ),
       );
 
-  Widget _navItem(int index, IconData icon, String label) {
+  Widget _navItem(int index, IconData icon) {
     final active = tab == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() => tab = index);
-        _pageController.animateToPage(
-          index,
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeInOutCubic,
-        );
-      },
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: active
-            ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
-            : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: active
-              ? (isDarkTheme ? const Color(0xFF282830) : const Color(0xFF1E1E22))
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(isDarkTheme ? 0.3 : 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 20,
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() => tab = index);
+          _pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeInOutCubic,
+          );
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeInOutCubic,
+            width: active ? 54 : 44,
+            height: 44,
+            decoration: BoxDecoration(
               color: active
-                  ? Colors.white
-                  : (isDarkTheme ? const Color(0xFF8E8E94) : const Color(0xFF8E8E93)),
+                  ? (isDarkTheme ? const Color(0xFF2C2C34) : const Color(0xFFE5E7EB))
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: active
+                  ? [
+                      BoxShadow(
+                        color: (isDarkTheme ? Colors.black : Colors.black12).withOpacity(0.25),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
             ),
-            if (active) ...[
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontFamily: 'DM Sans',
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: active ? 23 : 21,
+                  color: active
+                      ? (isDarkTheme ? Colors.white : const Color(0xFF111827))
+                      : (isDarkTheme ? const Color(0xFF8E8E94) : const Color(0xFF9CA3AF)),
                 ),
-              ),
-            ],
-          ],
+                if (active)
+                  Positioned(
+                    bottom: 4,
+                    child: Container(
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: blue,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: blue.withOpacity(0.8),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -1777,6 +1789,24 @@ class _CarHomeState extends State<CarHome> {
                   _vehicleSheet(currentVehicle);
                 },
               ),
+              _actionTile(
+                icon: Icons.document_scanner_rounded,
+                title: 'Importar do Drivvo (Print / Texto)',
+                subtitle: 'Lê dados de print do Drivvo com revisão antes de salvar',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _drivvoSmartImportSheet();
+                },
+              ),
+              _actionTile(
+                icon: Icons.calculate_rounded,
+                title: 'Calculadora Flex (Etanol vs Gasolina)',
+                subtitle: 'Descubra qual combustível compensa com a regra de 70%',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _flexCalculatorSheet();
+                },
+              ),
             ],
           ),
         ),
@@ -2587,6 +2617,8 @@ class _CarHomeState extends State<CarHome> {
                   ),
                 ),
               ],
+              const SizedBox(height: 12),
+              _maintenanceProgressCard(list),
             ],
           ),
         ),
@@ -2683,6 +2715,48 @@ class _CarHomeState extends State<CarHome> {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: blue,
                         side: BorderSide(color: blue.withOpacity(.35)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        textStyle: const TextStyle(
+                          fontFamily: 'DM Sans',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _syncWithCloudflareModal,
+                      icon: const Icon(Icons.cloud_sync_rounded, size: 16),
+                      label: const Text('Sincronizar Cloudflare'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFF6821F),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        textStyle: const TextStyle(
+                          fontFamily: 'DM Sans',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _drivvoSmartImportSheet,
+                      icon: const Icon(Icons.document_scanner_rounded, size: 16),
+                      label: const Text('Importar Drivvo'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: mint,
+                        side: BorderSide(color: mint.withOpacity(.35)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         textStyle: const TextStyle(
@@ -4220,6 +4294,1006 @@ class _CarHomeState extends State<CarHome> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  // --- FERRAMENTA 1: Monitor de Próxima Revisão / Troca de Óleo ---
+  Widget _maintenanceProgressCard(List<CarEvent> list) {
+    final currentKm = _maxOdometer(list);
+    final interval = currentVehicle.serviceIntervalKm > 0 ? currentVehicle.serviceIntervalKm : 10000.0;
+    
+    // Procura o último registro com 'óleo' ou 'revisão'
+    double lastServiceKm = 0;
+    for (final e in list) {
+      final text = '${e.title} ${e.note} ${e.category}'.toLowerCase();
+      if ((text.contains('óleo') || text.contains('oleo') || text.contains('revis') || text.contains('filtro')) && e.odometer > 0) {
+        if (e.odometer > lastServiceKm) lastServiceKm = e.odometer;
+      }
+    }
+
+    final baseKm = lastServiceKm > 0 ? lastServiceKm : (currentKm - (currentKm % interval));
+    final nextServiceKm = baseKm + interval;
+    final remainingKm = (nextServiceKm - currentKm).round();
+    final pct = interval > 0 ? ((currentKm - baseKm) / interval).clamp(0.0, 1.0) : 0.0;
+    final isAlert = remainingKm <= 1000;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: (isAlert ? coral : blue).withOpacity(0.09),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: (isAlert ? coral : blue).withOpacity(0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: (isAlert ? coral : blue).withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  isAlert ? Icons.warning_amber_rounded : Icons.build_circle_rounded,
+                  color: isAlert ? coral : blue,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Próxima Troca de Óleo / Revisão',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: textMain,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      remainingKm <= 0
+                          ? 'Atenção: Revisão vencida ou necessária imediatamente!'
+                          : 'Faltam aproximadamente $remainingKm km (prevista para ${nextServiceKm.round()} km)',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: isAlert ? coral : textMuted,
+                        fontSize: 11,
+                        fontWeight: isAlert ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: pct,
+              minHeight: 6,
+              backgroundColor: strokeColor,
+              color: isAlert ? coral : (pct > 0.8 ? amber : mint),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- FERRAMENTA 2: Calculadora Flex (Regra dos 70%) ---
+  Future<void> _flexCalculatorSheet() async {
+    final ethanolCtrl = TextEditingController();
+    final gasCtrl = TextEditingController();
+    double ratio = 0;
+    String verdict = '';
+    Color verdictColor = blue;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          void calculate() {
+            final e = _number(ethanolCtrl.text);
+            final g = _number(gasCtrl.text);
+            if (e > 0 && g > 0) {
+              final r = (e / g) * 100;
+              setSheetState(() {
+                ratio = r;
+                if (r <= 70.0) {
+                  verdict = 'Compensa abastecer com ETANOL (Relação: ${r.toStringAsFixed(1)}%)';
+                  verdictColor = mint;
+                } else if (r <= 73.0) {
+                  verdict = 'Relação equilibrada (${r.toStringAsFixed(1)}%). O Etanol ainda pode compensar pelo consumo!';
+                  verdictColor = amber;
+                } else {
+                  verdict = 'Compensa abastecer com GASOLINA (Relação: ${r.toStringAsFixed(1)}%)';
+                  verdictColor = coral;
+                }
+              });
+            } else {
+              setSheetState(() {
+                ratio = 0;
+                verdict = '';
+              });
+            }
+          }
+
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(22, 14, 22, MediaQuery.of(ctx).viewInsets.bottom + 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: amber.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.calculate_rounded, color: amber, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Calculadora Flex',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                color: textMain,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              'Regra dos 70%: Etanol vs Gasolina',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                color: textMuted,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: Icon(Icons.close_rounded, color: textMuted),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: ethanolCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          onChanged: (_) => calculate(),
+                          decoration: const InputDecoration(
+                            labelText: 'Preço Etanol (R$)',
+                            hintText: 'Ex: 3,89',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: gasCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          onChanged: (_) => calculate(),
+                          decoration: const InputDecoration(
+                            labelText: 'Preço Gasolina (R$)',
+                            hintText: 'Ex: 5,79',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (verdict.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: verdictColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: verdictColor.withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        verdict,
+                        style: TextStyle(
+                          fontFamily: 'DM Sans',
+                          color: verdictColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  Text(
+                    'Dica: Em veículos flex, o etanol rende em média 70% a 73% do rendimento da gasolina.',
+                    style: TextStyle(
+                      fontFamily: 'DM Sans',
+                      color: textMuted,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // --- FERRAMENTA 3: Importador de Print e Texto do Drivvo com Confirmação ---
+  Future<void> _drivvoSmartImportSheet() async {
+    final rawTextCtrl = TextEditingController();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(22, 14, 22, MediaQuery.of(ctx).viewInsets.bottom + 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: mint.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.document_scanner_rounded, color: mint, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Importar do Drivvo',
+                            style: TextStyle(
+                              fontFamily: 'DM Sans',
+                              color: textMain,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'Cole o texto copiado de um print ou relatório',
+                            style: TextStyle(
+                              fontFamily: 'DM Sans',
+                              color: textMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      icon: Icon(Icons.close_rounded, color: textMuted),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: rawTextCtrl,
+                  maxLines: 6,
+                  decoration: InputDecoration(
+                    labelText: 'Texto extraído do print / relatório Drivvo',
+                    hintText: 'Exemplo:\nAbastecimento Etanol\nOdômetro: 161.461 km\nValor: R$ 193,00\nLitros: 46,06 L\nPreço/L: 4,19\nData: 26/03/2026\nPosto Rafaela',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final clip = await Clipboard.getData(Clipboard.kTextPlain);
+                      if (clip?.text != null && clip!.text!.isNotEmpty) {
+                        setSheetState(() => rawTextCtrl.text = clip.text!);
+                      }
+                    },
+                    icon: const Icon(Icons.paste_rounded, size: 16),
+                    label: const Text('Colar da Área de Transferência'),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      final raw = rawTextCtrl.text.trim();
+                      if (raw.isEmpty) {
+                        _snack('Cole o texto antes de processar.');
+                        return;
+                      }
+                      Navigator.pop(sheetContext);
+                      _processDrivvoText(raw);
+                    },
+                    icon: const Icon(Icons.search_rounded, size: 18),
+                    label: const Text('Analisar e Revisar Dados'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: mint,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      textStyle: const TextStyle(
+                        fontFamily: 'DM Sans',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _processDrivvoText(String raw) {
+    // Parser inteligente de texto do Drivvo
+    bool isFuel = true;
+    if (raw.toLowerCase().contains('despesa') ||
+        raw.toLowerCase().contains('serviço') ||
+        raw.toLowerCase().contains('manutenção') ||
+        raw.toLowerCase().contains('ipva') ||
+        raw.toLowerCase().contains('pedágio')) {
+      if (!raw.toLowerCase().contains('abastec')) {
+        isFuel = false;
+      }
+    }
+
+    String fuelType = 'Etanol';
+    if (raw.toLowerCase().contains('gasolina')) {
+      fuelType = 'Gasolina';
+    } else if (raw.toLowerCase().contains('diesel')) {
+      fuelType = 'Diesel';
+    } else if (raw.toLowerCase().contains('gnv')) {
+      fuelType = 'GNV';
+    }
+
+    // Odômetro
+    double odo = 0;
+    final odoMatch = RegExp(r'(?:od[oô]metro|km)[\s:]*([0-9.,]+)', caseSensitive: false).firstMatch(raw);
+    if (odoMatch != null) {
+      odo = _number(odoMatch.group(1));
+    } else {
+      final standaloneKm = RegExp(r'([0-9]{4,6}(?:[.,][0-9]+)?)\s*km', caseSensitive: false).firstMatch(raw);
+      if (standaloneKm != null) odo = _number(standaloneKm.group(1));
+    }
+
+    // Valor Total
+    double totalVal = 0;
+    final totalMatch = RegExp(r'(?:total|valor|pago|r\$)[\s:]*(?:r\$\s*)?([0-9.,]+)', caseSensitive: false).firstMatch(raw);
+    if (totalMatch != null) {
+      totalVal = _number(totalMatch.group(1));
+    }
+
+    // Litros
+    double litersVal = 0;
+    final litersMatch = RegExp(r'(?:litros?|volume|qtd)[\s:]*([0-9.,]+)', caseSensitive: false).firstMatch(raw) ??
+        RegExp(r'([0-9.,]+)\s*l(?:\b|\s)', caseSensitive: false).firstMatch(raw);
+    if (litersMatch != null) {
+      litersVal = _number(litersMatch.group(1));
+    }
+
+    // Preço por litro
+    double pricePerL = 0;
+    final priceMatch = RegExp(r'(?:preço\s*/\s*l|preço|unit[áa]rio)[\s:]*(?:r\$\s*)?([0-9.,]+)', caseSensitive: false).firstMatch(raw);
+    if (priceMatch != null) {
+      pricePerL = _number(priceMatch.group(1));
+    } else if (totalVal > 0 && litersVal > 0) {
+      pricePerL = totalVal / litersVal;
+    }
+
+    // Data
+    String dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final dateMatch = RegExp(r'(\d{2})[/.-](\d{2})[/.-](\d{4})').firstMatch(raw);
+    if (dateMatch != null) {
+      dateStr = '${dateMatch.group(3)}-${dateMatch.group(2)}-${dateMatch.group(1)}';
+    } else {
+      final isoMatch = RegExp(r'(\d{4})[/.-](\d{2})[/.-](\d{2})').firstMatch(raw);
+      if (isoMatch != null) {
+        dateStr = '${isoMatch.group(1)}-${isoMatch.group(2)}-${isoMatch.group(3)}';
+      }
+    }
+
+    // Posto / Local / Observações
+    String note = '';
+    final postoMatch = RegExp(r'(?:posto|local|estabelecimento)[\s:]*([^\n\r]+)', caseSensitive: false).firstMatch(raw);
+    if (postoMatch != null) {
+      note = postoMatch.group(1)!.trim();
+    }
+
+    // CRUCIAL: Exibe a tela de confirmação e revisão com os dados preenchidos
+    _showDrivvoReviewConfirmationDialog(
+      initialFuel: isFuel,
+      initialFuelType: fuelType,
+      initialOdometer: odo,
+      initialAmount: totalVal,
+      initialLiters: litersVal,
+      initialPrice: pricePerL,
+      initialDate: dateStr,
+      initialNote: note,
+    );
+  }
+
+  Future<void> _showDrivvoReviewConfirmationDialog({
+    required bool initialFuel,
+    required String initialFuelType,
+    required double initialOdometer,
+    required double initialAmount,
+    required double initialLiters,
+    required double initialPrice,
+    required String initialDate,
+    required String initialNote,
+  }) async {
+    final odoCtrl = TextEditingController(text: initialOdometer > 0 ? initialOdometer.toStringAsFixed(0) : '');
+    final amountCtrl = TextEditingController(text: initialAmount > 0 ? initialAmount.toStringAsFixed(2) : '');
+    final litersCtrl = TextEditingController(text: initialLiters > 0 ? initialLiters.toStringAsFixed(2) : '');
+    final priceCtrl = TextEditingController(text: initialPrice > 0 ? initialPrice.toStringAsFixed(3) : '');
+    final dateCtrl = TextEditingController(text: initialDate);
+    final noteCtrl = TextEditingController(text: initialNote);
+    bool isFuel = initialFuel;
+    String fuelType = initialFuelType;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(22, 14, 22, MediaQuery.of(ctx).viewInsets.bottom + 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: mint.withOpacity(0.16),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.fact_check_rounded, color: mint, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Revisar Dados do Drivvo',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                color: textMain,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              'Confira os campos identificados antes de confirmar',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                color: textMuted,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: Icon(Icons.close_rounded, color: textMuted),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SegmentedButton<bool>(
+                          segments: const [
+                            ButtonSegment(value: true, label: Text('Abastecimento')),
+                            ButtonSegment(value: false, label: Text('Despesa / Serviço')),
+                          ],
+                          selected: {isFuel},
+                          onSelectionChanged: (set) => setSheetState(() => isFuel = set.first),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: amountCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Valor Total (R$)',
+                            prefixText: 'R$ ',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: odoCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Odômetro (km)',
+                            suffixText: 'km',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (isFuel) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: litersCtrl,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(
+                              labelText: 'Volume (Litros)',
+                              suffixText: 'L',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: priceCtrl,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(
+                              labelText: 'Preço por Litro',
+                              prefixText: 'R$ ',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: fuelType,
+                      decoration: const InputDecoration(labelText: 'Tipo de Combustível'),
+                      dropdownColor: panelRaised,
+                      items: const [
+                        DropdownMenuItem(value: 'Etanol', child: Text('Etanol')),
+                        DropdownMenuItem(value: 'Gasolina', child: Text('Gasolina')),
+                        DropdownMenuItem(value: 'Diesel', child: Text('Diesel')),
+                        DropdownMenuItem(value: 'GNV', child: Text('GNV')),
+                      ],
+                      onChanged: (val) => setSheetState(() => fuelType = val ?? 'Etanol'),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: dateCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Data (AAAA-MM-DD)',
+                      hintText: 'Ex: 2026-04-12',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: noteCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Posto / Local / Observações',
+                      hintText: 'Ex: Posto Rafaela',
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          child: const Text('Cancelar'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () async {
+                            final total = _number(amountCtrl.text);
+                            final km = _number(odoCtrl.text);
+                            final lit = _number(litersCtrl.text);
+                            final prc = _number(priceCtrl.text);
+                            final dt = dateCtrl.text.trim().isEmpty
+                                ? DateFormat('yyyy-MM-dd').format(DateTime.now())
+                                : dateCtrl.text.trim();
+                            final nt = noteCtrl.text.trim();
+
+                            final newEvent = CarEvent(
+                              id: 'drivvo-${DateTime.now().microsecondsSinceEpoch}',
+                              vehicleId: currentVehicle.id,
+                              fuel: isFuel,
+                              date: dt,
+                              odometer: km,
+                              fuelType: isFuel ? fuelType : '',
+                              liters: isFuel ? lit : 0,
+                              pricePerLiter: isFuel ? prc : 0,
+                              amount: total,
+                              title: isFuel ? 'Abastecimento ($fuelType)' : (nt.isNotEmpty ? nt : 'Despesa'),
+                              category: isFuel ? 'Combustivel' : 'Maintenance',
+                              note: nt,
+                            );
+
+                            setState(() {
+                              events.insert(0, newEvent);
+                              if (km > currentVehicle.odometer) {
+                                currentVehicle.odometer = km;
+                              }
+                            });
+                            await _save();
+                            if (sheetContext.mounted) Navigator.pop(sheetContext);
+                            _snack('Registro do Drivvo importado e salvo com sucesso!');
+                          },
+                          icon: const Icon(Icons.check_rounded, size: 18),
+                          label: const Text('Confirmar e Salvar'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: mint,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            textStyle: const TextStyle(
+                              fontFamily: 'DM Sans',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- FERRAMENTA 4: Sincronização em Nuvem com Cloudflare Workers ---
+  Future<void> _syncWithCloudflareModal() async {
+    const cfUrl = 'https://finanza-auto.jeffef.workers.dev/api/sync';
+    bool syncing = false;
+    String status = 'Toque em Enviar para salvar o estado na Nuvem ou em Baixar para restaurar no app.';
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF6821F).withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.cloud_sync_rounded, color: Color(0xFFF6821F), size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Nuvem Cloudflare',
+                            style: TextStyle(
+                              fontFamily: 'DM Sans',
+                              color: textMain,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'Sincronização entre Celular e Web',
+                            style: TextStyle(
+                              fontFamily: 'DM Sans',
+                              color: textMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      icon: Icon(Icons.close_rounded, color: textMuted),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: panelSoft,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: strokeColor),
+                  ),
+                  child: Row(
+                    children: [
+                      if (syncing)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 12),
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFF6821F)),
+                          ),
+                        )
+                      else
+                        const Icon(Icons.info_outline_rounded, color: Color(0xFFF6821F), size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          status,
+                          style: TextStyle(
+                            fontFamily: 'DM Sans',
+                            color: textMain,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: syncing
+                            ? null
+                            : () async {
+                                setSheetState(() {
+                                  syncing = true;
+                                  status = 'Buscando dados na nuvem Cloudflare...';
+                                });
+                                try {
+                                  final client = HttpClient();
+                                  client.connectionTimeout = const Duration(seconds: 10);
+                                  final req = await client.getUrl(Uri.parse(cfUrl));
+                                  req.headers.set('User-Agent', 'Mozilla/5.0 FinanzaAutoApp');
+                                  final resp = await req.close();
+                                  final body = await resp.transform(utf8.decoder).join();
+                                  final decoded = jsonDecode(body) as Map<String, dynamic>;
+
+                                  if (decoded['empty'] == true) {
+                                    setSheetState(() {
+                                      syncing = false;
+                                      status = 'Nenhum dado na nuvem ainda. Faça o primeiro envio!';
+                                    });
+                                    return;
+                                  }
+
+                                  final rawState = decoded['data'] ?? decoded;
+                                  final car = _carMap(rawState as Map<String, dynamic>);
+                                  final newVehicles = <CarVehicle>[];
+                                  final newEvents = <CarEvent>[];
+                                  for (final item in _listValue(car, ['vehicles', 'vehicleList', 'items'])) {
+                                    if (item is Map) newVehicles.add(CarVehicle.fromMap(item.cast<String, dynamic>()));
+                                  }
+                                  for (final item in _listValue(car, ['events', 'items', 'records'])) {
+                                    if (item is Map) newEvents.add(CarEvent.fromMap(item.cast<String, dynamic>()));
+                                  }
+
+                                  if (newVehicles.isNotEmpty || newEvents.isNotEmpty) {
+                                    setState(() {
+                                      if (newVehicles.isNotEmpty) vehicles = newVehicles;
+                                      if (newEvents.isNotEmpty) events = newEvents;
+                                      if (vehicles.isNotEmpty && (activeVehicle.isEmpty || !vehicles.any((v) => v.id == activeVehicle))) {
+                                        activeVehicle = vehicles.first.id;
+                                      }
+                                    });
+                                    await _save();
+                                    setSheetState(() {
+                                      syncing = false;
+                                      status = 'Sucesso! ${newEvents.length} registros sincronizados da Nuvem.';
+                                    });
+                                    _snack('Dados atualizados da nuvem com sucesso!');
+                                  } else {
+                                    setSheetState(() {
+                                      syncing = false;
+                                      status = 'A nuvem não retornou registros válidos.';
+                                    });
+                                  }
+                                } catch (e) {
+                                  setSheetState(() {
+                                    syncing = false;
+                                    status = 'Erro ao baixar da nuvem: $e';
+                                  });
+                                }
+                              },
+                        icon: const Icon(Icons.cloud_download_rounded, size: 16),
+                        label: const Text('Baixar da Nuvem'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: textMain,
+                          side: BorderSide(color: strokeColor),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: syncing
+                            ? null
+                            : () async {
+                                setSheetState(() {
+                                  syncing = true;
+                                  status = 'Enviando ${events.length} registros para o Cloudflare...';
+                                });
+                                try {
+                                  final payload = {
+                                    'version': 1,
+                                    'generatedAt': DateTime.now().toIso8601String(),
+                                    'car': {
+                                      'vehicles': vehicles.map((v) => v.toMap()).toList(),
+                                      'events': events.map((e) => e.toMap()).toList(),
+                                      'activeVehicleId': activeVehicle,
+                                    },
+                                  };
+
+                                  final client = HttpClient();
+                                  client.connectionTimeout = const Duration(seconds: 10);
+                                  final req = await client.postUrl(Uri.parse(cfUrl));
+                                  req.headers.set('Content-Type', 'application/json');
+                                  req.headers.set('User-Agent', 'Mozilla/5.0 FinanzaAutoApp');
+                                  req.add(utf8.encode(jsonEncode(payload)));
+                                  final resp = await req.close();
+                                  final body = await resp.transform(utf8.decoder).join();
+                                  final resJson = jsonDecode(body) as Map<String, dynamic>;
+
+                                  if (resp.statusCode == 200 && resJson['success'] == true) {
+                                    setSheetState(() {
+                                      syncing = false;
+                                      status = 'Dados salvos com sucesso no Cloudflare!';
+                                    });
+                                    _snack('Backup salvo na Nuvem Cloudflare com sucesso.');
+                                  } else {
+                                    setSheetState(() {
+                                      syncing = false;
+                                      status = 'Falha ao salvar: ${resJson['error'] ?? body}';
+                                    });
+                                  }
+                                } catch (e) {
+                                  setSheetState(() {
+                                    syncing = false;
+                                    status = 'Erro de conexão: $e';
+                                  });
+                                }
+                              },
+                        icon: const Icon(Icons.cloud_upload_rounded, size: 16),
+                        label: const Text('Enviar para Nuvem'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFF6821F),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

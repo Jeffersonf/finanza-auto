@@ -1035,9 +1035,132 @@ function setupListeners() {
       closeModal('carVehicleModal');
     }
   });
+  // Cloudflare Sync Button
+  $('#cfSyncButton')?.addEventListener('click', async () => {
+    const choice = confirm('Nuvem Cloudflare:\n\n• OK = Enviar dados deste navegador para a Nuvem\n• Cancelar = Baixar dados da Nuvem para este navegador');
+    if (choice) {
+      try {
+        showToast('Enviando dados para o Cloudflare...', 'info');
+        const res = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            version: 1,
+            generatedAt: new Date().toISOString(),
+            car: {
+              vehicles: state.vehicles,
+              events: state.events,
+              activeVehicleId: state.activeVehicleId
+            }
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Dados salvos na Nuvem Cloudflare com sucesso!', 'success');
+        } else {
+          showToast('Erro ao salvar: ' + (data.error || 'Falha'), 'error');
+        }
+      } catch (err) {
+        showToast('Erro de conexão com Cloudflare: ' + err.message, 'error');
+      }
+    } else {
+      try {
+        showToast('Buscando dados na Nuvem...', 'info');
+        const res = await fetch('/api/sync');
+        const json = await res.json();
+        if (json.empty) {
+          showToast('Nenhum dado na nuvem ainda.', 'info');
+          return;
+        }
+        const cloudData = json.data?.car || json.data || json;
+        if (Array.isArray(cloudData.events) && Array.isArray(cloudData.vehicles)) {
+          state.vehicles = cloudData.vehicles.map(normalizeVehicle);
+          state.events = cloudData.events.map(e => normalizeEvent(e, state.vehicles[0].id));
+          state.activeVehicleId = cloudData.activeVehicleId || state.vehicles[0].id;
+          saveState();
+          renderAll();
+          showToast(`Sucesso! ${state.events.length} registros sincronizados da Nuvem.`, 'success');
+        } else {
+          showToast('A nuvem não continha registros válidos.', 'error');
+        }
+      } catch (err) {
+        showToast('Erro ao baixar dados: ' + err.message, 'error');
+      }
+    }
+  });
+
+  // Drivvo Text/Print Import Button
+  $('#drivvoTextButton')?.addEventListener('click', () => {
+    const raw = prompt('Cole aqui o texto copiado de um print ou relatório do Drivvo:');
+    if (!raw || !raw.trim()) return;
+
+    let isFuel = true;
+    if (raw.toLowerCase().includes('despesa') || raw.toLowerCase().includes('manuten') || raw.toLowerCase().includes('serviço')) {
+      if (!raw.toLowerCase().includes('abastec')) isFuel = false;
+    }
+
+    let fuelType = 'Etanol';
+    if (raw.toLowerCase().includes('gasolina')) fuelType = 'Gasolina';
+    else if (raw.toLowerCase().includes('diesel')) fuelType = 'Diesel';
+
+    let km = 0;
+    const kmMatch = raw.match(/(?:od[oô]metro|km)[\s:]*([0-9.,]+)/i) || raw.match(/([0-9]{4,6}(?:[.,][0-9]+)?)\s*km/i);
+    if (kmMatch) km = parseFloat(kmMatch[1].replace(/\./g, '').replace(',', '.')) || 0;
+
+    let total = 0;
+    const totalMatch = raw.match(/(?:total|valor|pago|r\$)[\s:]*(?:r\$\s*)?([0-9.,]+)/i);
+    if (totalMatch) total = parseFloat(totalMatch[1].replace(/\./g, '').replace(',', '.')) || 0;
+
+    let liters = 0;
+    const litMatch = raw.match(/(?:litros?|volume|qtd)[\s:]*([0-9.,]+)/i) || raw.match(/([0-9.,]+)\s*l(?:\b|\s)/i);
+    if (litMatch) liters = parseFloat(litMatch[1].replace(/\./g, '').replace(',', '.')) || 0;
+
+    let price = 0;
+    const prcMatch = raw.match(/(?:preço\s*\/\s*l|preço|unit[áa]rio)[\s:]*(?:r\$\s*)?([0-9.,]+)/i);
+    if (prcMatch) price = parseFloat(prcMatch[1].replace(/\./g, '').replace(',', '.')) || 0;
+    else if (total > 0 && liters > 0) price = total / liters;
+
+    let dt = new Date().toISOString().slice(0, 10);
+    const dateMatch = raw.match(/(\d{2})[/.-](\d{2})[/.-](\d{4})/);
+    if (dateMatch) dt = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+
+    // Confirm before saving
+    const msg = `REVISAR DADOS DO DRIVVO:\n\n` +
+      `• Tipo: ${isFuel ? 'Abastecimento (' + fuelType + ')' : 'Despesa'}\n` +
+      `• Valor: R$ ${total.toFixed(2)}\n` +
+      `• Odômetro: ${km} km\n` +
+      (isFuel ? `• Volume: ${liters.toFixed(2)} L (Preço: R$ ${price.toFixed(3)}/L)\n` : '') +
+      `• Data: ${dt}\n\n` +
+      `Deseja confirmar e adicionar ao histórico?`;
+
+    if (confirm(msg)) {
+      const newEvent = normalizeEvent({
+        id: uid('drivvo'),
+        vehicleId: state.activeVehicleId,
+        type: isFuel ? 'fuel' : 'expense',
+        date: dt,
+        odometer: km,
+        fuelType: isFuel ? fuelType : '',
+        liters: isFuel ? liters : 0,
+        pricePerLiter: isFuel ? price : 0,
+        amount: total,
+        title: isFuel ? `Abastecimento (${fuelType})` : 'Despesa importada',
+        category: isFuel ? 'Combustivel' : 'Maintenance',
+        note: 'Importado de texto Drivvo'
+      }, state.activeVehicleId);
+
+      state.events.unshift(newEvent);
+      const vehicle = state.vehicles.find(v => v.id === state.activeVehicleId);
+      if (vehicle && km > vehicle.odometer) vehicle.odometer = km;
+      saveState();
+      renderAll();
+      showToast('Registro do Drivvo adicionado com sucesso!', 'success');
+    }
+  });
 }
 
 // Initial bootstrap
 initTheme();
 setupListeners();
 renderAll();
+

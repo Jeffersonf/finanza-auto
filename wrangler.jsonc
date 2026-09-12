@@ -1,8 +1,14 @@
 {
-  "": "node_modules/wrangler/config-schema.json",
   "name": "finanza-auto",
+  "main": "src/index.js",
   "compatibility_date": "2026-09-11",
   "assets": {
     "directory": "web_dist"
-  }
+  },
+  "kv_namespaces": [
+    {
+      "binding": "FINANZA_KV",
+      "id": "ea399bc665c540b1bacba26ff9a2abf1"
+    }
+  ]
 }
