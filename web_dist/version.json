@@ -1,8 +1,8 @@
 {
-  "version": "1.2.1",
-  "buildNumber": 13,
-  "releaseTag": "v1.2.1",
+  "version": "1.2.2",
+  "buildNumber": 14,
+  "releaseTag": "v1.2.2",
   "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/latest/download/app-release.apk",
-  "releaseNotes": "Aprimoramento da navbar translúcida flutuante: fundo escurecido com gradiente suave (scrim), extendBody ativo e desfoque aprofundado estilo Apple Dock sem cortes.",
+  "releaseNotes": "Novo motor de temas visuais: Escolha entre OLED Next (Preto puro), Cyberpunk Neon (Roxo profundo, Cyan e Pink), Forest Emerald (Musgo nórdico e Menta) e Clean Snow (Minimal Claro), com persistência e seletor rápido no Veículo e Filtros.",
   "releasedAt": "2026-09-13"
 }

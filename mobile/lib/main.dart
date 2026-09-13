@@ -10,28 +10,176 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
 
-const String appVersion = '1.2.1';
-const int appBuildNumber = 13;
+const String appVersion = '1.2.2';
+const int appBuildNumber = 14;
 
-// Finanza Next design system tokens for Flutter
+// Finanza Next & Multi-Theme design system tokens for Flutter
+enum AppThemeMode {
+  oled,      // Dark OLED Finanza Next (Preto puro, acentos azul/âmbar)
+  cyberpunk, // Cyberpunk Neon Night (Roxo profundo, neon cyan/magenta/limão)
+  emerald,   // Forest Emerald (Verde musgo nórdico, toques de menta e dourado)
+  light,     // Clean Snow Minimal (Branco puro, slate moderno)
+}
+
+final ValueNotifier<AppThemeMode> _themeMode = ValueNotifier<AppThemeMode>(AppThemeMode.oled);
 final ValueNotifier<bool> _darkMode = ValueNotifier<bool>(true);
-bool get isDarkTheme => _darkMode.value;
 
-Color get ink => isDarkTheme ? const Color(0xff000000) : const Color(0xfff4f5f8);
-Color get panel => isDarkTheme ? const Color(0xff141416) : const Color(0xffffffff);
-Color get panelSoft => isDarkTheme ? const Color(0xff1e1e22) : const Color(0xffeceef2);
-Color get panelRaised => isDarkTheme ? const Color(0xff25252b) : const Color(0xffffffff);
-Color get strokeColor => isDarkTheme ? const Color(0xff222226) : const Color(0x14000000);
+AppThemeMode get currentAppTheme => _themeMode.value;
+bool get isDarkTheme => _themeMode.value != AppThemeMode.light;
 
-const mint = Color(0xff34c759);
-const amber = Color(0xffff9f0a);
+Color get ink {
+  switch (_themeMode.value) {
+    case AppThemeMode.cyberpunk:
+      return const Color(0xff090514);
+    case AppThemeMode.emerald:
+      return const Color(0xff06130d);
+    case AppThemeMode.light:
+      return const Color(0xfff4f6f9);
+    case AppThemeMode.oled:
+    default:
+      return const Color(0xff000000);
+  }
+}
+
+Color get panel {
+  switch (_themeMode.value) {
+    case AppThemeMode.cyberpunk:
+      return const Color(0xff130c24);
+    case AppThemeMode.emerald:
+      return const Color(0xff0c2117);
+    case AppThemeMode.light:
+      return const Color(0xffffffff);
+    case AppThemeMode.oled:
+    default:
+      return const Color(0xff141416);
+  }
+}
+
+Color get panelSoft {
+  switch (_themeMode.value) {
+    case AppThemeMode.cyberpunk:
+      return const Color(0xff1d1434);
+    case AppThemeMode.emerald:
+      return const Color(0xff132e22);
+    case AppThemeMode.light:
+      return const Color(0xffeceff3);
+    case AppThemeMode.oled:
+    default:
+      return const Color(0xff1e1e22);
+  }
+}
+
+Color get panelRaised {
+  switch (_themeMode.value) {
+    case AppThemeMode.cyberpunk:
+      return const Color(0xff271b44);
+    case AppThemeMode.emerald:
+      return const Color(0xff1a3d2e);
+    case AppThemeMode.light:
+      return const Color(0xffffffff);
+    case AppThemeMode.oled:
+    default:
+      return const Color(0xff25252b);
+  }
+}
+
+Color get strokeColor {
+  switch (_themeMode.value) {
+    case AppThemeMode.cyberpunk:
+      return const Color(0xff392764);
+    case AppThemeMode.emerald:
+      return const Color(0xff1e4634);
+    case AppThemeMode.light:
+      return const Color(0x14000000);
+    case AppThemeMode.oled:
+    default:
+      return const Color(0xff222226);
+  }
+}
+
+Color get blue {
+  switch (_themeMode.value) {
+    case AppThemeMode.cyberpunk:
+      return const Color(0xff00f0ff); // Neon Cyan
+    case AppThemeMode.emerald:
+      return const Color(0xff10b981); // Emerald
+    case AppThemeMode.light:
+    case AppThemeMode.oled:
+    default:
+      return const Color(0xff0a84ff); // Apple Blue
+  }
+}
+
+Color get amber {
+  switch (_themeMode.value) {
+    case AppThemeMode.cyberpunk:
+      return const Color(0xffff007f); // Neon Hot Pink
+    case AppThemeMode.emerald:
+      return const Color(0xffeab308); // Golden Amber
+    case AppThemeMode.light:
+    case AppThemeMode.oled:
+    default:
+      return const Color(0xffff9f0a);
+  }
+}
+
+Color get mint {
+  switch (_themeMode.value) {
+    case AppThemeMode.cyberpunk:
+      return const Color(0xff00ff88); // Neon Green
+    case AppThemeMode.emerald:
+      return const Color(0xff34d399); // Mint
+    case AppThemeMode.light:
+    case AppThemeMode.oled:
+    default:
+      return const Color(0xff34c759);
+  }
+}
+
 const coral = Color(0xffff453a);
-const blue = Color(0xff0a84ff);
 const purple = Color(0xffaf52de);
 
-Color get textMain => isDarkTheme ? const Color(0xffffffff) : const Color(0xff0f172a);
-Color get textMuted => isDarkTheme ? const Color(0xff8e8e93) : const Color(0xff64748b);
-Color get textSoft => isDarkTheme ? const Color(0xff66666a) : const Color(0xff94a3b8);
+Color get textMain {
+  switch (_themeMode.value) {
+    case AppThemeMode.cyberpunk:
+      return const Color(0xfff8fafc);
+    case AppThemeMode.emerald:
+      return const Color(0xffecfdf5);
+    case AppThemeMode.light:
+      return const Color(0xff0f172a);
+    case AppThemeMode.oled:
+    default:
+      return const Color(0xffffffff);
+  }
+}
+
+Color get textMuted {
+  switch (_themeMode.value) {
+    case AppThemeMode.cyberpunk:
+      return const Color(0xffa78bfa);
+    case AppThemeMode.emerald:
+      return const Color(0xff6ee7b7);
+    case AppThemeMode.light:
+      return const Color(0xff64748b);
+    case AppThemeMode.oled:
+    default:
+      return const Color(0xff8e8e93);
+  }
+}
+
+Color get textSoft {
+  switch (_themeMode.value) {
+    case AppThemeMode.cyberpunk:
+      return const Color(0xff7c3aed);
+    case AppThemeMode.emerald:
+      return const Color(0xff059669);
+    case AppThemeMode.light:
+      return const Color(0xff94a3b8);
+    case AppThemeMode.oled:
+    default:
+      return const Color(0xff66666a);
+  }
+}
 
 class GlassPanel extends StatelessWidget {
   const GlassPanel({
@@ -105,14 +253,14 @@ class FinanzaAutoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: _darkMode,
-      builder: (context, dark, child) => MaterialApp(
+    return ValueListenableBuilder<AppThemeMode>(
+      valueListenable: _themeMode,
+      builder: (context, themeMode, child) => MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Finanza · Carro',
         theme: ThemeData(
           useMaterial3: true,
-          brightness: dark ? Brightness.dark : Brightness.light,
+          brightness: isDarkTheme ? Brightness.dark : Brightness.light,
           fontFamily: 'DM Sans',
           scaffoldBackgroundColor: ink,
           textTheme: const TextTheme(
@@ -125,7 +273,7 @@ class FinanzaAutoApp extends StatelessWidget {
           ),
           colorScheme: ColorScheme.fromSeed(
             seedColor: blue,
-            brightness: dark ? Brightness.dark : Brightness.light,
+            brightness: isDarkTheme ? Brightness.dark : Brightness.light,
           ).copyWith(
             primary: blue,
             onPrimary: Colors.white,
@@ -408,8 +556,21 @@ class _CarHomeState extends State<CarHome> {
   Future<void> _load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedTheme = prefs.getBool('finanza_auto_dark_theme');
-      if (savedTheme != null) _darkMode.value = savedTheme;
+      final savedThemeName = prefs.getString('finanza_auto_theme_mode');
+      if (savedThemeName != null) {
+        final mode = AppThemeMode.values.firstWhere(
+          (m) => m.name == savedThemeName,
+          orElse: () => AppThemeMode.oled,
+        );
+        _themeMode.value = mode;
+        _darkMode.value = mode != AppThemeMode.light;
+      } else {
+        final savedTheme = prefs.getBool('finanza_auto_dark_theme');
+        if (savedTheme != null) {
+          _themeMode.value = savedTheme ? AppThemeMode.oled : AppThemeMode.light;
+          _darkMode.value = savedTheme;
+        }
+      }
       final saved = prefs.getString('finanza_auto_flutter_state');
       final bundledData =
           _tryDecodeMap(await rootBundle.loadString('assets/finanza-auto-backup.json')) ??
@@ -2118,7 +2279,7 @@ class _CarHomeState extends State<CarHome> {
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  'TEMA',
+                  'TEMA VISUAL',
                   style: TextStyle(
                     fontFamily: 'DM Sans',
                     color: textMuted,
@@ -2127,32 +2288,8 @@ class _CarHomeState extends State<CarHome> {
                     letterSpacing: 1.1,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          _toggleTheme();
-                          setSheetState(() {});
-                        },
-                        icon: Icon(
-                          isDarkTheme ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                          size: 18,
-                        ),
-                        label: Text(isDarkTheme ? 'Mudar para tema claro' : 'Mudar para tema escuro'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: textMain,
-                          side: BorderSide(
-                            color: isDarkTheme ? const Color(0xFF26262C) : const Color(0x1F000000),
-                          ),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                const SizedBox(height: 10),
+                _themeSelectorWidget(onChanged: () => setSheetState(() {})),
               ],
             ),
           ),
@@ -2745,6 +2882,10 @@ class _CarHomeState extends State<CarHome> {
         ),
         const SizedBox(height: 10),
         ...vehicles.map((vehicle) => _vehicleRow(vehicle)),
+        const SizedBox(height: 22),
+        _sectionTitle('Tema e personalização', 'Escolha a identidade visual que combina com seu estilo'),
+        const SizedBox(height: 10),
+        _themeSelectorWidget(),
         const SizedBox(height: 22),
         _sectionTitle('Dados e backup', 'Tudo fica salvo localmente no aparelho'),
         const SizedBox(height: 10),
@@ -3458,11 +3599,160 @@ class _CarHomeState extends State<CarHome> {
       }[category] ??
       Icons.receipt_long_outlined;
 
-  Future<void> _toggleTheme() async {
-    _darkMode.value = !_darkMode.value;
+  Future<void> _setThemeMode(AppThemeMode mode) async {
+    _themeMode.value = mode;
+    _darkMode.value = mode != AppThemeMode.light;
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('finanza_auto_theme_mode', mode.name);
     await prefs.setBool('finanza_auto_dark_theme', isDarkTheme);
-    if (mounted) _snack(isDarkTheme ? 'Tema escuro ativado.' : 'Tema claro ativado.');
+    String label;
+    switch (mode) {
+      case AppThemeMode.cyberpunk:
+        label = 'Tema Cyberpunk Neon ativado.';
+        break;
+      case AppThemeMode.emerald:
+        label = 'Tema Forest Emerald ativado.';
+        break;
+      case AppThemeMode.light:
+        label = 'Tema Clean Snow Minimal ativado.';
+        break;
+      case AppThemeMode.oled:
+      default:
+        label = 'Tema Dark OLED Finanza Next ativado.';
+        break;
+    }
+    if (mounted) _snack(label);
+  }
+
+  Future<void> _toggleTheme() async {
+    final nextMode = AppThemeMode.values[(_themeMode.value.index + 1) % AppThemeMode.values.length];
+    await _setThemeMode(nextMode);
+  }
+
+  Widget _themeSelectorWidget({VoidCallback? onChanged}) {
+    final themeOptions = [
+      (
+        mode: AppThemeMode.oled,
+        title: 'OLED Next',
+        subtitle: 'Preto puro & Azul',
+        color: const Color(0xff0a84ff),
+        bg: const Color(0xff000000),
+        icon: Icons.nightlight_round,
+      ),
+      (
+        mode: AppThemeMode.cyberpunk,
+        title: 'Cyberpunk',
+        subtitle: 'Neon Cyan & Pink',
+        color: const Color(0xff00f0ff),
+        bg: const Color(0xff090514),
+        icon: Icons.bolt_rounded,
+      ),
+      (
+        mode: AppThemeMode.emerald,
+        title: 'Forest Emerald',
+        subtitle: 'Musgo & Menta',
+        color: const Color(0xff10b981),
+        bg: const Color(0xff06130d),
+        icon: Icons.forest_rounded,
+      ),
+      (
+        mode: AppThemeMode.light,
+        title: 'Clean Snow',
+        subtitle: 'Minimal Claro',
+        color: const Color(0xff3b82f6),
+        bg: const Color(0xffffffff),
+        icon: Icons.wb_sunny_rounded,
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 10) / 2;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: themeOptions.map((opt) {
+            final isSelected = _themeMode.value == opt.mode;
+            return SizedBox(
+              width: itemWidth,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    _setThemeMode(opt.mode);
+                    if (onChanged != null) onChanged();
+                    setState(() {});
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected ? opt.color.withOpacity(.14) : panelRaised,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected ? opt.color : strokeColor,
+                        width: isSelected ? 1.8 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: opt.bg,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected ? opt.color : Colors.white24,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Icon(opt.icon, color: opt.color, size: 16),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                opt.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: 'DM Sans',
+                                  fontSize: 13,
+                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                                  color: isSelected ? opt.color : textMain,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                opt.subtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: 'DM Sans',
+                                  fontSize: 10,
+                                  color: textMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (isSelected)
+                          Icon(Icons.check_circle_rounded, color: opt.color, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
   }
 
   Future<void> _copyBackup() async {
