@@ -10,8 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
 
-const String appVersion = '1.2.0';
-const int appBuildNumber = 12;
+const String appVersion = '1.2.1';
+const int appBuildNumber = 13;
 
 // Finanza Next design system tokens for Flutter
 final ValueNotifier<bool> _darkMode = ValueNotifier<bool>(true);
@@ -612,6 +612,7 @@ class _CarHomeState extends State<CarHome> {
       },
       child: Scaffold(
         backgroundColor: ink,
+        extendBody: true,
         body: SafeArea(
           bottom: false,
           child: Column(
@@ -725,66 +726,96 @@ class _CarHomeState extends State<CarHome> {
     );
   }
 
-  Widget _glassBottomNavigation() => SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 0, 22, 16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 36, sigmaY: 36),
+  Widget _glassBottomNavigation() => Stack(
+        alignment: Alignment.bottomCenter,
+        clipBehavior: Clip.none,
+        children: [
+          // Gradiente suave de fade que escurece/suaviza os elementos que passam por baixo da navbar
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 120,
+            child: IgnorePointer(
               child: Container(
-                height: 62,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: isDarkTheme
-                        ? [
-                            const Color(0xFF2C2C32).withOpacity(0.55),
-                            const Color(0xFF16161A).withOpacity(0.75),
-                          ]
-                        : [
-                            Colors.white.withOpacity(0.92),
-                            Colors.white.withOpacity(0.78),
-                          ],
+                    colors: [
+                      ink.withOpacity(0.0),
+                      ink.withOpacity(0.55),
+                      ink.withOpacity(0.92),
+                    ],
+                    stops: const [0.0, 0.45, 1.0],
                   ),
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(
-                    color: isDarkTheme
-                        ? Colors.white.withOpacity(0.18)
-                        : Colors.white.withOpacity(0.85),
-                    width: 1.2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDarkTheme ? 0.55 : 0.08),
-                      blurRadius: 36,
-                      offset: const Offset(0, 14),
-                    ),
-                    BoxShadow(
-                      color: isDarkTheme
-                          ? Colors.white.withOpacity(0.04)
-                          : Colors.black.withOpacity(0.03),
-                      blurRadius: 1,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _navItem(0, Icons.home_rounded),
-                    _navItem(1, Icons.receipt_long_rounded),
-                    _navItem(2, Icons.insights_rounded),
-                    _navItem(3, Icons.directions_car_rounded),
-                  ],
                 ),
               ),
             ),
           ),
-        ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                  child: Container(
+                    height: 64,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: isDarkTheme
+                            ? [
+                                const Color(0xFF282830).withOpacity(0.68),
+                                const Color(0xFF141418).withOpacity(0.82),
+                              ]
+                            : [
+                                Colors.white.withOpacity(0.94),
+                                Colors.white.withOpacity(0.82),
+                              ],
+                      ),
+                      borderRadius: BorderRadius.circular(32),
+                      border: Border.all(
+                        color: isDarkTheme
+                            ? Colors.white.withOpacity(0.18)
+                            : Colors.white.withOpacity(0.85),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(isDarkTheme ? 0.60 : 0.10),
+                          blurRadius: 36,
+                          offset: const Offset(0, 16),
+                          spreadRadius: -4,
+                        ),
+                        BoxShadow(
+                          color: isDarkTheme
+                              ? Colors.white.withOpacity(0.05)
+                              : Colors.black.withOpacity(0.04),
+                          blurRadius: 1,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _navItem(0, Icons.home_rounded),
+                        _navItem(1, Icons.receipt_long_rounded),
+                        _navItem(2, Icons.insights_rounded),
+                        _navItem(3, Icons.directions_car_rounded),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       );
 
   Widget _navItem(int index, IconData icon) {
@@ -801,8 +832,8 @@ class _CarHomeState extends State<CarHome> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
-            width: active ? 58 : 46,
-            height: 46,
+            width: active ? 60 : 46,
+            height: 48,
             decoration: BoxDecoration(
               gradient: active
                   ? LinearGradient(
@@ -810,8 +841,8 @@ class _CarHomeState extends State<CarHome> {
                       end: Alignment.bottomCenter,
                       colors: isDarkTheme
                           ? [
-                              const Color(0xFF383842).withOpacity(0.95),
-                              const Color(0xFF26262E).withOpacity(0.90),
+                              const Color(0xFF3E3E4A).withOpacity(0.95),
+                              const Color(0xFF282832).withOpacity(0.92),
                             ]
                           : [
                               const Color(0xFF0F172A),
@@ -819,11 +850,11 @@ class _CarHomeState extends State<CarHome> {
                             ],
                     )
                   : null,
-              borderRadius: BorderRadius.circular(23),
+              borderRadius: BorderRadius.circular(24),
               border: active
                   ? Border.all(
                       color: isDarkTheme
-                          ? Colors.white.withOpacity(0.22)
+                          ? Colors.white.withOpacity(0.24)
                           : Colors.black.withOpacity(0.08),
                       width: 1.0,
                     )

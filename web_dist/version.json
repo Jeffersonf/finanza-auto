@@ -1,8 +1,8 @@
 {
-  "version": "1.2.0",
-  "buildNumber": 12,
-  "releaseTag": "v1.2.0",
+  "version": "1.2.1",
+  "buildNumber": 13,
+  "releaseTag": "v1.2.1",
   "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/latest/download/app-release.apk",
-  "releaseNotes": "Cálculo reativo bidirecional no lançamento rápido (Preço/L x Litros = Total e Total / Preço/L = Litros), switch 'Está completando o tanque?' e campo Posto de Combustível idêntico ao Drivvo.",
+  "releaseNotes": "Aprimoramento da navbar translúcida flutuante: fundo escurecido com gradiente suave (scrim), extendBody ativo e desfoque aprofundado estilo Apple Dock sem cortes.",
   "releasedAt": "2026-09-13"
 }
