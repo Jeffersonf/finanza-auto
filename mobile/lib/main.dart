@@ -2668,7 +2668,7 @@ class _CarHomeState extends State<CarHome> {
                   color: amber.withOpacity(.14),
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: const Icon(Icons.build_circle_outlined, color: amber, size: 19),
+                child: Icon(Icons.build_circle_outlined, color: amber, size: 19),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -2769,7 +2769,7 @@ class _CarHomeState extends State<CarHome> {
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: amber.withOpacity(.20)),
                     ),
-                    child: const Icon(Icons.directions_car_rounded, color: amber, size: 24),
+                    child: Icon(Icons.directions_car_rounded, color: amber, size: 24),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -2877,7 +2877,7 @@ class _CarHomeState extends State<CarHome> {
           'Toque para alternar o veículo ativo',
           trailing: IconButton(
             onPressed: () => _vehicleSheet(),
-            icon: const Icon(Icons.add_circle_outline_rounded, color: blue),
+            icon: Icon(Icons.add_circle_outline_rounded, color: blue),
           ),
         ),
         const SizedBox(height: 10),
@@ -2907,7 +2907,7 @@ class _CarHomeState extends State<CarHome> {
                       color: mint.withOpacity(.12),
                       borderRadius: BorderRadius.circular(11),
                     ),
-                    child: const Icon(Icons.lock_outline_rounded, color: mint, size: 18),
+                    child: Icon(Icons.lock_outline_rounded, color: mint, size: 18),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -2935,7 +2935,7 @@ class _CarHomeState extends State<CarHome> {
                       ],
                     ),
                   ),
-                  const Icon(Icons.verified_user_outlined, color: mint, size: 18),
+                  Icon(Icons.verified_user_outlined, color: mint, size: 18),
                 ],
               ),
               const SizedBox(height: 16),
@@ -3542,7 +3542,7 @@ class _CarHomeState extends State<CarHome> {
                   ],
                 ),
               ),
-              if (selected) const Icon(Icons.check_circle_rounded, color: blue, size: 19),
+              if (selected) Icon(Icons.check_circle_rounded, color: blue, size: 19),
               IconButton(
                 onPressed: () => _vehicleSheet(vehicle),
                 icon: Icon(Icons.more_horiz_rounded, color: textSoft, size: 19),
@@ -4843,7 +4843,7 @@ class _CarHomeState extends State<CarHome> {
                           color: amber.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.calculate_rounded, color: amber, size: 22),
+                        child: Icon(Icons.calculate_rounded, color: amber, size: 22),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
