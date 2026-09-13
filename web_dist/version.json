@@ -1,8 +1,8 @@
 {
-  "version": "1.2.4",
-  "buildNumber": 16,
-  "releaseTag": "v1.2.4",
+  "version": "1.2.5",
+  "buildNumber": 17,
+  "releaseTag": "v1.2.5",
   "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/latest/download/app-release.apk",
-  "releaseNotes": "Novo modal Finext com cálculo automático de litros/valor e correção do instalador Android (cache buster e arquivo versionado).",
+  "releaseNotes": "Módulo de Revisão de Importações de Abastecimentos (Abril a Setembro) e Novos Temas Porsche GT Titanium & Obsidian Amber Luxe.",
   "releasedAt": "2026-09-13"
 }

@@ -10,15 +10,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
 
-const String appVersion = '1.2.4';
-const int appBuildNumber = 16;
+const String appVersion = '1.2.5';
+const int appBuildNumber = 17;
 
 // Finanza Next & Multi-Theme design system tokens for Flutter
 enum AppThemeMode {
-  oled,      // Dark OLED Finanza Next (Preto puro, acentos azul/âmbar)
-  cyberpunk, // Cyberpunk Neon Night (Roxo profundo, neon cyan/magenta/limão)
-  emerald,   // Forest Emerald (Verde musgo nórdico, toques de menta e dourado)
-  light,     // Clean Snow Minimal (Branco puro, slate moderno)
+  oled,        // Dark OLED Finanza Next (Preto puro, acentos azul/âmbar)
+  porscheSlate,// Porsche GT Titanium (Cinza titânio espacial, acentos Racing Cyan/Ice)
+  amberLuxe,   // Obsidian & Amber Luxe (Preto fosco luxo, acentos ouro champanhe e âmbar)
+  light,       // Clean Snow Minimal (Branco puro, slate moderno)
 }
 
 final ValueNotifier<AppThemeMode> _themeMode = ValueNotifier<AppThemeMode>(AppThemeMode.oled);
@@ -29,10 +29,10 @@ bool get isDarkTheme => _themeMode.value != AppThemeMode.light;
 
 Color get ink {
   switch (_themeMode.value) {
-    case AppThemeMode.cyberpunk:
-      return const Color(0xff090514);
-    case AppThemeMode.emerald:
-      return const Color(0xff06130d);
+    case AppThemeMode.porscheSlate:
+      return const Color(0xff0b0d13); // Deep Titanium
+    case AppThemeMode.amberLuxe:
+      return const Color(0xff090807); // Obsidian Luxe
     case AppThemeMode.light:
       return const Color(0xfff4f6f9);
     case AppThemeMode.oled:
@@ -43,10 +43,10 @@ Color get ink {
 
 Color get panel {
   switch (_themeMode.value) {
-    case AppThemeMode.cyberpunk:
-      return const Color(0xff130c24);
-    case AppThemeMode.emerald:
-      return const Color(0xff0c2117);
+    case AppThemeMode.porscheSlate:
+      return const Color(0xff121620); // Slate Panel
+    case AppThemeMode.amberLuxe:
+      return const Color(0xff141210); // Warm Obsidian Panel
     case AppThemeMode.light:
       return const Color(0xffffffff);
     case AppThemeMode.oled:
@@ -57,10 +57,10 @@ Color get panel {
 
 Color get panelSoft {
   switch (_themeMode.value) {
-    case AppThemeMode.cyberpunk:
-      return const Color(0xff1d1434);
-    case AppThemeMode.emerald:
-      return const Color(0xff132e22);
+    case AppThemeMode.porscheSlate:
+      return const Color(0xff1a202d);
+    case AppThemeMode.amberLuxe:
+      return const Color(0xff1d1a16);
     case AppThemeMode.light:
       return const Color(0xffeceff3);
     case AppThemeMode.oled:
@@ -71,10 +71,10 @@ Color get panelSoft {
 
 Color get panelRaised {
   switch (_themeMode.value) {
-    case AppThemeMode.cyberpunk:
-      return const Color(0xff271b44);
-    case AppThemeMode.emerald:
-      return const Color(0xff1a3d2e);
+    case AppThemeMode.porscheSlate:
+      return const Color(0xff222a3b);
+    case AppThemeMode.amberLuxe:
+      return const Color(0xff26221c);
     case AppThemeMode.light:
       return const Color(0xffffffff);
     case AppThemeMode.oled:
@@ -85,10 +85,10 @@ Color get panelRaised {
 
 Color get strokeColor {
   switch (_themeMode.value) {
-    case AppThemeMode.cyberpunk:
-      return const Color(0xff392764);
-    case AppThemeMode.emerald:
-      return const Color(0xff1e4634);
+    case AppThemeMode.porscheSlate:
+      return const Color(0xff2c364b);
+    case AppThemeMode.amberLuxe:
+      return const Color(0xff332b20);
     case AppThemeMode.light:
       return const Color(0x14000000);
     case AppThemeMode.oled:
@@ -99,10 +99,10 @@ Color get strokeColor {
 
 Color get blue {
   switch (_themeMode.value) {
-    case AppThemeMode.cyberpunk:
-      return const Color(0xff00f0ff); // Neon Cyan
-    case AppThemeMode.emerald:
-      return const Color(0xff10b981); // Emerald
+    case AppThemeMode.porscheSlate:
+      return const Color(0xff38bdf8); // Racing Ice Cyan
+    case AppThemeMode.amberLuxe:
+      return const Color(0xffd4af37); // Champagne Gold
     case AppThemeMode.light:
     case AppThemeMode.oled:
     default:
@@ -112,10 +112,10 @@ Color get blue {
 
 Color get amber {
   switch (_themeMode.value) {
-    case AppThemeMode.cyberpunk:
-      return const Color(0xffff007f); // Neon Hot Pink
-    case AppThemeMode.emerald:
-      return const Color(0xffeab308); // Golden Amber
+    case AppThemeMode.porscheSlate:
+      return const Color(0xfff59e0b); // High-viz Amber
+    case AppThemeMode.amberLuxe:
+      return const Color(0xfff59e0b); // Radiant Amber
     case AppThemeMode.light:
     case AppThemeMode.oled:
     default:
@@ -125,10 +125,10 @@ Color get amber {
 
 Color get mint {
   switch (_themeMode.value) {
-    case AppThemeMode.cyberpunk:
-      return const Color(0xff00ff88); // Neon Green
-    case AppThemeMode.emerald:
-      return const Color(0xff34d399); // Mint
+    case AppThemeMode.porscheSlate:
+      return const Color(0xff10b981); // Crisp Emerald
+    case AppThemeMode.amberLuxe:
+      return const Color(0xff22c55e); // Royal Green
     case AppThemeMode.light:
     case AppThemeMode.oled:
     default:
@@ -141,10 +141,10 @@ const purple = Color(0xffaf52de);
 
 Color get textMain {
   switch (_themeMode.value) {
-    case AppThemeMode.cyberpunk:
-      return const Color(0xfff8fafc);
-    case AppThemeMode.emerald:
-      return const Color(0xffecfdf5);
+    case AppThemeMode.porscheSlate:
+      return const Color(0xfff1f5f9);
+    case AppThemeMode.amberLuxe:
+      return const Color(0xfffef3c7); // Warm Ivory
     case AppThemeMode.light:
       return const Color(0xff0f172a);
     case AppThemeMode.oled:
@@ -155,10 +155,10 @@ Color get textMain {
 
 Color get textMuted {
   switch (_themeMode.value) {
-    case AppThemeMode.cyberpunk:
-      return const Color(0xffa78bfa);
-    case AppThemeMode.emerald:
-      return const Color(0xff6ee7b7);
+    case AppThemeMode.porscheSlate:
+      return const Color(0xff94a3b8);
+    case AppThemeMode.amberLuxe:
+      return const Color(0xffbfa07d); // Sand Gold Muted
     case AppThemeMode.light:
       return const Color(0xff64748b);
     case AppThemeMode.oled:
@@ -169,10 +169,10 @@ Color get textMuted {
 
 Color get textSoft {
   switch (_themeMode.value) {
-    case AppThemeMode.cyberpunk:
-      return const Color(0xff7c3aed);
-    case AppThemeMode.emerald:
-      return const Color(0xff059669);
+    case AppThemeMode.porscheSlate:
+      return const Color(0xff64748b);
+    case AppThemeMode.amberLuxe:
+      return const Color(0xff8c755c);
     case AppThemeMode.light:
       return const Color(0xff94a3b8);
     case AppThemeMode.oled:
@@ -512,6 +512,8 @@ class _CarHomeState extends State<CarHome> {
   final searchController = TextEditingController();
   List<CarVehicle> vehicles = [];
   List<CarEvent> events = [];
+  List<CarEvent> pendingFuelImports = [];
+  bool dismissedPendingFuel = false;
   String activeVehicle = '';
   String period = 'Tudo';
   String typeFilter = 'Todos';
@@ -605,12 +607,33 @@ class _CarHomeState extends State<CarHome> {
       final selected = loadedVehicles.any((vehicle) => vehicle.id == savedActive)
           ? savedActive
           : loadedVehicles.first.id;
+      final dismissed = prefs.getBool('finanza_auto_dismissed_pending_fuel') ?? false;
+      final rawPending = prefs.getString('finanza_auto_pending_fuel');
+      final loadedPending = <CarEvent>[];
+      if (rawPending != null) {
+        final decodedPending = jsonDecode(rawPending);
+        if (decodedPending is List) {
+          for (final item in decodedPending) {
+            if (item is Map) loadedPending.add(CarEvent.fromMap(item.cast<String, dynamic>()));
+          }
+        }
+      } else if (!dismissed) {
+        // Se nunca carregou e não descartou, inicializa com os abastecimentos reais extraídos dos prints (Abril a Setembro)
+        loadedPending.addAll(_defaultExtractedPrintEvents());
+      }
+
+      // Remove dos pendentes qualquer item cujo odômetro e data já existam no histórico de eventos
+      loadedPending.removeWhere((p) =>
+          loadedEvents.any((e) => e.odometer == p.odometer && e.date == p.date));
+
       debugPrint(
-          'Finanza Auto load: source=${useBundled ? 'bundle' : 'saved'} saved=${saved != null} vehicles=${loadedVehicles.length} events=${loadedEvents.length} selected=$selected');
+          'Finanza Auto load: source=${useBundled ? 'bundle' : 'saved'} saved=${saved != null} vehicles=${loadedVehicles.length} events=${loadedEvents.length} pending=${loadedPending.length} selected=$selected');
       if (!mounted) return;
       setState(() {
         vehicles = loadedVehicles;
         events = loadedEvents;
+        pendingFuelImports = loadedPending;
+        dismissedPendingFuel = dismissed;
         activeVehicle = selected;
         loading = false;
         loadError = '';
@@ -623,6 +646,7 @@ class _CarHomeState extends State<CarHome> {
         vehicles = [CarVehicle(id: 'vehicle-1', name: 'Meu carro')];
         activeVehicle = 'vehicle-1';
         events = [];
+        pendingFuelImports = [];
         loading = false;
         loadError = 'Não foi possível carregar o backup local.';
       });
@@ -644,6 +668,11 @@ class _CarHomeState extends State<CarHome> {
         },
       }),
     );
+    await prefs.setString(
+      'finanza_auto_pending_fuel',
+      jsonEncode(pendingFuelImports.map((e) => e.toMap()).toList()),
+    );
+    await prefs.setBool('finanza_auto_dismissed_pending_fuel', dismissedPendingFuel);
   }
 
   CarVehicle get currentVehicle =>
@@ -1082,6 +1111,8 @@ class _CarHomeState extends State<CarHome> {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
         children: [
           _nextTopBar(),
+          if (pendingFuelImports.isNotEmpty && !dismissedPendingFuel)
+            _pendingFuelBanner(),
           _quickAddPill(),
           _centralDeRecursosPill(),
           const SizedBox(height: 14),
@@ -1097,6 +1128,112 @@ class _CarHomeState extends State<CarHome> {
           const SizedBox(height: 10),
           _recentList(list),
         ],
+      ),
+    );
+  }
+
+  Widget _pendingFuelBanner() {
+    final count = pendingFuelImports.length;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: _pendingFuelReviewModal,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDarkTheme
+                  ? [amber.withOpacity(0.18), const Color(0xFF1F1A14)]
+                  : [const Color(0xFFFEF3C7), const Color(0xFFFDE68A)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: amber.withOpacity(isDarkTheme ? 0.35 : 0.5),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: amber.withOpacity(0.12),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: amber.withOpacity(0.25),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.local_gas_station_rounded,
+                  size: 20,
+                  color: isDarkTheme ? amber : const Color(0xFFB45309),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Importação de Abastecimentos',
+                          style: TextStyle(
+                            fontFamily: 'DM Sans',
+                            color: isDarkTheme ? textMain : const Color(0xFF78350F),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: amber,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '$count',
+                            style: const TextStyle(
+                              fontFamily: 'DM Sans',
+                              color: Colors.black,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Revisar, editar ou aceitar registros até Setembro',
+                      style: TextStyle(
+                        fontFamily: 'DM Sans',
+                        color: isDarkTheme ? textMuted : const Color(0xFF92400E),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: isDarkTheme ? amber : const Color(0xFFB45309),
+                size: 22,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -3609,11 +3746,11 @@ class _CarHomeState extends State<CarHome> {
     await prefs.setBool('finanza_auto_dark_theme', isDarkTheme);
     String label;
     switch (mode) {
-      case AppThemeMode.cyberpunk:
-        label = 'Tema Cyberpunk Neon ativado.';
+      case AppThemeMode.porscheSlate:
+        label = 'Tema Porsche GT Slate ativado.';
         break;
-      case AppThemeMode.emerald:
-        label = 'Tema Forest Emerald ativado.';
+      case AppThemeMode.amberLuxe:
+        label = 'Tema Obsidian & Amber Luxe ativado.';
         break;
       case AppThemeMode.light:
         label = 'Tema Clean Snow Minimal ativado.';
@@ -3642,20 +3779,20 @@ class _CarHomeState extends State<CarHome> {
         icon: Icons.nightlight_round,
       ),
       (
-        mode: AppThemeMode.cyberpunk,
-        title: 'Cyberpunk',
-        subtitle: 'Neon Cyan & Pink',
-        color: const Color(0xff00f0ff),
-        bg: const Color(0xff090514),
-        icon: Icons.bolt_rounded,
+        mode: AppThemeMode.porscheSlate,
+        title: 'Porsche GT',
+        subtitle: 'Titânio & Ice Cyan',
+        color: const Color(0xff38bdf8),
+        bg: const Color(0xff121620),
+        icon: Icons.speed_rounded,
       ),
       (
-        mode: AppThemeMode.emerald,
-        title: 'Forest Emerald',
-        subtitle: 'Musgo & Menta',
-        color: const Color(0xff10b981),
-        bg: const Color(0xff06130d),
-        icon: Icons.forest_rounded,
+        mode: AppThemeMode.amberLuxe,
+        title: 'Amber Luxe',
+        subtitle: 'Obsidian & Ouro',
+        color: const Color(0xffd4af37),
+        bg: const Color(0xff141210),
+        icon: Icons.auto_awesome_rounded,
       ),
       (
         mode: AppThemeMode.light,
@@ -5519,6 +5656,735 @@ class _CarHomeState extends State<CarHome> {
             ),
           );
         },
+      ),
+  // --- Abastecimentos Extraídos dos Prints do Drivvo (Abril a Setembro/2026) ---
+  List<CarEvent> _defaultExtractedPrintEvents() {
+    return [
+      CarEvent(
+        id: 'imported-fuel-2026-09-13',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-09-13',
+        amount: 128.00,
+        odometer: 164154,
+        liters: 36.676,
+        pricePerLiter: 3.49,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-08-16',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-08-16',
+        amount: 154.15,
+        odometer: 164028,
+        liters: 44.0,
+        pricePerLiter: 3.50,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-08-01',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-08-01',
+        amount: 117.20,
+        odometer: 163708,
+        liters: 35.0,
+        pricePerLiter: 3.35,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-07-20',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-07-20',
+        amount: 95.00,
+        odometer: 163550,
+        liters: 27.085,
+        pricePerLiter: 3.51,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-07-11',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-07-11',
+        amount: 154.00,
+        odometer: 163437,
+        liters: 44.047,
+        pricePerLiter: 3.50,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-06-28',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-06-28',
+        amount: 113.00,
+        odometer: 163154,
+        liters: 33.138,
+        pricePerLiter: 3.41,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-06-24',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-06-24',
+        amount: 141.36,
+        odometer: 162975,
+        liters: 39.470,
+        pricePerLiter: 3.58,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-06-20',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-06-20',
+        amount: 54.00,
+        odometer: 162774,
+        liters: 15.472,
+        pricePerLiter: 3.49,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-06-17',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-06-17',
+        amount: 144.02,
+        odometer: 162724,
+        liters: 43.280,
+        pricePerLiter: 3.33,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-06-13',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-06-13',
+        amount: 110.00,
+        odometer: 162431,
+        liters: 32.291,
+        pricePerLiter: 3.41,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-06-08',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-06-08',
+        amount: 160.00,
+        odometer: 162176,
+        liters: 45.914,
+        pricePerLiter: 3.48,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-05-30',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-05-30',
+        amount: 183.50,
+        odometer: 162100,
+        liters: 44.072,
+        pricePerLiter: 4.16,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-05-18',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-05-18',
+        amount: 130.00,
+        odometer: 162015,
+        liters: 32.861,
+        pricePerLiter: 3.96,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-04-25',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-04-25',
+        amount: 204.00,
+        odometer: 161920,
+        liters: 50.000,
+        pricePerLiter: 4.08,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+      CarEvent(
+        id: 'imported-fuel-2026-04-17',
+        vehicleId: currentVehicle.id,
+        type: 'fuel',
+        date: '2026-04-17',
+        amount: 210.00,
+        odometer: 161700,
+        liters: 50.715,
+        pricePerLiter: 4.14,
+        fuelType: 'Etanol',
+        title: 'Abastecimento (Etanol)',
+        category: 'Combustivel',
+        note: 'Rafaela • Tanque cheio',
+      ),
+    ];
+  }
+
+  // --- Modal de Revisão / Aprovação de Abastecimentos Pendentes ---
+  Future<void> _pendingFuelReviewModal() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDarkTheme ? const Color(0xFF131418) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final totalValor = pendingFuelImports.fold<double>(0, (sum, e) => sum + e.amount);
+          final totalLiters = pendingFuelImports.fold<double>(0, (sum, e) => sum + e.liters);
+
+          return SafeArea(
+            child: Container(
+              height: MediaQuery.of(ctx).size.height * 0.88,
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: amber.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(Icons.fact_check_rounded, color: amber, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Importações Pendentes',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: textMain,
+                              ),
+                            ),
+                            Text(
+                              '${pendingFuelImports.length} abastecimentos de Abril a Setembro',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontSize: 12,
+                                color: textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: Icon(Icons.close_rounded, color: textMuted),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Resumo dos registros pendentes
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isDarkTheme ? const Color(0xFF1B1C22) : const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: strokeColor),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'TOTAL PENDENTE',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: textMuted,
+                              ),
+                            ),
+                            Text(
+                              _money(totalValor),
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: blue,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'VOLUME TOTAL',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: textMuted,
+                              ),
+                            ),
+                            Text(
+                              '${totalLiters.toStringAsFixed(1)} L',
+                              style: TextStyle(
+                                fontFamily: 'DM Sans',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: textMain,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Ações em lote
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: pendingFuelImports.isEmpty
+                              ? null
+                              : () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (dCtx) => AlertDialog(
+                                      backgroundColor: panelRaised,
+                                      title: const Text('Aprovar todos os abastecimentos?'),
+                                      content: Text('Serão adicionados ${pendingFuelImports.length} lançamentos ao histórico do seu Astra.'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(dCtx, false),
+                                          child: const Text('Cancelar'),
+                                        ),
+                                        FilledButton(
+                                          onPressed: () => Navigator.pop(dCtx, true),
+                                          style: FilledButton.styleFrom(backgroundColor: blue),
+                                          child: const Text('Aprovar Todos'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm != true) return;
+
+                                  setState(() {
+                                    for (final p in pendingFuelImports) {
+                                      events.insert(0, p);
+                                      if (p.odometer > currentVehicle.odometer) {
+                                        currentVehicle.odometer = p.odometer;
+                                      }
+                                    }
+                                    pendingFuelImports.clear();
+                                  });
+                                  await _save();
+                                  if (sheetContext.mounted) Navigator.pop(sheetContext);
+                                  _snack('Todos os abastecimentos foram aprovados e adicionados!');
+                                },
+                          icon: const Icon(Icons.done_all_rounded, size: 16),
+                          label: const Text('Aprovar Todos'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: mint,
+                            side: BorderSide(color: mint.withOpacity(0.5)),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      TextButton.icon(
+                        onPressed: () async {
+                          setState(() {
+                            dismissedPendingFuel = true;
+                          });
+                          await _save();
+                          if (sheetContext.mounted) Navigator.pop(sheetContext);
+                          _snack('Importação pendente ocultada da tela inicial.');
+                        },
+                        icon: Icon(Icons.visibility_off_outlined, size: 16, color: textMuted),
+                        label: Text('Ocultar', style: TextStyle(color: textMuted, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Lista de itens
+                  Expanded(
+                    child: pendingFuelImports.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle_outline_rounded, color: mint, size: 48),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Tudo em dia!',
+                                  style: TextStyle(
+                                    fontFamily: 'DM Sans',
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 16,
+                                    color: textMain,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Não há novos abastecimentos pendentes de revisão.',
+                                  style: TextStyle(fontFamily: 'DM Sans', color: textMuted, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.separated(
+                            itemCount: pendingFuelImports.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (ctx, index) {
+                              final item = pendingFuelImports[index];
+                              return Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: isDarkTheme ? const Color(0xFF181920) : const Color(0xFFF9FAFB),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: strokeColor),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: amber.withOpacity(0.18),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            _dateLabel(item.date),
+                                            style: TextStyle(
+                                              fontFamily: 'DM Sans',
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: amber,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: isDarkTheme ? const Color(0xFF262732) : const Color(0xFFE5E7EB),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            '${item.odometer.round()} km',
+                                            style: TextStyle(
+                                              fontFamily: 'DM Sans',
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: textMain,
+                                            ),
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Text(
+                                          _money(item.amount),
+                                          style: TextStyle(
+                                            fontFamily: 'DM Sans',
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                            color: textMain,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          '${item.fuelType} • ${item.liters.toStringAsFixed(3)} L a R\$ ${item.pricePerLiter.toStringAsFixed(2)}/L',
+                                          style: TextStyle(
+                                            fontFamily: 'DM Sans',
+                                            fontSize: 12,
+                                            color: textMuted,
+                                          ),
+                                        ),
+                                        if (item.note.isNotEmpty) ...[
+                                          const Spacer(),
+                                          Text(
+                                            item.note,
+                                            style: TextStyle(
+                                              fontFamily: 'DM Sans',
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: textMuted,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    const Divider(height: 1),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        // Recusar
+                                        TextButton.icon(
+                                          onPressed: () async {
+                                            setSheetState(() {
+                                              pendingFuelImports.removeAt(index);
+                                            });
+                                            setState(() {});
+                                            await _save();
+                                            _snack('Registro descartado.');
+                                          },
+                                          icon: const Icon(Icons.close_rounded, size: 16, color: coral),
+                                          label: const Text('Recusar', style: TextStyle(color: coral, fontSize: 12)),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        // Editar
+                                        TextButton.icon(
+                                          onPressed: () async {
+                                            await _editPendingFuelItemSheet(item);
+                                            setSheetState(() {});
+                                            setState(() {});
+                                          },
+                                          icon: Icon(Icons.edit_outlined, size: 16, color: textMain),
+                                          label: Text('Editar', style: TextStyle(color: textMain, fontSize: 12)),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        // Aceitar individualmente
+                                        FilledButton.icon(
+                                          onPressed: () async {
+                                            setState(() {
+                                              events.insert(0, item);
+                                              if (item.odometer > currentVehicle.odometer) {
+                                                currentVehicle.odometer = item.odometer;
+                                              }
+                                              pendingFuelImports.removeAt(index);
+                                            });
+                                            setSheetState(() {});
+                                            await _save();
+                                            _snack('Abastecimento aceito e gravado no histórico!');
+                                          },
+                                          icon: const Icon(Icons.check_rounded, size: 16),
+                                          label: const Text('Aceitar', style: TextStyle(fontSize: 12)),
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor: blue,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                            visualDensity: VisualDensity.compact,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Edição rápida de um item pendente
+  Future<void> _editPendingFuelItemSheet(CarEvent item) async {
+    final amountCtrl = TextEditingController(text: item.amount.toStringAsFixed(2));
+    final litersCtrl = TextEditingController(text: item.liters.toStringAsFixed(3));
+    final priceCtrl = TextEditingController(text: item.pricePerLiter.toStringAsFixed(2));
+    final odoCtrl = TextEditingController(text: item.odometer.round().toString());
+    final dateCtrl = TextEditingController(text: item.date);
+    final noteCtrl = TextEditingController(text: item.note);
+    String selectedFuel = item.fuelType;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDarkTheme ? const Color(0xFF141418) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(sheetContext).viewInsets.bottom + 18),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Editar Abastecimento Pendente',
+                style: TextStyle(
+                  fontFamily: 'DM Sans',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: textMain,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: amountCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Valor Total', prefixText: 'R\$ '),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: odoCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Odômetro', suffixText: 'km'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: litersCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Litros', suffixText: 'L'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: priceCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Preço/L', prefixText: 'R\$ '),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: noteCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Posto / Observação',
+                  hintText: 'Ex.: Rafaela ou Zanforlim',
+                  prefixIcon: Icon(Icons.place_rounded, size: 18),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: dateCtrl,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Data',
+                  prefixIcon: Icon(Icons.calendar_today_rounded, size: 16),
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () async {
+                    item.amount = _number(amountCtrl.text);
+                    item.liters = _number(litersCtrl.text);
+                    item.pricePerLiter = _number(priceCtrl.text);
+                    item.odometer = _number(odoCtrl.text);
+                    item.note = noteCtrl.text.trim();
+                    item.fuelType = selectedFuel;
+                    await _save();
+                    if (sheetContext.mounted) Navigator.pop(sheetContext);
+                    _snack('Item atualizado.');
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Salvar Alterações'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
