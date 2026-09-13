@@ -10,8 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
 
-const String appVersion = '1.2.2';
-const int appBuildNumber = 14;
+const String appVersion = '1.2.3';
+const int appBuildNumber = 15;
 
 // Finanza Next & Multi-Theme design system tokens for Flutter
 enum AppThemeMode {
@@ -1150,7 +1150,7 @@ class _CarHomeState extends State<CarHome> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Adicionar lançamento rápido',
+                        'Abastecimento Rápido',
                         style: TextStyle(
                           fontFamily: 'DM Sans',
                           color: Colors.white,
@@ -1160,7 +1160,7 @@ class _CarHomeState extends State<CarHome> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Abastecimento ou gasto direto em 1 janela',
+                        'Litros, preço e valor com cálculo automático',
                         style: TextStyle(
                           fontFamily: 'DM Sans',
                           color: Colors.white.withOpacity(0.68),
@@ -4943,500 +4943,575 @@ class _CarHomeState extends State<CarHome> {
     );
   }
 
-  // --- Adição Rápida Simplificada (estilo Finanza Next: janela única e direta) ---
+  // --- Adição Rápida de Abastecimento (Estilo Finext / Finanza Next) ---
   Future<void> _quickAddTransactionSheet() async {
-    bool isFuel = true;
     final amountCtrl = TextEditingController();
+    final litersCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
     final odoCtrl = TextEditingController(
       text: _maxOdometer(allVehicleEvents) > 0 ? _maxOdometer(allVehicleEvents).round().toString() : '',
     );
-    final litersCtrl = TextEditingController();
-    final priceCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
+    final stationCtrl = TextEditingController();
     final dateCtrl = TextEditingController(text: _isoToday());
-    String selectedFuel = 'Etanol';
-    String selectedCategory = 'Maintenance';
+    String selectedFuel = 'Gasolina';
     bool isFullTank = true;
     bool isUpdatingFields = false;
-
-    final categories = <String, String>{
-      'Maintenance': 'Manutenção',
-      'Insurance': 'Seguro',
-      'Tax': 'Imposto',
-      'Parking': 'Estacionamento',
-      'Wash': 'Lavagem',
-      'Fine': 'Multa',
-      'Other': 'Outro',
-    };
 
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
         builder: (ctx, setSheetState) {
-          void onLitersOrPriceChanged() {
+          // Formatação utilitária com vírgula padrão BR
+          String formatNumber(double val, int decimals) {
+            if (val <= 0 || val.isNaN || val.isInfinite) return '';
+            return val.toStringAsFixed(decimals).replaceAll('.', ',');
+          }
+
+          void updateFromLiters() {
             if (isUpdatingFields) return;
             final lit = _number(litersCtrl.text);
             final prc = _number(priceCtrl.text);
+            final amt = _number(amountCtrl.text);
+
             if (lit > 0 && prc > 0) {
               isUpdatingFields = true;
-              final tot = (lit * prc).toStringAsFixed(2);
-              amountCtrl.text = tot;
+              amountCtrl.text = formatNumber(lit * prc, 2);
+              isUpdatingFields = false;
+            } else if (lit > 0 && amt > 0) {
+              isUpdatingFields = true;
+              priceCtrl.text = formatNumber(amt / lit, 2);
               isUpdatingFields = false;
             }
             setSheetState(() {});
           }
 
-          void onAmountChanged() {
+          void updateFromPrice() {
+            if (isUpdatingFields) return;
+            final prc = _number(priceCtrl.text);
+            final amt = _number(amountCtrl.text);
+            final lit = _number(litersCtrl.text);
+
+            if (prc > 0 && amt > 0) {
+              isUpdatingFields = true;
+              litersCtrl.text = formatNumber(amt / prc, 3);
+              isUpdatingFields = false;
+            } else if (prc > 0 && lit > 0) {
+              isUpdatingFields = true;
+              amountCtrl.text = formatNumber(lit * prc, 2);
+              isUpdatingFields = false;
+            }
+            setSheetState(() {});
+          }
+
+          void updateFromAmount() {
             if (isUpdatingFields) return;
             final amt = _number(amountCtrl.text);
             final prc = _number(priceCtrl.text);
             final lit = _number(litersCtrl.text);
+
             if (amt > 0 && prc > 0) {
               isUpdatingFields = true;
-              litersCtrl.text = (amt / prc).toStringAsFixed(3);
+              litersCtrl.text = formatNumber(amt / prc, 3);
               isUpdatingFields = false;
             } else if (amt > 0 && lit > 0) {
               isUpdatingFields = true;
-              priceCtrl.text = (amt / lit).toStringAsFixed(2);
+              priceCtrl.text = formatNumber(amt / lit, 2);
               isUpdatingFields = false;
             }
             setSheetState(() {});
           }
 
-          final lit = _number(litersCtrl.text);
-          final prc = _number(priceCtrl.text);
-          final amt = _number(amountCtrl.text);
-          final calculatedTotal = amt > 0 ? amt : (lit > 0 && prc > 0 ? lit * prc : 0.0);
+          final displayAmount = _number(amountCtrl.text) > 0
+              ? _number(amountCtrl.text)
+              : (_number(litersCtrl.text) * _number(priceCtrl.text));
 
-          return SafeArea(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 14, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
+          final fuelOptions = ['Gasolina', 'Etanol', 'Diesel', 'GNV', 'Flex'];
+
+          return Container(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDarkTheme ? const Color(0xFF131418) : Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: isDarkTheme ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08),
                     ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: blue.withOpacity(0.16),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(
-                            isFuel ? Icons.local_gas_station_rounded : Icons.receipt_long_rounded,
-                            color: blue,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(isDarkTheme ? 0.6 : 0.2),
+                        blurRadius: 28,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Top Drag Handle & Title Bar
+                          Row(
                             children: [
-                              Text(
-                                isFuel ? 'Novo Abastecimento' : 'Nova Despesa',
-                                style: TextStyle(
-                                  fontFamily: 'DM Sans',
-                                  color: textMain,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: amber.withOpacity(0.16),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(Icons.local_gas_station_rounded, color: amber, size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Abastecimento Rápido',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        color: textMain,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Cálculo automático de litros e valor',
+                                      style: TextStyle(
+                                        fontFamily: 'DM Sans',
+                                        fontSize: 12,
+                                        color: textMuted,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              Text(
-                                'Preencha e salve direto sem enrolação',
-                                style: TextStyle(
-                                  fontFamily: 'DM Sans',
-                                  color: textMuted,
-                                  fontSize: 12,
-                                ),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () => Navigator.pop(sheetContext),
+                                icon: Icon(Icons.close_rounded, color: textMuted, size: 20),
                               ),
                             ],
                           ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.pop(sheetContext),
-                          icon: Icon(Icons.close_rounded, color: textMuted),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // Toggle Abastecimento vs Despesa
-                    Container(
-                      height: 44,
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        color: isDarkTheme ? const Color(0xFF1E1E24) : const Color(0xFFE9ECEF),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => setSheetState(() => isFuel = true),
-                              child: Container(
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: isFuel
-                                      ? (isDarkTheme ? const Color(0xFF2E2E38) : Colors.white)
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(11),
-                                  boxShadow: isFuel
-                                      ? [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.12),
-                                            blurRadius: 6,
-                                          )
-                                        ]
-                                      : null,
-                                ),
-                                child: Text(
-                                  'Abastecimento',
-                                  style: TextStyle(
-                                    fontFamily: 'DM Sans',
-                                    fontWeight: isFuel ? FontWeight.w700 : FontWeight.w500,
-                                    fontSize: 13,
-                                    color: isFuel ? textMain : textMuted,
-                                  ),
-                                ),
+                          const SizedBox(height: 18),
+
+                          // Finext-style Hero Amount Card
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: isDarkTheme ? const Color(0xFF1C1D24) : const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isDarkTheme ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.05),
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => setSheetState(() => isFuel = false),
-                              child: Container(
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: !isFuel
-                                      ? (isDarkTheme ? const Color(0xFF2E2E38) : Colors.white)
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(11),
-                                  boxShadow: !isFuel
-                                      ? [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.12),
-                                            blurRadius: 6,
-                                          )
-                                        ]
-                                      : null,
-                                ),
-                                child: Text(
-                                  'Despesa / Manutenção',
-                                  style: TextStyle(
-                                    fontFamily: 'DM Sans',
-                                    fontWeight: !isFuel ? FontWeight.w700 : FontWeight.w500,
-                                    fontSize: 13,
-                                    color: !isFuel ? textMain : textMuted,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (isFuel) ...[
-                      // Combustível selector
-                      DropdownButtonFormField<String>(
-                        value: selectedFuel,
-                        decoration: const InputDecoration(
-                          labelText: 'Combustível',
-                          prefixIcon: Icon(Icons.local_gas_station_rounded, size: 18),
-                        ),
-                        dropdownColor: isDarkTheme ? const Color(0xFF222228) : Colors.white,
-                        items: ['Etanol', 'Gasolina', 'Diesel', 'GNV', 'Flex']
-                            .map((f) => DropdownMenuItem(value: f, child: Text(f)))
-                            .toList(),
-                        onChanged: (val) => setSheetState(() => selectedFuel = val ?? 'Etanol'),
-                      ),
-                      const SizedBox(height: 12),
-                      // Preço/L, Litros e Valor Pago em linha inteligente
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: priceCtrl,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              onChanged: (_) => onLitersOrPriceChanged(),
-                              decoration: const InputDecoration(
-                                labelText: 'Preço / L',
-                                prefixText: 'R\$ ',
-                                hintText: '0,00',
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: litersCtrl,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              onChanged: (_) => onLitersOrPriceChanged(),
-                              decoration: const InputDecoration(
-                                labelText: 'Litros',
-                                suffixText: 'L',
-                                hintText: '0,000',
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: amountCtrl,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              onChanged: (_) => onAmountChanged(),
-                              decoration: InputDecoration(
-                                labelText: 'Valor total',
-                                prefixText: 'R\$ ',
-                                hintText: calculatedTotal > 0 ? calculatedTotal.toStringAsFixed(2) : '0,00',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      // Switch de Tanque Cheio (Drivvo style)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isDarkTheme ? const Color(0xFF1B1B20) : const Color(0xFFF3F4F6),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: isDarkTheme ? const Color(0xFF2B2B33) : const Color(0xFFE5E7EB),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
+                            child: Column(
                               children: [
-                                Icon(
-                                  Icons.ev_station_rounded,
-                                  color: isFullTank ? mint : textMuted,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 10),
                                 Text(
-                                  'Está completando o tanque?',
+                                  'VALOR TOTAL',
                                   style: TextStyle(
                                     fontFamily: 'DM Sans',
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: textMain,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.1,
+                                    color: textMuted,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                TextField(
+                                  controller: amountCtrl,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  textAlign: TextAlign.center,
+                                  onChanged: (_) => updateFromAmount(),
+                                  style: TextStyle(
+                                    fontFamily: 'DM Sans',
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w900,
+                                    color: blue,
+                                    letterSpacing: -0.5,
+                                  ),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    prefixText: 'R\$ ',
+                                    prefixStyle: TextStyle(
+                                      fontFamily: 'DM Sans',
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: textMuted,
+                                    ),
+                                    hintText: displayAmount > 0 ? displayAmount.toStringAsFixed(2).replaceAll('.', ',') : '0,00',
+                                    hintStyle: TextStyle(
+                                      fontFamily: 'DM Sans',
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w900,
+                                      color: textMuted.withOpacity(0.35),
+                                    ),
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 4),
                                   ),
                                 ),
                               ],
                             ),
-                            Switch(
-                              value: isFullTank,
-                              activeColor: amber,
-                              onChanged: (val) => setSheetState(() => isFullTank = val),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Odômetro
-                      TextField(
-                        controller: odoCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Odômetro atual',
-                          suffixText: 'km',
-                          helperText: currentVehicle.odometer > 0
-                              ? 'Último odômetro: ${currentVehicle.odometer.round()} km'
-                              : null,
-                        ),
-                      ),
-                    ] else ...[
-                      // Seção de despesas convencionais
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: TextField(
-                              controller: amountCtrl,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              autofocus: true,
-                              decoration: InputDecoration(
-                                labelText: 'Valor Pago (R\$)',
-                                prefixText: 'R\$ ',
-                                hintText: calculatedTotal > 0 ? calculatedTotal.toStringAsFixed(2) : '0,00',
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Litros & Preço/L com cálculo reativo bidirecional
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isDarkTheme ? const Color(0xFF181920) : const Color(0xFFF9FAFB),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: isDarkTheme ? const Color(0xFF262732) : const Color(0xFFE5E7EB),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'LITROS (L)',
+                                        style: TextStyle(
+                                          fontFamily: 'DM Sans',
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: textMuted,
+                                        ),
+                                      ),
+                                      TextField(
+                                        controller: litersCtrl,
+                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                        onChanged: (_) => updateFromLiters(),
+                                        style: TextStyle(
+                                          fontFamily: 'DM Sans',
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: textMain,
+                                        ),
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          hintText: '0,000',
+                                          suffixText: 'L',
+                                          suffixStyle: TextStyle(
+                                            fontFamily: 'DM Sans',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: textMuted,
+                                          ),
+                                          border: InputBorder.none,
+                                          contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isDarkTheme ? const Color(0xFF181920) : const Color(0xFFF9FAFB),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: isDarkTheme ? const Color(0xFF262732) : const Color(0xFFE5E7EB),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'PREÇO / LITRO',
+                                        style: TextStyle(
+                                          fontFamily: 'DM Sans',
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: textMuted,
+                                        ),
+                                      ),
+                                      TextField(
+                                        controller: priceCtrl,
+                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                        onChanged: (_) => updateFromPrice(),
+                                        style: TextStyle(
+                                          fontFamily: 'DM Sans',
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: textMain,
+                                        ),
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          hintText: '0,00',
+                                          prefixText: 'R\$ ',
+                                          prefixStyle: TextStyle(
+                                            fontFamily: 'DM Sans',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: textMuted,
+                                          ),
+                                          border: InputBorder.none,
+                                          contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Combustível Chips (Gasolina, Etanol, Diesel, GNV, Flex)
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: fuelOptions.map((f) {
+                                final isSel = selectedFuel == f;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: ChoiceChip(
+                                    label: Text(f),
+                                    selected: isSel,
+                                    onSelected: (_) => setSheetState(() => selectedFuel = f),
+                                    selectedColor: isDarkTheme ? const Color(0xFF2A2A38) : const Color(0xFF1E293B),
+                                    backgroundColor: isDarkTheme ? const Color(0xFF1A1B22) : const Color(0xFFF1F5F9),
+                                    labelStyle: TextStyle(
+                                      fontFamily: 'DM Sans',
+                                      fontSize: 12,
+                                      color: isSel ? Colors.white : textMuted,
+                                      fontWeight: isSel ? FontWeight.w800 : FontWeight.w500,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      side: BorderSide(
+                                        color: isSel
+                                            ? blue
+                                            : (isDarkTheme ? const Color(0xFF2E2F3A) : const Color(0xFFE2E8F0)),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            flex: 2,
-                            child: TextField(
-                              controller: odoCtrl,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Km atual',
-                                suffixText: 'km',
+                          const SizedBox(height: 12),
+
+                          // Odômetro & Tanque Cheio
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: TextField(
+                                  controller: odoCtrl,
+                                  keyboardType: TextInputType.number,
+                                  style: TextStyle(
+                                    fontFamily: 'DM Sans',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: textMain,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: 'Odômetro',
+                                    suffixText: 'km',
+                                    prefixIcon: const Icon(Icons.speed_rounded, size: 18),
+                                    helperText: currentVehicle.odometer > 0
+                                        ? 'Anterior: ${currentVehicle.odometer.round()} km'
+                                        : null,
+                                  ),
+                                ),
                               ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                flex: 2,
+                                child: InkWell(
+                                  onTap: () => setSheetState(() => isFullTank = !isFullTank),
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: isFullTank
+                                          ? mint.withOpacity(0.12)
+                                          : (isDarkTheme ? const Color(0xFF181920) : const Color(0xFFF3F4F6)),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: isFullTank ? mint : (isDarkTheme ? const Color(0xFF282935) : const Color(0xFFE5E7EB)),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.ev_station_rounded,
+                                          size: 16,
+                                          color: isFullTank ? mint : textMuted,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Tanque\nCheio',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontFamily: 'DM Sans',
+                                            fontSize: 11,
+                                            fontWeight: isFullTank ? FontWeight.w800 : FontWeight.w600,
+                                            color: isFullTank ? mint : textMuted,
+                                            height: 1.1,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Posto / Local (Opcional)
+                          TextField(
+                            controller: stationCtrl,
+                            style: TextStyle(fontFamily: 'DM Sans', fontSize: 13, color: textMain),
+                            decoration: const InputDecoration(
+                              labelText: 'Posto / Bandeira (opcional)',
+                              hintText: 'Ex.: Posto Shell, Ipiranga, Petrobras',
+                              prefixIcon: Icon(Icons.place_rounded, size: 18),
                             ),
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Data
+                          TextField(
+                            controller: dateCtrl,
+                            readOnly: true,
+                            style: TextStyle(fontFamily: 'DM Sans', fontSize: 13, color: textMain),
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime.now().add(const Duration(days: 365)),
+                                initialDate: _parseDate(dateCtrl.text) ?? DateTime.now(),
+                                builder: (context, child) => Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: ColorScheme.dark(
+                                      primary: blue,
+                                      surface: panelRaised,
+                                    ),
+                                  ),
+                                  child: child!,
+                                ),
+                              );
+                              if (picked != null) {
+                                dateCtrl.text = DateFormat('yyyy-MM-dd').format(picked);
+                                setSheetState(() {});
+                              }
+                            },
+                            decoration: const InputDecoration(
+                              labelText: 'Data',
+                              prefixIcon: Icon(Icons.calendar_today_rounded, size: 16),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Action Buttons (Finext Style: [ Cancelar ] [ OK / Salvar ])
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 1,
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.pop(sheetContext),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    foregroundColor: textMuted,
+                                    side: BorderSide(
+                                      color: isDarkTheme ? const Color(0xFF333340) : const Color(0xFFD1D5DB),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Cancelar',
+                                    style: TextStyle(
+                                      fontFamily: 'DM Sans',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 2,
+                                child: FilledButton.icon(
+                                  onPressed: () async {
+                                    final total = _number(amountCtrl.text) > 0 ? _number(amountCtrl.text) : displayAmount;
+                                    if (total <= 0) {
+                                      _snack('Informe o valor pago ou litros e preço.');
+                                      return;
+                                    }
+                                    final km = _number(odoCtrl.text);
+                                    final postNote = stationCtrl.text.trim();
+                                    final fullTankTag = isFullTank ? 'Tanque cheio' : '';
+                                    final combinedNote = postNote.isNotEmpty
+                                        ? (fullTankTag.isNotEmpty ? '$postNote • $fullTankTag' : postNote)
+                                        : fullTankTag;
+
+                                    final liters = _number(litersCtrl.text);
+                                    final price = _number(priceCtrl.text);
+
+                                    final event = CarEvent(
+                                      id: 'fuel-${DateTime.now().microsecondsSinceEpoch}',
+                                      vehicleId: currentVehicle.id,
+                                      type: 'fuel',
+                                      date: dateCtrl.text.isEmpty ? _isoToday() : dateCtrl.text,
+                                      amount: total,
+                                      odometer: km,
+                                      liters: liters,
+                                      pricePerLiter: price > 0 ? price : (liters > 0 ? total / liters : 0),
+                                      fuelType: selectedFuel,
+                                      title: 'Abastecimento ($selectedFuel)',
+                                      category: 'Combustivel',
+                                      note: combinedNote,
+                                    );
+
+                                    setState(() {
+                                      events.insert(0, event);
+                                      if (km > currentVehicle.odometer) {
+                                        currentVehicle.odometer = km;
+                                      }
+                                    });
+                                    await _save();
+                                    if (sheetContext.mounted) Navigator.pop(sheetContext);
+                                    _snack('Abastecimento de ${_money(total)} salvo com sucesso!');
+                                  },
+                                  icon: const Icon(Icons.check_rounded, size: 20),
+                                  label: const Text('OK / Salvar'),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: blue,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    textStyle: const TextStyle(
+                                      fontFamily: 'DM Sans',
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: categories.entries.map((c) {
-                            final isSel = selectedCategory == c.key;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: ChoiceChip(
-                                label: Text(c.value),
-                                selected: isSel,
-                                onSelected: (_) => setSheetState(() => selectedCategory = c.key),
-                                selectedColor: isDarkTheme ? const Color(0xFF2A2A34) : const Color(0xFF1E1E24),
-                                labelStyle: TextStyle(
-                                  fontFamily: 'DM Sans',
-                                  fontSize: 12,
-                                  color: isSel ? Colors.white : textMuted,
-                                  fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: descCtrl,
-                      decoration: InputDecoration(
-                        labelText: isFuel ? 'Posto de combustível' : 'Descrição da despesa',
-                        hintText: isFuel ? 'Ex.: Zanforlim, Posto Shell' : 'Ex.: Troca de óleo e filtro',
-                        prefixIcon: Icon(isFuel ? Icons.place_rounded : Icons.edit_note_rounded, size: 18),
-                      ),
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: dateCtrl,
-                      readOnly: true,
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
-                          initialDate: _parseDate(dateCtrl.text) ?? DateTime.now(),
-                          builder: (context, child) => Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: ColorScheme.dark(
-                                primary: blue,
-                                surface: panelRaised,
-                              ),
-                            ),
-                            child: child!,
-                          ),
-                        );
-                        if (picked != null) {
-                          dateCtrl.text = DateFormat('yyyy-MM-dd').format(picked);
-                          setSheetState(() {});
-                        }
-                      },
-                      decoration: const InputDecoration(
-                        labelText: 'Data',
-                        prefixIcon: Icon(Icons.calendar_today_rounded, size: 16),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(sheetContext),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              foregroundColor: textMuted,
-                            ),
-                            child: const Text('Cancelar'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: FilledButton.icon(
-                            onPressed: () async {
-                              final total = _number(amountCtrl.text) > 0 ? _number(amountCtrl.text) : calculatedTotal;
-                              if (total <= 0) {
-                                _snack('Informe o valor pago.');
-                                return;
-                              }
-                              final km = _number(odoCtrl.text);
-                              final postNote = descCtrl.text.trim();
-                              final fullTankTag = isFuel && isFullTank ? 'Tanque cheio' : '';
-                              final combinedNote = postNote.isNotEmpty
-                                  ? (fullTankTag.isNotEmpty ? '$postNote • $fullTankTag' : postNote)
-                                  : fullTankTag;
-
-                              final event = CarEvent(
-                                id: 'quick-${DateTime.now().microsecondsSinceEpoch}',
-                                vehicleId: currentVehicle.id,
-                                type: isFuel ? 'fuel' : 'expense',
-                                date: dateCtrl.text.isEmpty ? _isoToday() : dateCtrl.text,
-                                amount: total,
-                                odometer: km,
-                                liters: isFuel ? _number(litersCtrl.text) : 0,
-                                pricePerLiter: isFuel ? _number(priceCtrl.text) : 0,
-                                fuelType: isFuel ? selectedFuel : '',
-                                title: isFuel ? 'Abastecimento ($selectedFuel)' : (descCtrl.text.trim().isEmpty ? categories[selectedCategory] ?? 'Despesa' : descCtrl.text.trim()),
-                                category: isFuel ? 'Combustivel' : selectedCategory,
-                                note: combinedNote,
-                              );
-
-                              setState(() {
-                                events.insert(0, event);
-                                if (km > currentVehicle.odometer) {
-                                  currentVehicle.odometer = km;
-                                }
-                              });
-                              await _save();
-                              if (sheetContext.mounted) Navigator.pop(sheetContext);
-                              _snack('${isFuel ? 'Abastecimento' : 'Despesa'} registrado com sucesso!');
-                            },
-                            icon: const Icon(Icons.check_rounded, size: 18),
-                            label: const Text('Salvar Lançamento'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: blue,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              textStyle: const TextStyle(
-                                fontFamily: 'DM Sans',
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),

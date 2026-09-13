@@ -1,8 +1,8 @@
 {
-  "version": "1.2.2",
-  "buildNumber": 14,
-  "releaseTag": "v1.2.2",
+  "version": "1.2.3",
+  "buildNumber": 15,
+  "releaseTag": "v1.2.3",
   "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/latest/download/app-release.apk",
-  "releaseNotes": "Novo motor de temas visuais: Escolha entre OLED Next (Preto puro), Cyberpunk Neon (Roxo profundo, Cyan e Pink), Forest Emerald (Musgo nórdico e Menta) e Clean Snow (Minimal Claro), com persistência e seletor rápido no Veículo e Filtros.",
+  "releaseNotes": "Abastecimento Rápido estilo Finext: cálculo automático e reativo entre Litros, Preço por Litro e Valor Total, chip seletor de combustível, odômetro e completando tanque.",
   "releasedAt": "2026-09-13"
 }
