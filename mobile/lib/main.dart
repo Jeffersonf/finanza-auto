@@ -5656,7 +5656,8 @@ class _CarHomeState extends State<CarHome> {
             ),
           );
         },
-      );
+      ),
+    );
   }
 
   // --- Abastecimentos Extraídos dos Prints do Drivvo (Abril a Setembro/2026) ---
