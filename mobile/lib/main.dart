@@ -302,8 +302,8 @@ class FinanzaAutoApp extends StatelessWidget {
               borderRadius: const BorderRadius.all(Radius.circular(14)),
               borderSide: BorderSide(color: strokeColor),
             ),
-            focusedBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(14)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: const BorderRadius.all(Radius.circular(14)),
               borderSide: BorderSide(color: blue, width: 1.5),
             ),
           ),
@@ -1138,7 +1138,7 @@ class _CarHomeState extends State<CarHome> {
                     color: blue.withOpacity(0.20),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.add_rounded,
                     size: 22,
                     color: blue,
@@ -2599,7 +2599,7 @@ class _CarHomeState extends State<CarHome> {
               backgroundColor: blue.withOpacity(.12),
               child: Text(
                 '${entry.key + 1}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'DM Sans',
                   color: blue,
                   fontSize: 11,
