@@ -10,14 +10,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
 
-const String appVersion = '1.2.5';
-const int appBuildNumber = 17;
+const String appVersion = '1.2.6';
+const int appBuildNumber = 18;
 
 // Finanza Next & Multi-Theme design system tokens for Flutter
 enum AppThemeMode {
   oled,        // Dark OLED Finanza Next (Preto puro, acentos azul/âmbar)
-  porscheSlate,// Porsche GT Titanium (Cinza titânio espacial, acentos Racing Cyan/Ice)
-  amberLuxe,   // Obsidian & Amber Luxe (Preto fosco luxo, acentos ouro champanhe e âmbar)
   light,       // Clean Snow Minimal (Branco puro, slate moderno)
 }
 
@@ -27,159 +25,21 @@ final ValueNotifier<bool> _darkMode = ValueNotifier<bool>(true);
 AppThemeMode get currentAppTheme => _themeMode.value;
 bool get isDarkTheme => _themeMode.value != AppThemeMode.light;
 
-Color get ink {
-  switch (_themeMode.value) {
-    case AppThemeMode.porscheSlate:
-      return const Color(0xff0b0d13); // Deep Titanium
-    case AppThemeMode.amberLuxe:
-      return const Color(0xff090807); // Obsidian Luxe
-    case AppThemeMode.light:
-      return const Color(0xfff4f6f9);
-    case AppThemeMode.oled:
-    default:
-      return const Color(0xff000000);
-  }
-}
-
-Color get panel {
-  switch (_themeMode.value) {
-    case AppThemeMode.porscheSlate:
-      return const Color(0xff121620); // Slate Panel
-    case AppThemeMode.amberLuxe:
-      return const Color(0xff141210); // Warm Obsidian Panel
-    case AppThemeMode.light:
-      return const Color(0xffffffff);
-    case AppThemeMode.oled:
-    default:
-      return const Color(0xff141416);
-  }
-}
-
-Color get panelSoft {
-  switch (_themeMode.value) {
-    case AppThemeMode.porscheSlate:
-      return const Color(0xff1a202d);
-    case AppThemeMode.amberLuxe:
-      return const Color(0xff1d1a16);
-    case AppThemeMode.light:
-      return const Color(0xffeceff3);
-    case AppThemeMode.oled:
-    default:
-      return const Color(0xff1e1e22);
-  }
-}
-
-Color get panelRaised {
-  switch (_themeMode.value) {
-    case AppThemeMode.porscheSlate:
-      return const Color(0xff222a3b);
-    case AppThemeMode.amberLuxe:
-      return const Color(0xff26221c);
-    case AppThemeMode.light:
-      return const Color(0xffffffff);
-    case AppThemeMode.oled:
-    default:
-      return const Color(0xff25252b);
-  }
-}
-
-Color get strokeColor {
-  switch (_themeMode.value) {
-    case AppThemeMode.porscheSlate:
-      return const Color(0xff2c364b);
-    case AppThemeMode.amberLuxe:
-      return const Color(0xff332b20);
-    case AppThemeMode.light:
-      return const Color(0x14000000);
-    case AppThemeMode.oled:
-    default:
-      return const Color(0xff222226);
-  }
-}
-
-Color get blue {
-  switch (_themeMode.value) {
-    case AppThemeMode.porscheSlate:
-      return const Color(0xff38bdf8); // Racing Ice Cyan
-    case AppThemeMode.amberLuxe:
-      return const Color(0xffd4af37); // Champagne Gold
-    case AppThemeMode.light:
-    case AppThemeMode.oled:
-    default:
-      return const Color(0xff0a84ff); // Apple Blue
-  }
-}
-
-Color get amber {
-  switch (_themeMode.value) {
-    case AppThemeMode.porscheSlate:
-      return const Color(0xfff59e0b); // High-viz Amber
-    case AppThemeMode.amberLuxe:
-      return const Color(0xfff59e0b); // Radiant Amber
-    case AppThemeMode.light:
-    case AppThemeMode.oled:
-    default:
-      return const Color(0xffff9f0a);
-  }
-}
-
-Color get mint {
-  switch (_themeMode.value) {
-    case AppThemeMode.porscheSlate:
-      return const Color(0xff10b981); // Crisp Emerald
-    case AppThemeMode.amberLuxe:
-      return const Color(0xff22c55e); // Royal Green
-    case AppThemeMode.light:
-    case AppThemeMode.oled:
-    default:
-      return const Color(0xff34c759);
-  }
-}
+Color get ink => isDarkTheme ? const Color(0xff000000) : const Color(0xfff4f6f9);
+Color get panel => isDarkTheme ? const Color(0xff141416) : const Color(0xffffffff);
+Color get panelSoft => isDarkTheme ? const Color(0xff1e1e22) : const Color(0xffeceff3);
+Color get panelRaised => isDarkTheme ? const Color(0xff25252b) : const Color(0xffffffff);
+Color get strokeColor => isDarkTheme ? const Color(0xff222226) : const Color(0x14000000);
+Color get blue => const Color(0xff0a84ff); // Apple Blue
+Color get amber => isDarkTheme ? const Color(0xffff9f0a) : const Color(0xffd97706);
+Color get mint => isDarkTheme ? const Color(0xff34c759) : const Color(0xff16a34a);
 
 const coral = Color(0xffff453a);
 const purple = Color(0xffaf52de);
 
-Color get textMain {
-  switch (_themeMode.value) {
-    case AppThemeMode.porscheSlate:
-      return const Color(0xfff1f5f9);
-    case AppThemeMode.amberLuxe:
-      return const Color(0xfffef3c7); // Warm Ivory
-    case AppThemeMode.light:
-      return const Color(0xff0f172a);
-    case AppThemeMode.oled:
-    default:
-      return const Color(0xffffffff);
-  }
-}
-
-Color get textMuted {
-  switch (_themeMode.value) {
-    case AppThemeMode.porscheSlate:
-      return const Color(0xff94a3b8);
-    case AppThemeMode.amberLuxe:
-      return const Color(0xffbfa07d); // Sand Gold Muted
-    case AppThemeMode.light:
-      return const Color(0xff64748b);
-    case AppThemeMode.oled:
-    default:
-      return const Color(0xff8e8e93);
-  }
-}
-
-Color get textSoft {
-  switch (_themeMode.value) {
-    case AppThemeMode.porscheSlate:
-      return const Color(0xff64748b);
-    case AppThemeMode.amberLuxe:
-      return const Color(0xff8c755c);
-    case AppThemeMode.light:
-      return const Color(0xff94a3b8);
-    case AppThemeMode.oled:
-    default:
-      return const Color(0xff66666a);
-  }
-}
+Color get textMain => isDarkTheme ? const Color(0xffffffff) : const Color(0xff0f172a);
+Color get textMuted => isDarkTheme ? const Color(0xff8e8e93) : const Color(0xff64748b);
+Color get textSoft => isDarkTheme ? const Color(0xff66666a) : const Color(0xff94a3b8);
 
 class GlassPanel extends StatelessWidget {
   const GlassPanel({
@@ -574,9 +434,12 @@ class _CarHomeState extends State<CarHome> {
         }
       }
       final saved = prefs.getString('finanza_auto_flutter_state');
-      final bundledData =
-          _tryDecodeMap(await rootBundle.loadString('assets/finanza-auto-backup.json')) ??
-              <String, dynamic>{};
+      Map<String, dynamic>? bundledData;
+      try {
+        bundledData = _tryDecodeMap(await rootBundle.loadString('assets/finanza-auto-backup.json'));
+      } catch (_) {}
+      bundledData ??= <String, dynamic>{};
+
       final savedData = _tryDecodeMap(saved);
       final bundledCar = _carMap(bundledData);
       final savedCar = savedData == null ? <String, dynamic>{} : _carMap(savedData);
@@ -607,19 +470,27 @@ class _CarHomeState extends State<CarHome> {
       final selected = loadedVehicles.any((vehicle) => vehicle.id == savedActive)
           ? savedActive
           : loadedVehicles.first.id;
-      final dismissed = prefs.getBool('finanza_auto_dismissed_pending_fuel') ?? false;
       final rawPending = prefs.getString('finanza_auto_pending_fuel');
       final loadedPending = <CarEvent>[];
       if (rawPending != null) {
-        final decodedPending = jsonDecode(rawPending);
-        if (decodedPending is List) {
-          for (final item in decodedPending) {
-            if (item is Map) loadedPending.add(CarEvent.fromMap(item.cast<String, dynamic>()));
+        try {
+          final decodedPending = jsonDecode(rawPending);
+          if (decodedPending is List) {
+            for (final item in decodedPending) {
+              if (item is Map) loadedPending.add(CarEvent.fromMap(item.cast<String, dynamic>()));
+            }
           }
+        } catch (_) {}
+      }
+
+      // Se a lista de pendentes estiver vazia, verifica se faltam os 15 abastecimentos extraídos dos prints
+      final defaultPrintItems = _defaultExtractedPrintEvents(selected);
+      for (final printItem in defaultPrintItems) {
+        final alreadyInEvents = loadedEvents.any((e) => e.odometer == printItem.odometer && e.date == printItem.date);
+        final alreadyInPending = loadedPending.any((p) => p.odometer == printItem.odometer && p.date == printItem.date);
+        if (!alreadyInEvents && !alreadyInPending) {
+          loadedPending.add(printItem);
         }
-      } else if (!dismissed) {
-        // Se nunca carregou e não descartou, inicializa com os abastecimentos reais extraídos dos prints (Abril a Setembro)
-        loadedPending.addAll(_defaultExtractedPrintEvents());
       }
 
       // Remove dos pendentes qualquer item cujo odômetro e data já existam no histórico de eventos
@@ -633,7 +504,7 @@ class _CarHomeState extends State<CarHome> {
         vehicles = loadedVehicles;
         events = loadedEvents;
         pendingFuelImports = loadedPending;
-        dismissedPendingFuel = dismissed;
+        dismissedPendingFuel = false;
         activeVehicle = selected;
         loading = false;
         loadError = '';
@@ -642,14 +513,40 @@ class _CarHomeState extends State<CarHome> {
       debugPrint('Finanza Auto load error: $error');
       debugPrintStack(stackTrace: stack);
       if (!mounted) return;
-      setState(() {
-        vehicles = [CarVehicle(id: 'vehicle-1', name: 'Meu carro')];
-        activeVehicle = 'vehicle-1';
-        events = [];
-        pendingFuelImports = [];
-        loading = false;
-        loadError = 'Não foi possível carregar o backup local.';
-      });
+      // Fallback seguro usando bundled se disponível sem travar a interface
+      try {
+        final fallbackMap = _tryDecodeMap(await rootBundle.loadString('assets/finanza-auto-backup.json')) ?? {};
+        final car = _carMap(fallbackMap);
+        final rawVehicles = _listValue(car, ['vehicles', 'vehicleList', 'items']);
+        final rawEvents = _listValue(car, ['events', 'items', 'records']);
+        final fVehicles = <CarVehicle>[];
+        final fEvents = <CarEvent>[];
+        for (final item in rawVehicles) {
+          if (item is Map) fVehicles.add(CarVehicle.fromMap(item.cast<String, dynamic>()));
+        }
+        for (final item in rawEvents) {
+          if (item is Map) fEvents.add(CarEvent.fromMap(item.cast<String, dynamic>()));
+        }
+        if (fVehicles.isEmpty) fVehicles.add(CarVehicle(id: 'vehicle-1', name: 'Meu carro'));
+        final fPending = _defaultExtractedPrintEvents(fVehicles.first.id);
+        setState(() {
+          vehicles = fVehicles;
+          activeVehicle = fVehicles.first.id;
+          events = fEvents;
+          pendingFuelImports = fPending;
+          loading = false;
+          loadError = '';
+        });
+      } catch (_) {
+        setState(() {
+          vehicles = [CarVehicle(id: 'vehicle-1', name: 'Meu carro')];
+          activeVehicle = 'vehicle-1';
+          events = [];
+          pendingFuelImports = _defaultExtractedPrintEvents('vehicle-1');
+          loading = false;
+          loadError = '';
+        });
+      }
     }
   }
 
@@ -2217,6 +2114,15 @@ class _CarHomeState extends State<CarHome> {
                   _flexCalculatorSheet();
                 },
               ),
+              _actionTile(
+                icon: Icons.rule_folder_rounded,
+                title: 'Revisar abastecimentos pendentes',
+                subtitle: 'Aprovar, editar ou descartar dados importados (Abril a Setembro)',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _pendingFuelReviewModal();
+                },
+              ),
             ],
           ),
         ),
@@ -3744,27 +3650,14 @@ class _CarHomeState extends State<CarHome> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('finanza_auto_theme_mode', mode.name);
     await prefs.setBool('finanza_auto_dark_theme', isDarkTheme);
-    String label;
-    switch (mode) {
-      case AppThemeMode.porscheSlate:
-        label = 'Tema Porsche GT Slate ativado.';
-        break;
-      case AppThemeMode.amberLuxe:
-        label = 'Tema Obsidian & Amber Luxe ativado.';
-        break;
-      case AppThemeMode.light:
-        label = 'Tema Clean Snow Minimal ativado.';
-        break;
-      case AppThemeMode.oled:
-      default:
-        label = 'Tema Dark OLED Finanza Next ativado.';
-        break;
-    }
+    final label = mode == AppThemeMode.light
+        ? 'Tema Clean Snow Minimal ativado.'
+        : 'Tema Dark OLED Finanza Next ativado.';
     if (mounted) _snack(label);
   }
 
   Future<void> _toggleTheme() async {
-    final nextMode = AppThemeMode.values[(_themeMode.value.index + 1) % AppThemeMode.values.length];
+    final nextMode = _themeMode.value == AppThemeMode.oled ? AppThemeMode.light : AppThemeMode.oled;
     await _setThemeMode(nextMode);
   }
 
@@ -3777,22 +3670,6 @@ class _CarHomeState extends State<CarHome> {
         color: const Color(0xff0a84ff),
         bg: const Color(0xff000000),
         icon: Icons.nightlight_round,
-      ),
-      (
-        mode: AppThemeMode.porscheSlate,
-        title: 'Porsche GT',
-        subtitle: 'Titânio & Ice Cyan',
-        color: const Color(0xff38bdf8),
-        bg: const Color(0xff121620),
-        icon: Icons.speed_rounded,
-      ),
-      (
-        mode: AppThemeMode.amberLuxe,
-        title: 'Amber Luxe',
-        subtitle: 'Obsidian & Ouro',
-        color: const Color(0xffd4af37),
-        bg: const Color(0xff141210),
-        icon: Icons.auto_awesome_rounded,
       ),
       (
         mode: AppThemeMode.light,
@@ -5661,11 +5538,14 @@ class _CarHomeState extends State<CarHome> {
   }
 
   // --- Abastecimentos Extraídos dos Prints do Drivvo (Abril a Setembro/2026) ---
-  List<CarEvent> _defaultExtractedPrintEvents() {
+  List<CarEvent> _defaultExtractedPrintEvents([String? vehicleId]) {
+    final vId = (vehicleId != null && vehicleId.isNotEmpty)
+        ? vehicleId
+        : (vehicles.isNotEmpty ? vehicles.first.id : 'vehicle-1');
     return [
       CarEvent(
         id: 'imported-fuel-2026-09-13',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-09-13',
         amount: 128.00,
@@ -5679,7 +5559,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-08-16',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-08-16',
         amount: 154.15,
@@ -5693,7 +5573,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-08-01',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-08-01',
         amount: 117.20,
@@ -5707,7 +5587,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-07-20',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-07-20',
         amount: 95.00,
@@ -5721,7 +5601,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-07-11',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-07-11',
         amount: 154.00,
@@ -5735,7 +5615,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-06-28',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-06-28',
         amount: 113.00,
@@ -5749,7 +5629,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-06-24',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-06-24',
         amount: 141.36,
@@ -5763,7 +5643,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-06-20',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-06-20',
         amount: 54.00,
@@ -5777,7 +5657,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-06-17',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-06-17',
         amount: 144.02,
@@ -5791,7 +5671,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-06-13',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-06-13',
         amount: 110.00,
@@ -5805,7 +5685,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-06-08',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-06-08',
         amount: 160.00,
@@ -5819,7 +5699,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-05-30',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-05-30',
         amount: 183.50,
@@ -5833,7 +5713,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-05-18',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-05-18',
         amount: 130.00,
@@ -5847,7 +5727,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-04-25',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-04-25',
         amount: 204.00,
@@ -5861,7 +5741,7 @@ class _CarHomeState extends State<CarHome> {
       ),
       CarEvent(
         id: 'imported-fuel-2026-04-17',
-        vehicleId: currentVehicle.id,
+        vehicleId: vId,
         type: 'fuel',
         date: '2026-04-17',
         amount: 210.00,
@@ -6543,17 +6423,27 @@ class _CarHomeState extends State<CarHome> {
                                   }
 
                                   if (newVehicles.isNotEmpty || newEvents.isNotEmpty) {
+                                    final activeId = (newVehicles.isNotEmpty) ? newVehicles.first.id : activeVehicle;
+                                    final printItems = _defaultExtractedPrintEvents(activeId);
+                                    final newPending = <CarEvent>[];
+                                    for (final p in printItems) {
+                                      if (!newEvents.any((e) => e.odometer == p.odometer && e.date == p.date)) {
+                                        newPending.add(p);
+                                      }
+                                    }
                                     setState(() {
                                       if (newVehicles.isNotEmpty) vehicles = newVehicles;
                                       if (newEvents.isNotEmpty) events = newEvents;
                                       if (vehicles.isNotEmpty && (activeVehicle.isEmpty || !vehicles.any((v) => v.id == activeVehicle))) {
                                         activeVehicle = vehicles.first.id;
                                       }
+                                      pendingFuelImports = newPending;
+                                      dismissedPendingFuel = false;
                                     });
                                     await _save();
                                     setSheetState(() {
                                       syncing = false;
-                                      status = 'Sucesso! ${newEvents.length} registros sincronizados da Nuvem.';
+                                      status = 'Sucesso! ${newEvents.length} registros restaurados. ${newPending.length} abastecimentos pendentes de revisão.';
                                     });
                                     _snack('Dados atualizados da nuvem com sucesso!');
                                   } else {
