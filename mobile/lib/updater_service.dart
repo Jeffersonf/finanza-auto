@@ -135,20 +135,37 @@ class UpdaterService {
 
   static Future<String?> downloadApk(
     String downloadUrl, {
+    String version = '',
+    int buildNumber = 0,
     required void Function(double progress) onProgress,
   }) async {
     try {
       final client = HttpClient();
-      client.connectionTimeout = const Duration(seconds: 15);
-      final request = await client.getUrl(Uri.parse(downloadUrl));
-      request.headers.set('User-Agent', 'FinanzaAutoApp');
+      client.connectionTimeout = const Duration(seconds: 20);
+      
+      // Cache-buster na URL caso não seja redirect direto
+      final uri = Uri.parse(downloadUrl);
+      final cacheBusterUri = uri.replace(queryParameters: {
+        ...uri.queryParameters,
+        't': DateTime.now().millisecondsSinceEpoch.toString(),
+      });
+
+      final request = await client.getUrl(cacheBusterUri);
+      request.headers.set('User-Agent', 'FinanzaAutoApp/${version.isNotEmpty ? version : "latest"}');
+      request.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      request.headers.set('Pragma', 'no-cache');
       final response = await request.close();
 
-      // Trata possiveis redirecionamentos do GitHub Releases (302)
+      // Trata possíveis redirecionamentos do GitHub Releases (302)
       if (response.isRedirect) {
         final redirectUri = response.headers.value(HttpHeaders.locationHeader);
         if (redirectUri != null) {
-          return downloadApk(redirectUri, onProgress: onProgress);
+          return downloadApk(
+            redirectUri,
+            version: version,
+            buildNumber: buildNumber,
+            onProgress: onProgress,
+          );
         }
       }
 
@@ -158,10 +175,21 @@ class UpdaterService {
 
       final contentLength = response.contentLength;
       final tempDir = await getTemporaryDirectory();
-      final targetFile = File('${tempDir.path}/finanza-auto-update.apk');
-      if (await targetFile.exists()) {
-        await targetFile.delete();
-      }
+
+      // Limpa APKs antigos na pasta temporária para não ocupar espaço nem reutilizar cache
+      try {
+        final list = tempDir.listSync();
+        for (final item in list) {
+          if (item is File && item.path.endsWith('.apk')) {
+            await item.delete();
+          }
+        }
+      } catch (_) {}
+
+      // Nome do arquivo 100% exclusivo com versão, build e timestamp
+      final stamp = DateTime.now().millisecondsSinceEpoch;
+      final cleanVer = version.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+      final targetFile = File('${tempDir.path}/finanza-auto-v${cleanVer}_b${buildNumber}_$stamp.apk');
 
       final sink = targetFile.openWrite();
       var received = 0;

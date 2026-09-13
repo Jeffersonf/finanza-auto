@@ -82,7 +82,17 @@ class MainActivity: FlutterActivity() {
                         val intent = Intent(Intent.ACTION_VIEW).apply {
                             setDataAndType(contentUri, "application/vnd.android.package-archive")
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        val resolvedActivities = packageManager.queryIntentActivities(intent, 0)
+                        for (resolvedIntentInfo in resolvedActivities) {
+                            val targetPackageName = resolvedIntentInfo.activityInfo.packageName
+                            grantUriPermission(
+                                targetPackageName,
+                                contentUri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            )
                         }
                         startActivity(intent)
                         result.success(true)

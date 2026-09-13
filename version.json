@@ -1,8 +1,8 @@
 {
-  "version": "1.2.3",
-  "buildNumber": 15,
-  "releaseTag": "v1.2.3",
+  "version": "1.2.4",
+  "buildNumber": 16,
+  "releaseTag": "v1.2.4",
   "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/latest/download/app-release.apk",
-  "releaseNotes": "Abastecimento Rápido estilo Finext: cálculo automático e reativo entre Litros, Preço por Litro e Valor Total, chip seletor de combustível, odômetro e completando tanque.",
+  "releaseNotes": "Novo modal Finext com cálculo automático de litros/valor e correção do instalador Android (cache buster e arquivo versionado).",
   "releasedAt": "2026-09-13"
 }

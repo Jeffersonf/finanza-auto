@@ -10,8 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
 
-const String appVersion = '1.2.3';
-const int appBuildNumber = 15;
+const String appVersion = '1.2.4';
+const int appBuildNumber = 16;
 
 // Finanza Next & Multi-Theme design system tokens for Flutter
 enum AppThemeMode {
@@ -3328,6 +3328,8 @@ class _CarHomeState extends State<CarHome> {
                                 });
                                 final filePath = await UpdaterService.downloadApk(
                                   info.downloadUrl,
+                                  version: info.version,
+                                  buildNumber: info.buildNumber,
                                   onProgress: (p) {
                                     setSheetState(() => progress = p);
                                   },
