@@ -1,8 +1,8 @@
 {
-  "version": "1.1.9",
-  "buildNumber": 11,
-  "releaseTag": "v1.1.9",
+  "version": "1.2.0",
+  "buildNumber": 12,
+  "releaseTag": "v1.2.0",
   "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/latest/download/app-release.apk",
-  "releaseNotes": "Novo atalho rápido de adição estilo Finanza Next, navbar Apple Liquid Glass, transição instantânea e fluida entre abas, e limpeza de setas indicativas.",
-  "releasedAt": "2026-09-12"
+  "releaseNotes": "Cálculo reativo bidirecional no lançamento rápido (Preço/L x Litros = Total e Total / Preço/L = Litros), switch 'Está completando o tanque?' e campo Posto de Combustível idêntico ao Drivvo.",
+  "releasedAt": "2026-09-13"
 }

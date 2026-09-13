@@ -10,8 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
 
-const String appVersion = '1.1.9';
-const int appBuildNumber = 11;
+const String appVersion = '1.2.0';
+const int appBuildNumber = 12;
 
 // Finanza Next design system tokens for Flutter
 final ValueNotifier<bool> _darkMode = ValueNotifier<bool>(true);
@@ -4635,6 +4635,8 @@ class _CarHomeState extends State<CarHome> {
     final dateCtrl = TextEditingController(text: _isoToday());
     String selectedFuel = 'Etanol';
     String selectedCategory = 'Maintenance';
+    bool isFullTank = true;
+    bool isUpdatingFields = false;
 
     final categories = <String, String>{
       'Maintenance': 'Manutenção',
@@ -4655,9 +4657,40 @@ class _CarHomeState extends State<CarHome> {
       ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (ctx, setSheetState) {
+          void onLitersOrPriceChanged() {
+            if (isUpdatingFields) return;
+            final lit = _number(litersCtrl.text);
+            final prc = _number(priceCtrl.text);
+            if (lit > 0 && prc > 0) {
+              isUpdatingFields = true;
+              final tot = (lit * prc).toStringAsFixed(2);
+              amountCtrl.text = tot;
+              isUpdatingFields = false;
+            }
+            setSheetState(() {});
+          }
+
+          void onAmountChanged() {
+            if (isUpdatingFields) return;
+            final amt = _number(amountCtrl.text);
+            final prc = _number(priceCtrl.text);
+            final lit = _number(litersCtrl.text);
+            if (amt > 0 && prc > 0) {
+              isUpdatingFields = true;
+              litersCtrl.text = (amt / prc).toStringAsFixed(3);
+              isUpdatingFields = false;
+            } else if (amt > 0 && lit > 0) {
+              isUpdatingFields = true;
+              priceCtrl.text = (amt / lit).toStringAsFixed(2);
+              isUpdatingFields = false;
+            }
+            setSheetState(() {});
+          }
+
           final lit = _number(litersCtrl.text);
           final prc = _number(priceCtrl.text);
-          final calculatedTotal = lit > 0 && prc > 0 ? lit * prc : 0.0;
+          final amt = _number(amountCtrl.text);
+          final calculatedTotal = amt > 0 ? amt : (lit > 0 && prc > 0 ? lit * prc : 0.0);
 
           return SafeArea(
             child: Padding(
@@ -4802,66 +4835,8 @@ class _CarHomeState extends State<CarHome> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Valor e Km
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: TextField(
-                            controller: amountCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            autofocus: true,
-                            decoration: InputDecoration(
-                              labelText: 'Valor Pago (R\$)',
-                              prefixText: 'R\$ ',
-                              hintText: calculatedTotal > 0 ? calculatedTotal.toStringAsFixed(2) : '0,00',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          flex: 2,
-                          child: TextField(
-                            controller: odoCtrl,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Km atual',
-                              suffixText: 'km',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                     if (isFuel) ...[
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: litersCtrl,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              onChanged: (_) => setSheetState(() {}),
-                              decoration: const InputDecoration(
-                                labelText: 'Litros',
-                                suffixText: 'L',
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: priceCtrl,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              onChanged: (_) => setSheetState(() {}),
-                              decoration: const InputDecoration(
-                                labelText: 'Preço/L',
-                                prefixText: 'R\$ ',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
+                      // Combustível selector
                       DropdownButtonFormField<String>(
                         value: selectedFuel,
                         decoration: const InputDecoration(
@@ -4874,7 +4849,135 @@ class _CarHomeState extends State<CarHome> {
                             .toList(),
                         onChanged: (val) => setSheetState(() => selectedFuel = val ?? 'Etanol'),
                       ),
+                      const SizedBox(height: 12),
+                      // Preço/L, Litros e Valor Pago em linha inteligente
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: priceCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              onChanged: (_) => onLitersOrPriceChanged(),
+                              decoration: const InputDecoration(
+                                labelText: 'Preço / L',
+                                prefixText: 'R\$ ',
+                                hintText: '0,00',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: litersCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              onChanged: (_) => onLitersOrPriceChanged(),
+                              decoration: const InputDecoration(
+                                labelText: 'Litros',
+                                suffixText: 'L',
+                                hintText: '0,000',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: amountCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              onChanged: (_) => onAmountChanged(),
+                              decoration: InputDecoration(
+                                labelText: 'Valor total',
+                                prefixText: 'R\$ ',
+                                hintText: calculatedTotal > 0 ? calculatedTotal.toStringAsFixed(2) : '0,00',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      // Switch de Tanque Cheio (Drivvo style)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isDarkTheme ? const Color(0xFF1B1B20) : const Color(0xFFF3F4F6),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isDarkTheme ? const Color(0xFF2B2B33) : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.ev_station_rounded,
+                                  color: isFullTank ? mint : textMuted,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Está completando o tanque?',
+                                  style: TextStyle(
+                                    fontFamily: 'DM Sans',
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: textMain,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Switch(
+                              value: isFullTank,
+                              activeColor: amber,
+                              onChanged: (val) => setSheetState(() => isFullTank = val),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Odômetro
+                      TextField(
+                        controller: odoCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Odômetro atual',
+                          suffixText: 'km',
+                          helperText: currentVehicle.odometer > 0
+                              ? 'Último odômetro: ${currentVehicle.odometer.round()} km'
+                              : null,
+                        ),
+                      ),
                     ] else ...[
+                      // Seção de despesas convencionais
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: TextField(
+                              controller: amountCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              autofocus: true,
+                              decoration: InputDecoration(
+                                labelText: 'Valor Pago (R\$)',
+                                prefixText: 'R\$ ',
+                                hintText: calculatedTotal > 0 ? calculatedTotal.toStringAsFixed(2) : '0,00',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            flex: 2,
+                            child: TextField(
+                              controller: odoCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Km atual',
+                                suffixText: 'km',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 14),
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
@@ -4904,8 +5007,9 @@ class _CarHomeState extends State<CarHome> {
                     TextField(
                       controller: descCtrl,
                       decoration: InputDecoration(
-                        labelText: isFuel ? 'Posto / Observação' : 'Descrição da despesa',
-                        hintText: isFuel ? 'Ex.: Posto Shell' : 'Ex.: Troca de óleo e filtro',
+                        labelText: isFuel ? 'Posto de combustível' : 'Descrição da despesa',
+                        hintText: isFuel ? 'Ex.: Zanforlim, Posto Shell' : 'Ex.: Troca de óleo e filtro',
+                        prefixIcon: Icon(isFuel ? Icons.place_rounded : Icons.edit_note_rounded, size: 18),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -4963,6 +5067,12 @@ class _CarHomeState extends State<CarHome> {
                                 return;
                               }
                               final km = _number(odoCtrl.text);
+                              final postNote = descCtrl.text.trim();
+                              final fullTankTag = isFuel && isFullTank ? 'Tanque cheio' : '';
+                              final combinedNote = postNote.isNotEmpty
+                                  ? (fullTankTag.isNotEmpty ? '$postNote • $fullTankTag' : postNote)
+                                  : fullTankTag;
+
                               final event = CarEvent(
                                 id: 'quick-${DateTime.now().microsecondsSinceEpoch}',
                                 vehicleId: currentVehicle.id,
@@ -4975,7 +5085,7 @@ class _CarHomeState extends State<CarHome> {
                                 fuelType: isFuel ? selectedFuel : '',
                                 title: isFuel ? 'Abastecimento ($selectedFuel)' : (descCtrl.text.trim().isEmpty ? categories[selectedCategory] ?? 'Despesa' : descCtrl.text.trim()),
                                 category: isFuel ? 'Combustivel' : selectedCategory,
-                                note: descCtrl.text.trim(),
+                                note: combinedNote,
                               );
 
                               setState(() {
