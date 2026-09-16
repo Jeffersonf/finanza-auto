@@ -236,6 +236,24 @@ class UpdaterService {
     }
   }
 
+  static Future<void> downloadAndInstallApk({
+    required String downloadUrl,
+    String version = '',
+    int buildNumber = 0,
+  }) async {
+    final path = await downloadApk(
+      downloadUrl,
+      version: version,
+      buildNumber: buildNumber,
+      onProgress: (_) {},
+    );
+    if (path != null) {
+      await installApk(path);
+    } else {
+      await openInBrowser(downloadUrl);
+    }
+  }
+
   static Future<void> openInBrowser(String url) async {
     try {
       final uri = Uri.parse(url);
