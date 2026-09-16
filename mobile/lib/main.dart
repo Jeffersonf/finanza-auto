@@ -1236,7 +1236,7 @@ class TimelineFeedTab extends StatelessWidget {
                       Row(
                         children: [
                           Text(
-                            'R$ ${NumberFormat('#,##0.00', 'pt_BR').format(monthAmount)}',
+                            'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(monthAmount)}',
                             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: DrivvoColors.textDark),
                           ),
                           const Text('  •  ', style: TextStyle(color: DrivvoColors.textLight)),
@@ -1339,7 +1339,7 @@ class TimelineFeedTab extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    'R$ ${NumberFormat('#,##0.00', 'pt_BR').format(ev.amount)}',
+                                    'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(ev.amount)}',
                                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: DrivvoColors.textDark),
                                   ),
                                   const SizedBox(height: 3),
@@ -1723,7 +1723,7 @@ class _FuelingFormScreenState extends State<FuelingFormScreen> {
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Preço / L',
-                            prefixText: 'R$ ',
+                            prefixText: 'R\$ ',
                             border: OutlineInputBorder(),
                           ),
                         ),
@@ -1735,7 +1735,7 @@ class _FuelingFormScreenState extends State<FuelingFormScreen> {
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Valor total',
-                            prefixText: 'R$ ',
+                            prefixText: 'R\$ ',
                             border: OutlineInputBorder(),
                           ),
                         ),
@@ -2012,8 +2012,8 @@ class FuelingDetailsScreen extends StatelessWidget {
                 // 3 Top Stats Columns
                 Row(
                   children: [
-                    _buildStatColumn('Preço / L', 'R$ ${event.pricePerLiter.toStringAsFixed(2)}'),
-                    _buildStatColumn('Valor total', 'R$ ${NumberFormat('#,##0.00', 'pt_BR').format(event.amount)}'),
+                    _buildStatColumn('Preço / L', 'R\$ ${event.pricePerLiter.toStringAsFixed(2)}'),
+                    _buildStatColumn('Valor total', 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(event.amount)}'),
                     _buildStatColumn('Volume', '${event.liters.toStringAsFixed(3)} L'),
                   ],
                 ),
@@ -2023,7 +2023,7 @@ class FuelingDetailsScreen extends StatelessWidget {
                   children: [
                     _buildStatColumn('Completo', event.isFullTank ? 'Sim' : 'Não'),
                     _buildStatColumn('Média', stats.kmL > 0 ? '${stats.kmL.toStringAsFixed(3)} km/L' : '-'),
-                    _buildStatColumn('Custo/Km', stats.costPerKm > 0 ? 'R$ ${stats.costPerKm.toStringAsFixed(2)}' : '-'),
+                    _buildStatColumn('Custo/Km', stats.costPerKm > 0 ? 'R\$ ${stats.costPerKm.toStringAsFixed(2)}' : '-'),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -2215,7 +2215,7 @@ class _ServiceExpenseFormScreenState extends State<ServiceExpenseFormScreen> {
                 children: [
                   TextField(controller: _odometerController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Odômetro (km)', border: OutlineInputBorder())),
                   const SizedBox(height: 12),
-                  TextField(controller: _amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Valor Total', prefixText: 'R$ ', border: OutlineInputBorder())),
+                  TextField(controller: _amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Valor Total', prefixText: 'R\$ ', border: OutlineInputBorder())),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: _selectedCategory,
@@ -2441,7 +2441,7 @@ class _ReportsTabState extends State<ReportsTab> {
         // KPI Metric Cards Grid
         Row(
           children: [
-            _buildKpiCard('Gasto Total', 'R$ ${NumberFormat('#,##0.00', 'pt_BR').format(totalSpent)}', Icons.account_balance_wallet, DrivvoColors.primaryTeal),
+            _buildKpiCard('Gasto Total', 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(totalSpent)}', Icons.account_balance_wallet, DrivvoColors.primaryTeal),
             const SizedBox(width: 12),
             _buildKpiCard('Combustível', '${NumberFormat('#,##0.0', 'pt_BR').format(totalLiters)} L', Icons.local_gas_station, DrivvoColors.fuelOrange),
           ],
@@ -2457,9 +2457,9 @@ class _ReportsTabState extends State<ReportsTab> {
         const SizedBox(height: 12),
         Row(
           children: [
-            _buildKpiCard('Custo / km', avgCostKm > 0 ? 'R$ ${avgCostKm.toStringAsFixed(2)}' : '-', Icons.trending_up, Colors.deepOrange),
+            _buildKpiCard('Custo / km', avgCostKm > 0 ? 'R\$ ${avgCostKm.toStringAsFixed(2)}' : '-', Icons.trending_up, Colors.deepOrange),
             const SizedBox(width: 12),
-            _buildKpiCard('Preço Médio / L', avgPriceLiter > 0 ? 'R$ ${avgPriceLiter.toStringAsFixed(2)}' : '-', Icons.attach_money, Colors.teal),
+            _buildKpiCard('Preço Médio / L', avgPriceLiter > 0 ? 'R\$ ${avgPriceLiter.toStringAsFixed(2)}' : '-', Icons.attach_money, Colors.teal),
           ],
         ),
         const SizedBox(height: 20),
@@ -2493,14 +2493,14 @@ class _ReportsTabState extends State<ReportsTab> {
                     children: [
                       Container(width: 10, height: 10, decoration: const BoxDecoration(color: DrivvoColors.fuelOrange, shape: BoxShape.circle)),
                       const SizedBox(width: 6),
-                      Text('Combustível: R$ ${NumberFormat('#,##0.00', 'pt_BR').format(totalFuelSpent)}', style: const TextStyle(fontSize: 12)),
+                      Text('Combustível: R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(totalFuelSpent)}', style: const TextStyle(fontSize: 12)),
                     ],
                   ),
                   Row(
                     children: [
                       Container(width: 10, height: 10, decoration: const BoxDecoration(color: DrivvoColors.servicePurple, shape: BoxShape.circle)),
                       const SizedBox(width: 6),
-                      Text('Outros: R$ ${NumberFormat('#,##0.00', 'pt_BR').format(totalOtherSpent)}', style: const TextStyle(fontSize: 12)),
+                      Text('Outros: R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(totalOtherSpent)}', style: const TextStyle(fontSize: 12)),
                     ],
                   ),
                 ],
@@ -2867,7 +2867,7 @@ class MoreTab extends StatelessWidget {
                       child: TextField(
                         controller: ethanolCtrl,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(labelText: 'Preço Etanol (R$)', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(labelText: 'Preço Etanol (R\$)', border: OutlineInputBorder()),
                         onChanged: (_) => setModalState(() {}),
                       ),
                     ),
@@ -2876,7 +2876,7 @@ class MoreTab extends StatelessWidget {
                       child: TextField(
                         controller: gasCtrl,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(labelText: 'Preço Gasolina (R$)', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(labelText: 'Preço Gasolina (R\$)', border: OutlineInputBorder()),
                         onChanged: (_) => setModalState(() {}),
                       ),
                     ),
