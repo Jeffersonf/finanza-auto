@@ -1,8 +1,8 @@
 {
-  "version": "1.2.6",
-  "buildNumber": 18,
-  "releaseTag": "v1.2.6",
+  "version": "2.0.0",
+  "buildNumber": 19,
+  "releaseTag": "v2.0.0",
   "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/latest/download/app-release.apk",
-  "releaseNotes": "Correção de carregamento de backup, recuperação dinâmica dos 15 abastecimentos pendentes (Abril a Setembro) e retorno aos temas clássicos OLED Next e Clean Snow.",
-  "releasedAt": "2026-09-13"
+  "releaseNotes": "Finanza Auto 2.0: Redesign completo e paridade 100% com o Drivvo! Linha do tempo contínua, histórico com 147 abastecimentos reais, consumo km/L tanque a tanque, gráficos e lembretes de revisão.",
+  "releasedAt": "2026-09-16"
 }

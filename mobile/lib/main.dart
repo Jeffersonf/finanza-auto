@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' as ui;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,2809 +11,2619 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
 
-const String appVersion = '1.2.6';
-const int appBuildNumber = 18;
+// Version and API Constants
+const String appVersion = '2.0.0';
+const int appBuildNumber = 19;
+const String cloudflareSyncUrl = 'https://finanza-auto.jeffef.workers.dev/api/sync';
 
-// Finanza Next & Multi-Theme design system tokens for Flutter
-enum AppThemeMode {
-  oled,        // Dark OLED Finanza Next (Preto puro, acentos azul/âmbar)
-  light,       // Clean Snow Minimal (Branco puro, slate moderno)
+/// Drivvo Color Palette & Design Tokens
+class DrivvoColors {
+  static const Color primaryTeal = Color(0xFF00838F);
+  static const Color darkTeal = Color(0xFF006064);
+  static const Color lightTeal = Color(0xFFE0F2F1);
+  static const Color accentTeal = Color(0xFF00ACC1);
+
+  static const Color fuelOrange = Color(0xFFFF9800);
+  static const Color fuelOrangeDark = Color(0xFFF57C00);
+  static const Color fuelOrangeLight = Color(0xFFFFF3E0);
+
+  static const Color servicePurple = Color(0xFF7E57C2);
+  static const Color servicePurpleLight = Color(0xFFEDE7F6);
+
+  static const Color expenseBlue = Color(0xFF1E88E5);
+  static const Color expenseBlueLight = Color(0xFFE3F2FD);
+
+  static const Color reminderAlert = Color(0xFFFF5722);
+  static const Color reminderAlertBg = Color(0xFFFFF8E1);
+
+  static const Color backgroundLight = Color(0xFFF4F6F9);
+  static const Color cardLight = Color(0xFFFFFFFF);
+  static const Color trackLine = Color(0xFFDCDFE4);
+  static const Color textDark = Color(0xFF212529);
+  static const Color textMuted = Color(0xFF757575);
+  static const Color textLight = Color(0xFF9E9E9E);
+  static const Color divider = Color(0xFFE0E0E0);
 }
 
-final ValueNotifier<AppThemeMode> _themeMode = ValueNotifier<AppThemeMode>(AppThemeMode.oled);
-final ValueNotifier<bool> _darkMode = ValueNotifier<bool>(true);
-
-AppThemeMode get currentAppTheme => _themeMode.value;
-bool get isDarkTheme => _themeMode.value != AppThemeMode.light;
-
-Color get ink => isDarkTheme ? const Color(0xff000000) : const Color(0xfff4f6f9);
-Color get panel => isDarkTheme ? const Color(0xff141416) : const Color(0xffffffff);
-Color get panelSoft => isDarkTheme ? const Color(0xff1e1e22) : const Color(0xffeceff3);
-Color get panelRaised => isDarkTheme ? const Color(0xff25252b) : const Color(0xffffffff);
-Color get strokeColor => isDarkTheme ? const Color(0xff222226) : const Color(0x14000000);
-Color get blue => const Color(0xff0a84ff); // Apple Blue
-Color get amber => isDarkTheme ? const Color(0xffff9f0a) : const Color(0xffd97706);
-Color get mint => isDarkTheme ? const Color(0xff34c759) : const Color(0xff16a34a);
-
-const coral = Color(0xffff453a);
-const purple = Color(0xffaf52de);
-
-Color get textMain => isDarkTheme ? const Color(0xffffffff) : const Color(0xff0f172a);
-Color get textMuted => isDarkTheme ? const Color(0xff8e8e93) : const Color(0xff64748b);
-Color get textSoft => isDarkTheme ? const Color(0xff66666a) : const Color(0xff94a3b8);
-
-class GlassPanel extends StatelessWidget {
-  const GlassPanel({
-    super.key,
-    required this.child,
-    this.padding,
-    this.radius = 20,
-    this.tint,
-    this.opacity = .88,
-    this.blur = 18,
-    this.borderColor,
-    this.gradient,
-    this.shadows,
-  });
-
-  final Widget child;
-  final EdgeInsetsGeometry? padding;
-  final double radius;
-  final Color? tint;
-  final double opacity;
-  final double blur;
-  final Color? borderColor;
-  final Gradient? gradient;
-  final List<BoxShadow>? shadows;
-
-  @override
-  Widget build(BuildContext context) {
-    final shape = BorderRadius.circular(radius);
-    return ClipRRect(
-      borderRadius: shape,
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: (tint ?? panel).withOpacity(opacity),
-            gradient: gradient,
-            borderRadius: shape,
-            border: Border.all(color: borderColor ?? strokeColor),
-            boxShadow: shadows ??
-                [
-                  BoxShadow(
-                    color: isDarkTheme ? const Color(0x33000000) : const Color(0x0a000000),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-          ),
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
-class _AmbientBackdrop extends StatelessWidget {
-  const _AmbientBackdrop();
-
-  @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
-}
-
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('pt_BR');
-  runApp(const FinanzaAutoApp());
-}
-
-class FinanzaAutoApp extends StatelessWidget {
-  const FinanzaAutoApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<AppThemeMode>(
-      valueListenable: _themeMode,
-      builder: (context, themeMode, child) => MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Finanza · Carro',
-        theme: ThemeData(
-          useMaterial3: true,
-          brightness: isDarkTheme ? Brightness.dark : Brightness.light,
-          fontFamily: 'DM Sans',
-          scaffoldBackgroundColor: ink,
-          textTheme: const TextTheme(
-            headlineLarge: TextStyle(fontFamily: 'DM Sans', fontWeight: FontWeight.w800),
-            headlineMedium: TextStyle(fontFamily: 'DM Sans', fontWeight: FontWeight.w800),
-            titleLarge: TextStyle(fontFamily: 'DM Sans', fontWeight: FontWeight.w700),
-            titleMedium: TextStyle(fontFamily: 'DM Sans', fontWeight: FontWeight.w700),
-            bodyLarge: TextStyle(fontFamily: 'DM Sans'),
-            bodyMedium: TextStyle(fontFamily: 'DM Sans'),
-          ),
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: blue,
-            brightness: isDarkTheme ? Brightness.dark : Brightness.light,
-          ).copyWith(
-            primary: blue,
-            onPrimary: Colors.white,
-            secondary: mint,
-            surface: panel,
-            onSurface: textMain,
-            surfaceContainerHighest: panelSoft,
-            onSurfaceVariant: textMuted,
-            outline: strokeColor,
-          ),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            filled: true,
-            fillColor: panelSoft,
-            labelStyle: TextStyle(fontFamily: 'DM Sans', color: textMuted),
-            hintStyle: TextStyle(fontFamily: 'DM Sans', color: textSoft),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(14)),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: const BorderRadius.all(Radius.circular(14)),
-              borderSide: BorderSide(color: strokeColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: const BorderRadius.all(Radius.circular(14)),
-              borderSide: BorderSide(color: blue, width: 1.5),
-            ),
-          ),
-          dividerTheme: DividerThemeData(color: strokeColor, space: 1),
-        ),
-        home: const CarHome(),
-      ),
-    );
-  }
-}
-
-class CarEvent {
-  CarEvent({
-    required this.id,
-    required this.vehicleId,
-    required this.type,
-    required this.date,
-    required this.amount,
-    this.odometer = 0,
-    this.fuelType = 'Gasolina',
-    this.liters = 0,
-    this.pricePerLiter = 0,
-    this.title = '',
-    this.category = 'Other',
-    this.note = '',
-  });
-
-  String id;
-  String vehicleId;
-  String type;
-  String date;
-  String fuelType;
-  String title;
-  String category;
-  String note;
-  double amount;
-  double odometer;
-  double liters;
-  double pricePerLiter;
-
-  bool get fuel => type == 'fuel';
-
-  factory CarEvent.fromMap(Map<String, dynamic> map) {
-    final rawType = '${_firstValue(map, ['type', 'kind']) ?? 'expense'}'.toLowerCase();
-    return CarEvent(
-      id: '${_firstValue(map, ['id', 'eventId']) ?? 'event-${DateTime.now().microsecondsSinceEpoch}'}',
-      vehicleId: '${_firstValue(map, ['vehicleId', 'vehicle_id']) ?? 'vehicle-1'}',
-      type: rawType == 'fuel' || rawType == 'abastecimento' ? 'fuel' : 'expense',
-      date: _safeDate(_firstValue(map, ['date', 'eventDate', 'createdAt'])),
-      amount: _number(_firstValue(map, ['amount', 'total', 'value'])),
-      odometer: _number(_firstValue(map, ['odometer', 'odometerKm', 'km', 'mileage'])),
-      fuelType: '${_firstValue(map, ['fuelType', 'fuel_type']) ?? 'Gasolina'}',
-      liters: _number(_firstValue(map, ['liters', 'quantity'])),
-      pricePerLiter: _number(_firstValue(map, ['pricePerLiter', 'price_per_liter'])),
-      title: '${_firstValue(map, ['title', 'description', 'name']) ?? ''}',
-      category: '${_firstValue(map, ['category', 'categoryId']) ?? 'Other'}',
-      note: '${_firstValue(map, ['note', 'place', 'location']) ?? ''}',
-    );
-  }
-
-  Map<String, dynamic> toMap() => {
-        'id': id,
-        'vehicleId': vehicleId,
-        'type': type,
-        'date': date,
-        'amount': amount,
-        'odometer': odometer,
-        'fuelType': fuelType,
-        'liters': liters,
-        'pricePerLiter': pricePerLiter,
-        'title': title,
-        'category': category,
-        'note': note,
-      };
-}
-
+/// Vehicle Model
 class CarVehicle {
+  String id;
+  String name;
+  String model;
+  String plate;
+  int odometer;
+  double tankCapacity;
+  int serviceIntervalKm;
+  double targetConsumption;
+
   CarVehicle({
     required this.id,
     required this.name,
     this.model = '',
     this.plate = '',
     this.odometer = 0,
-    this.targetConsumption = 0,
-    this.tankCapacity = 0,
+    this.tankCapacity = 52.0,
     this.serviceIntervalKm = 10000,
+    this.targetConsumption = 7.5,
   });
 
-  String id;
-  String name;
-  String model;
-  String plate;
-  double odometer;
-  double targetConsumption;
-  double tankCapacity;
-  double serviceIntervalKm;
-
-  factory CarVehicle.fromMap(Map<String, dynamic> map) => CarVehicle(
-        id: '${_firstValue(map, ['id', 'vehicleId', 'vehicle_id']) ?? 'vehicle-${DateTime.now().microsecondsSinceEpoch}'}',
-        name: '${_firstValue(map, ['name', 'title']) ?? 'Meu carro'}',
-        model: '${_firstValue(map, ['model', 'modelYear', 'model_year']) ?? ''}',
-        plate: '${_firstValue(map, ['plate', 'licensePlate', 'license_plate']) ?? ''}',
-        odometer: _number(_firstValue(map, ['odometer', 'odometerKm', 'km', 'mileage'])),
-        targetConsumption: _number(_firstValue(map, ['targetConsumption', 'target_consumption', 'meta_consumo'])),
-        tankCapacity: _number(_firstValue(map, ['tankCapacity', 'tank_capacity', 'tanque'])),
-        serviceIntervalKm: _number(_firstValue(map, ['serviceIntervalKm', 'service_interval_km', 'intervalo_revisao'])) > 0
-            ? _number(_firstValue(map, ['serviceIntervalKm', 'service_interval_km', 'intervalo_revisao']))
-            : 10000,
-      );
+  factory CarVehicle.fromMap(Map<String, dynamic> map) {
+    return CarVehicle(
+      id: (map['id'] ?? 'drivvo-car').toString(),
+      name: (map['name'] ?? 'Astra').toString(),
+      model: (map['model'] ?? 'Chevrolet Astra').toString(),
+      plate: (map['plate'] ?? '').toString(),
+      odometer: (map['odometer'] as num?)?.toInt() ?? 164154,
+      tankCapacity: (map['tankCapacity'] as num?)?.toDouble() ?? 52.0,
+      serviceIntervalKm: (map['serviceIntervalKm'] as num?)?.toInt() ?? 10000,
+      targetConsumption: (map['targetConsumption'] as num?)?.toDouble() ?? 7.5,
+    );
+  }
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'name': name,
-        'model': model,
-        'plate': plate,
-        'odometer': odometer,
-        'targetConsumption': targetConsumption,
-        'tankCapacity': tankCapacity,
-        'serviceIntervalKm': serviceIntervalKm,
-      };
+    'id': id,
+    'name': name,
+    'model': model,
+    'plate': plate,
+    'odometer': odometer,
+    'tankCapacity': tankCapacity,
+    'serviceIntervalKm': serviceIntervalKm,
+    'targetConsumption': targetConsumption,
+  };
 }
 
-Map<String, dynamic> _asMap(dynamic value) {
-  if (value is Map) {
-    return value.map((key, item) => MapEntry('$key', item));
+/// Event Model (Fueling, Service, Expense)
+class CarEvent {
+  String id;
+  String vehicleId;
+  String type; // 'fuel', 'service', 'expense'
+  String date; // YYYY-MM-DD
+  String time; // HH:mm
+  double amount;
+  int odometer;
+  String fuelType;
+  double liters;
+  double pricePerLiter;
+  bool isFullTank;
+  String title;
+  String category;
+  String station;
+  String driver;
+  String paymentMethod;
+  String note;
+
+  CarEvent({
+    required this.id,
+    required this.vehicleId,
+    this.type = 'fuel',
+    required this.date,
+    this.time = '12:00',
+    this.amount = 0.0,
+    this.odometer = 0,
+    this.fuelType = 'Etanol',
+    this.liters = 0.0,
+    this.pricePerLiter = 0.0,
+    this.isFullTank = true,
+    this.title = '',
+    this.category = 'Combustivel',
+    this.station = '',
+    this.driver = '',
+    this.paymentMethod = 'Dinheiro',
+    this.note = '',
+  });
+
+  factory CarEvent.fromMap(Map<String, dynamic> map) {
+    final noteStr = (map['note'] ?? '').toString();
+    var stationStr = (map['station'] ?? '').toString();
+    var driverStr = (map['driver'] ?? '').toString();
+
+    if (stationStr.isEmpty && noteStr.isNotEmpty) {
+      if (noteStr.contains('•')) {
+        final parts = noteStr.split('•');
+        driverStr = parts[0].trim();
+        if (parts.length > 1 && !parts[1].toLowerCase().contains('tanque')) {
+          stationStr = parts[1].trim();
+        }
+      } else if (noteStr.toLowerCase().contains('zanforlim')) {
+        stationStr = 'Zanforlim';
+      } else if (noteStr.toLowerCase().contains('rafaela')) {
+        driverStr = 'Rafaela';
+      } else {
+        stationStr = noteStr;
+      }
+    }
+
+    final litersVal = (map['liters'] as num?)?.toDouble() ?? 0.0;
+    final amountVal = (map['amount'] as num?)?.toDouble() ?? 0.0;
+    var ppl = (map['pricePerLiter'] as num?)?.toDouble() ?? 0.0;
+    if (ppl == 0.0 && litersVal > 0 && amountVal > 0) {
+      ppl = amountVal / litersVal;
+    }
+
+    return CarEvent(
+      id: (map['id'] ?? 'event-${DateTime.now().millisecondsSinceEpoch}').toString(),
+      vehicleId: (map['vehicleId'] ?? 'drivvo-car').toString(),
+      type: (map['type'] ?? 'fuel').toString(),
+      date: (map['date'] ?? '').toString(),
+      time: (map['time'] ?? '12:00').toString(),
+      amount: amountVal,
+      odometer: (map['odometer'] as num?)?.toInt() ?? 0,
+      fuelType: (map['fuelType'] ?? 'Etanol').toString(),
+      liters: litersVal,
+      pricePerLiter: ppl,
+      isFullTank: map['isFullTank'] != false,
+      title: (map['title'] ?? '').toString(),
+      category: (map['category'] ?? 'Combustivel').toString(),
+      station: stationStr,
+      driver: driverStr,
+      paymentMethod: (map['paymentMethod'] ?? 'Dinheiro').toString(),
+      note: noteStr,
+    );
   }
-  return <String, dynamic>{};
+
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'vehicleId': vehicleId,
+    'type': type,
+    'date': date,
+    'time': time,
+    'amount': amount,
+    'odometer': odometer,
+    'fuelType': fuelType,
+    'liters': liters,
+    'pricePerLiter': pricePerLiter,
+    'isFullTank': isFullTank,
+    'title': title,
+    'category': category,
+    'station': station,
+    'driver': driver,
+    'paymentMethod': paymentMethod,
+    'note': note,
+  };
+
+  DateTime get parsedDate {
+    try {
+      final parts = date.split('-');
+      if (parts.length == 3) {
+        return DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+      }
+    } catch (_) {}
+    return DateTime.now();
+  }
 }
 
-Map<String, dynamic>? _tryDecodeMap(String? raw) {
-  if (raw == null || raw.trim().isEmpty) return null;
+/// Reminder Model
+class CarReminder {
+  String id;
+  String vehicleId;
+  String title;
+  String description;
+  int targetOdometer;
+  String targetDate;
+  bool isCompleted;
+  int repeatIntervalKm;
+  int repeatIntervalMonths;
+
+  CarReminder({
+    required this.id,
+    required this.vehicleId,
+    required this.title,
+    this.description = '',
+    this.targetOdometer = 0,
+    this.targetDate = '',
+    this.isCompleted = false,
+    this.repeatIntervalKm = 10000,
+    this.repeatIntervalMonths = 6,
+  });
+
+  factory CarReminder.fromMap(Map<String, dynamic> map) {
+    return CarReminder(
+      id: (map['id'] ?? 'rem-${DateTime.now().millisecondsSinceEpoch}').toString(),
+      vehicleId: (map['vehicleId'] ?? 'drivvo-car').toString(),
+      title: (map['title'] ?? '').toString(),
+      description: (map['description'] ?? '').toString(),
+      targetOdometer: (map['targetOdometer'] as num?)?.toInt() ?? 0,
+      targetDate: (map['targetDate'] ?? '').toString(),
+      isCompleted: map['isCompleted'] == true,
+      repeatIntervalKm: (map['repeatIntervalKm'] as num?)?.toInt() ?? 10000,
+      repeatIntervalMonths: (map['repeatIntervalMonths'] as num?)?.toInt() ?? 6,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'vehicleId': vehicleId,
+    'title': title,
+    'description': description,
+    'targetOdometer': targetOdometer,
+    'targetDate': targetDate,
+    'isCompleted': isCompleted,
+    'repeatIntervalKm': repeatIntervalKm,
+    'repeatIntervalMonths': repeatIntervalMonths,
+  };
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   try {
-    final map = _asMap(jsonDecode(raw));
-    return map.isEmpty ? null : map;
-  } catch (_) {
-    return null;
-  }
+    await initializeDateFormatting('pt_BR', null);
+  } catch (_) {}
+
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: DrivvoColors.primaryTeal,
+      statusBarIconBrightness: Brightness.light,
+    ),
+  );
+
+  runApp(const DrivvoApp());
 }
 
-Map<String, dynamic> _carMap(Map<String, dynamic> data) {
-  for (final key in ['car', 'vehicle', 'vehicles']) {
-    final candidate = _asMap(data[key]);
-    if (candidate.isNotEmpty) return candidate;
-  }
-  return data;
-}
-
-List<dynamic> _listValue(Map<String, dynamic> data, List<String> keys) {
-  for (final key in keys) {
-    if (data[key] is List) return data[key] as List;
-  }
-  return [];
-}
-
-dynamic _firstValue(Map<String, dynamic> data, List<String> keys) {
-  for (final key in keys) {
-    if (data.containsKey(key) && data[key] != null) return data[key];
-  }
-  return null;
-}
-
-String _safeDate(dynamic value) {
-  final raw = '$value'.trim();
-  if (raw.isEmpty || raw == 'null') return _isoToday();
-  final brazilian = RegExp(r'^(\d{2})/(\d{2})/(\d{4})').firstMatch(raw);
-  if (brazilian != null) return '${brazilian.group(3)}-${brazilian.group(2)}-${brazilian.group(1)}';
-  return raw.length >= 10 ? raw.substring(0, 10) : _isoToday();
-}
-
-double _number(dynamic value) => double.tryParse('$value'.replaceAll(',', '.')) ?? 0;
-String _isoToday() => DateFormat('yyyy-MM-dd').format(DateTime.now());
-String _money(num value) => NumberFormat.currency(locale: 'pt_BR', symbol: r'R$').format(value);
-String _shortMoney(num value) {
-  if (value.abs() >= 100000) return 'R\$ ${(value / 1000).toStringAsFixed(0)} mil';
-  if (value.abs() >= 10000) return 'R\$ ${(value / 1000).toStringAsFixed(1)} mil';
-  return _money(value);
-}
-
-DateTime? _parseDate(String value) =>
-    DateTime.tryParse(value.length >= 10 ? '${value.substring(0, 10)}T12:00:00' : value);
-
-String _dateLabel(String value) {
-  final date = _parseDate(value);
-  if (date == null) return 'Sem data';
-  return DateFormat('dd MMM yyyy', 'pt_BR').format(date).replaceAll('.', '');
-}
-
-String _categoryLabel(String value) => {
-      'Maintenance': 'Manutenção',
-      'Insurance': 'Seguro',
-      'Tax': 'Imposto',
-      'Parking': 'Estacionamento',
-      'Wash': 'Lavagem',
-      'Fine': 'Multa',
-      'Other': 'Outro',
-    }[value] ?? value;
-
-class CarHome extends StatefulWidget {
-  const CarHome({super.key});
+class DrivvoApp extends StatelessWidget {
+  const DrivvoApp({super.key});
 
   @override
-  State<CarHome> createState() => _CarHomeState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Finanza Auto',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        fontFamily: 'DM Sans',
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: DrivvoColors.primaryTeal,
+          primary: DrivvoColors.primaryTeal,
+          secondary: DrivvoColors.fuelOrange,
+          surface: DrivvoColors.backgroundLight,
+        ),
+        scaffoldBackgroundColor: DrivvoColors.backgroundLight,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: DrivvoColors.primaryTeal,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          titleTextStyle: TextStyle(
+            fontFamily: 'DM Sans',
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      ),
+      home: const MainNavigationScreen(),
+    );
+  }
 }
 
-class _CarHomeState extends State<CarHome> {
-  final searchController = TextEditingController();
-  List<CarVehicle> vehicles = [];
-  List<CarEvent> events = [];
-  List<CarEvent> pendingFuelImports = [];
-  bool dismissedPendingFuel = false;
-  String activeVehicle = '';
-  String period = 'Tudo';
-  String typeFilter = 'Todos';
-  String categoryFilter = 'Todas';
-  String sort = 'Mais recentes';
-  String search = '';
-  String loadError = '';
-  int tab = 0;
-  bool loading = true;
-  bool _checkingUpdate = false;
-  late final PageController _pageController;
-  DateTime? _lastBackPress;
+class MainNavigationScreen extends StatefulWidget {
+  const MainNavigationScreen({super.key});
+
+  @override
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+}
+
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  int _currentIndex = 0;
+  bool _isLoading = true;
+  bool _isSyncing = false;
+  String _searchQuery = '';
+  bool _isSearchOpen = false;
+
+  List<CarVehicle> _vehicles = [];
+  String _activeVehicleId = 'drivvo-car';
+  List<CarEvent> _events = [];
+  List<CarReminder> _reminders = [];
+
+  final TextEditingController _searchController = TextEditingController();
+
+  CarVehicle get _activeVehicle {
+    final found = _vehicles.where((v) => v.id == _activeVehicleId);
+    if (found.isNotEmpty) return found.first;
+    if (_vehicles.isNotEmpty) return _vehicles.first;
+    return CarVehicle(id: 'drivvo-car', name: 'Astra', model: 'Chevrolet Astra', odometer: 164154, tankCapacity: 52.0);
+  }
+
+  int get _latestOdometer {
+    final vehicleOdo = _activeVehicle.odometer;
+    int maxEventOdo = 0;
+    for (final e in _events.where((e) => e.vehicleId == _activeVehicleId)) {
+      if (e.odometer > maxEventOdo) maxEventOdo = e.odometer;
+    }
+    return math.max(vehicleOdo, maxEventOdo);
+  }
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: tab);
-    _load();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAppUpdates(manual: false);
-      _checkPendingWidgetAction();
-    });
+    _loadAllData().then((_) => _checkQuickFuelAction());
+    _checkAppUpdates();
   }
 
-  Future<void> _checkPendingWidgetAction() async {
+  Future<void> _checkQuickFuelAction() async {
     try {
       const channel = MethodChannel('com.jeffersonf.finanza_auto/updater');
       final action = await channel.invokeMethod<String>('getPendingAction');
       if (action == 'ACTION_QUICK_FUEL' && mounted) {
-        _entrySheet(fuel: true);
+        _openFuelingForm();
       }
     } catch (_) {}
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
-    searchController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _checkAppUpdates() async {
+    try {
+      final info = await UpdaterService.checkUpdate(
+        currentVersion: appVersion,
+        currentBuild: appBuildNumber,
+      );
+      if (info != null && info.hasUpdate && mounted) {
+        _showUpdateDialog(info);
+      }
+    } catch (_) {}
+  }
+
+  void _showUpdateDialog(AppUpdateInfo info) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Nova versão disponível (${info.version})'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Uma nova versão do Finanza Auto está disponível.'),
+            const SizedBox(height: 10),
+            Text(info.releaseNotes, style: const TextStyle(fontSize: 13, color: DrivvoColors.textMuted)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Depois'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: DrivvoColors.primaryTeal, foregroundColor: Colors.white),
+            onPressed: () {
+              Navigator.pop(ctx);
+              UpdaterService.downloadAndInstallApk(
+                downloadUrl: info.downloadUrl,
+                version: info.version,
+                buildNumber: info.buildNumber,
+              );
+            },
+            child: const Text('Atualizar Agora'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _loadAllData() async {
+    setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedThemeName = prefs.getString('finanza_auto_theme_mode');
-      if (savedThemeName != null) {
-        final mode = AppThemeMode.values.firstWhere(
-          (m) => m.name == savedThemeName,
-          orElse: () => AppThemeMode.oled,
-        );
-        _themeMode.value = mode;
-        _darkMode.value = mode != AppThemeMode.light;
-      } else {
-        final savedTheme = prefs.getBool('finanza_auto_dark_theme');
-        if (savedTheme != null) {
-          _themeMode.value = savedTheme ? AppThemeMode.oled : AppThemeMode.light;
-          _darkMode.value = savedTheme;
-        }
-      }
-      final saved = prefs.getString('finanza_auto_flutter_state');
-      Map<String, dynamic>? bundledData;
-      try {
-        bundledData = _tryDecodeMap(await rootBundle.loadString('assets/finanza-auto-backup.json'));
-      } catch (_) {}
-      bundledData ??= <String, dynamic>{};
+      final savedJson = prefs.getString('finanza_auto_flutter_state');
 
-      final savedData = _tryDecodeMap(saved);
-      final bundledCar = _carMap(bundledData);
-      final savedCar = savedData == null ? <String, dynamic>{} : _carMap(savedData);
-      final savedEvents = _listValue(savedCar, ['events', 'items', 'records']);
-      final bundledEvents = _listValue(bundledCar, ['events', 'items', 'records']);
-      final useBundled = savedData == null ||
-          (savedData['dataInitialized'] != true && savedEvents.isEmpty && bundledEvents.isNotEmpty);
-      final data = useBundled ? bundledData : savedData;
-      final car = _carMap(data ?? bundledData);
-      final rawVehicles = _listValue(car, ['vehicles', 'vehicleList', 'items']);
-      final rawEvents = _listValue(car, ['events', 'items', 'records']);
-      final loadedVehicles = <CarVehicle>[];
-      final loadedEvents = <CarEvent>[];
-      for (final item in rawVehicles) {
-        if (item is Map) loadedVehicles.add(CarVehicle.fromMap(item.cast<String, dynamic>()));
-      }
-      for (final item in rawEvents) {
-        if (item is Map) loadedEvents.add(CarEvent.fromMap(item.cast<String, dynamic>()));
-      }
-      if (loadedVehicles.isEmpty) loadedVehicles.add(CarVehicle(id: 'vehicle-1', name: 'Meu carro'));
-      final validVehicleIds = loadedVehicles.map((vehicle) => vehicle.id).toSet();
-      for (final event in loadedEvents) {
-        if (loadedVehicles.length == 1 || !validVehicleIds.contains(event.vehicleId)) {
-          event.vehicleId = loadedVehicles.first.id;
-        }
-      }
-      final savedActive = '${_firstValue(car, ['activeVehicleId', 'active_vehicle_id']) ?? ''}';
-      final selected = loadedVehicles.any((vehicle) => vehicle.id == savedActive)
-          ? savedActive
-          : loadedVehicles.first.id;
-      final rawPending = prefs.getString('finanza_auto_pending_fuel');
-      final loadedPending = <CarEvent>[];
-      if (rawPending != null) {
+      Map<String, dynamic>? parsedSaved;
+      if (savedJson != null) {
         try {
-          final decodedPending = jsonDecode(rawPending);
-          if (decodedPending is List) {
-            for (final item in decodedPending) {
-              if (item is Map) loadedPending.add(CarEvent.fromMap(item.cast<String, dynamic>()));
-            }
-          }
+          parsedSaved = jsonDecode(savedJson) as Map<String, dynamic>;
         } catch (_) {}
       }
 
-      // Se a lista de pendentes estiver vazia, verifica se faltam os 15 abastecimentos extraídos dos prints
-      final defaultPrintItems = _defaultExtractedPrintEvents(selected);
-      for (final printItem in defaultPrintItems) {
-        final alreadyInEvents = loadedEvents.any((e) => e.odometer == printItem.odometer && e.date == printItem.date);
-        final alreadyInPending = loadedPending.any((p) => p.odometer == printItem.odometer && p.date == printItem.date);
-        if (!alreadyInEvents && !alreadyInPending) {
-          loadedPending.add(printItem);
+      // Load bundled backup (146 records)
+      Map<String, dynamic>? bundledJson;
+      try {
+        final bundledStr = await rootBundle.loadString('assets/finanza-auto-backup.json');
+        bundledJson = jsonDecode(bundledStr) as Map<String, dynamic>;
+      } catch (_) {}
+
+      final bundledCar = bundledJson != null ? (bundledJson['car'] ?? bundledJson) as Map<String, dynamic> : <String, dynamic>{};
+      final bundledEventsRaw = (bundledCar['events'] ?? []) as List;
+
+      final savedCar = parsedSaved != null ? (parsedSaved['car'] ?? parsedSaved) as Map<String, dynamic> : <String, dynamic>{};
+      final savedEventsRaw = (savedCar['events'] ?? []) as List;
+
+      // Ensure that if saved events are fewer than bundled (146 items), we prioritize loading all bundled records!
+      final bool useBundledData = parsedSaved == null || savedEventsRaw.length < 140;
+
+      final sourceCar = useBundledData ? bundledCar : savedCar;
+
+      final rawVehicles = (sourceCar['vehicles'] ?? []) as List;
+      final loadedVehicles = <CarVehicle>[];
+      for (final v in rawVehicles) {
+        if (v is Map) loadedVehicles.add(CarVehicle.fromMap(v.cast<String, dynamic>()));
+      }
+      if (loadedVehicles.isEmpty) {
+        loadedVehicles.add(
+          CarVehicle(
+            id: 'drivvo-car',
+            name: 'Astra',
+            model: 'Chevrolet Astra',
+            plate: '',
+            odometer: 164154,
+            tankCapacity: 52.0,
+            serviceIntervalKm: 10000,
+          ),
+        );
+      }
+
+      final rawEvents = (sourceCar['events'] ?? []) as List;
+      final loadedEvents = <CarEvent>[];
+      for (final e in rawEvents) {
+        if (e is Map) loadedEvents.add(CarEvent.fromMap(e.cast<String, dynamic>()));
+      }
+
+      // Normalize vehicle IDs
+      final validVIds = loadedVehicles.map((v) => v.id).toSet();
+      for (final e in loadedEvents) {
+        if (!validVIds.contains(e.vehicleId)) {
+          e.vehicleId = loadedVehicles.first.id;
         }
       }
 
-      // Remove dos pendentes qualquer item cujo odômetro e data já existam no histórico de eventos
-      loadedPending.removeWhere((p) =>
-          loadedEvents.any((e) => e.odometer == p.odometer && e.date == p.date));
+      // Load or initialize default reminders
+      final rawReminders = (sourceCar['reminders'] ?? []) as List;
+      final loadedReminders = <CarReminder>[];
+      for (final r in rawReminders) {
+        if (r is Map) loadedReminders.add(CarReminder.fromMap(r.cast<String, dynamic>()));
+      }
+      if (loadedReminders.isEmpty) {
+        final currentKm = loadedVehicles.first.odometer;
+        loadedReminders.addAll([
+          CarReminder(
+            id: 'rem-oil',
+            vehicleId: loadedVehicles.first.id,
+            title: 'Troca de Óleo e Filtro',
+            description: 'Trocar óleo 15W40 e filtro de óleo',
+            targetOdometer: currentKm + 5846,
+            targetDate: '2026-12-01',
+            repeatIntervalKm: 10000,
+            repeatIntervalMonths: 6,
+          ),
+          CarReminder(
+            id: 'rem-air',
+            vehicleId: loadedVehicles.first.id,
+            title: 'Filtro de Ar e Combustível',
+            description: 'Substituição preventiva dos filtros',
+            targetOdometer: currentKm + 8000,
+            targetDate: '2027-02-15',
+            repeatIntervalKm: 20000,
+            repeatIntervalMonths: 12,
+          ),
+          CarReminder(
+            id: 'rem-brakes',
+            vehicleId: loadedVehicles.first.id,
+            title: 'Pastilhas de Freio',
+            description: 'Revisão de pastilhas e discos',
+            targetOdometer: currentKm + 15000,
+            targetDate: '2027-06-30',
+            repeatIntervalKm: 30000,
+            repeatIntervalMonths: 18,
+          ),
+        ]);
+      }
 
-      debugPrint(
-          'Finanza Auto load: source=${useBundled ? 'bundle' : 'saved'} saved=${saved != null} vehicles=${loadedVehicles.length} events=${loadedEvents.length} pending=${loadedPending.length} selected=$selected');
-      if (!mounted) return;
       setState(() {
-        vehicles = loadedVehicles;
-        events = loadedEvents;
-        pendingFuelImports = loadedPending;
-        dismissedPendingFuel = false;
-        activeVehicle = selected;
-        loading = false;
-        loadError = '';
+        _vehicles = loadedVehicles;
+        _activeVehicleId = loadedVehicles.first.id;
+        _events = loadedEvents;
+        _reminders = loadedReminders;
+        _isLoading = false;
       });
-    } catch (error, stack) {
-      debugPrint('Finanza Auto load error: $error');
-      debugPrintStack(stackTrace: stack);
-      if (!mounted) return;
-      // Fallback seguro usando bundled se disponível sem travar a interface
-      try {
-        final fallbackMap = _tryDecodeMap(await rootBundle.loadString('assets/finanza-auto-backup.json')) ?? {};
-        final car = _carMap(fallbackMap);
-        final rawVehicles = _listValue(car, ['vehicles', 'vehicleList', 'items']);
-        final rawEvents = _listValue(car, ['events', 'items', 'records']);
-        final fVehicles = <CarVehicle>[];
-        final fEvents = <CarEvent>[];
-        for (final item in rawVehicles) {
-          if (item is Map) fVehicles.add(CarVehicle.fromMap(item.cast<String, dynamic>()));
-        }
-        for (final item in rawEvents) {
-          if (item is Map) fEvents.add(CarEvent.fromMap(item.cast<String, dynamic>()));
-        }
-        if (fVehicles.isEmpty) fVehicles.add(CarVehicle(id: 'vehicle-1', name: 'Meu carro'));
-        final fPending = _defaultExtractedPrintEvents(fVehicles.first.id);
-        setState(() {
-          vehicles = fVehicles;
-          activeVehicle = fVehicles.first.id;
-          events = fEvents;
-          pendingFuelImports = fPending;
-          loading = false;
-          loadError = '';
-        });
-      } catch (_) {
-        setState(() {
-          vehicles = [CarVehicle(id: 'vehicle-1', name: 'Meu carro')];
-          activeVehicle = 'vehicle-1';
-          events = [];
-          pendingFuelImports = _defaultExtractedPrintEvents('vehicle-1');
-          loading = false;
-          loadError = '';
-        });
-      }
+
+      // Save initial loaded state to SharedPreferences
+      _saveLocalState();
+    } catch (e) {
+      debugPrint('Error loading data: $e');
+      setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      'finanza_auto_flutter_state',
-      jsonEncode({
-        'app': 'Finanza Auto',
-        'version': '2.0',
-        'dataInitialized': true,
+  Future<void> _saveLocalState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dataMap = {
         'car': {
-          'vehicles': vehicles.map((vehicle) => vehicle.toMap()).toList(),
-          'events': events.map((event) => event.toMap()).toList(),
-          'activeVehicleId': activeVehicle,
+          'vehicles': _vehicles.map((v) => v.toMap()).toList(),
+          'events': _events.map((e) => e.toMap()).toList(),
+          'reminders': _reminders.map((r) => r.toMap()).toList(),
+          'activeVehicleId': _activeVehicleId,
         },
-      }),
-    );
-    await prefs.setString(
-      'finanza_auto_pending_fuel',
-      jsonEncode(pendingFuelImports.map((e) => e.toMap()).toList()),
-    );
-    await prefs.setBool('finanza_auto_dismissed_pending_fuel', dismissedPendingFuel);
-  }
-
-  CarVehicle get currentVehicle =>
-      vehicles.firstWhere((vehicle) => vehicle.id == activeVehicle, orElse: () => vehicles.first);
-
-  List<CarEvent> get filteredEvents {
-    var result =
-        events.where((event) => activeVehicle == 'all' || event.vehicleId == activeVehicle).toList();
-    if (typeFilter == 'Abastecimentos') result = result.where((event) => event.fuel).toList();
-    if (typeFilter == 'Despesas') result = result.where((event) => !event.fuel).toList();
-    if (categoryFilter != 'Todas') {
-      result = result
-          .where((event) =>
-              event.fuel ? event.fuelType == categoryFilter : _categoryLabel(event.category) == categoryFilter)
-          .toList();
+        'updatedAt': DateTime.now().toIso8601String(),
+        'appVersion': appVersion,
+      };
+      await prefs.setString('finanza_auto_flutter_state', jsonEncode(dataMap));
+    } catch (e) {
+      debugPrint('Error saving local state: $e');
     }
-    if (search.trim().isNotEmpty) {
-      final term = search.toLowerCase().trim();
-      result = result
-          .where((event) => '${event.title} ${event.note} ${event.fuelType} ${event.category}'
-              .toLowerCase()
-              .contains(term))
-          .toList();
-    }
-    if (period != 'Tudo') {
-      final now = DateTime.now();
-      result = result.where((event) {
-        final date = _parseDate(event.date);
-        if (date == null) return false;
-        if (period == 'Mês atual') return date.year == now.year && date.month == now.month;
-        final days = period == '30 dias' ? 30 : period == '90 dias' ? 90 : 365;
-        return !date.isBefore(now.subtract(Duration(days: days)));
-      }).toList();
-    }
-    result.sort((a, b) {
-      if (sort == 'Maior valor') return b.amount.compareTo(a.amount);
-      if (sort == 'Menor valor') return a.amount.compareTo(b.amount);
-      if (sort == 'Maior km') return b.odometer.compareTo(a.odometer);
-      if (sort == 'Menor km') return a.odometer.compareTo(b.odometer);
-      final comparison = b.date.compareTo(a.date);
-      return sort == 'Mais antigos' ? -comparison : comparison;
-    });
-    return result;
   }
 
-  List<CarEvent> get allVehicleEvents =>
-      events.where((event) => activeVehicle == 'all' || event.vehicleId == activeVehicle).toList();
+  Future<void> _syncWithCloudflare() async {
+    setState(() => _isSyncing = true);
+    try {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 10);
+      final request = await client.postUrl(Uri.parse(cloudflareSyncUrl));
+      request.headers.set('Content-Type', 'application/json');
 
-  double _total(List<CarEvent> list) =>
-      list.fold<double>(0, (sum, event) => sum + event.amount);
+      final payload = jsonEncode({
+        'action': 'sync',
+        'state': {
+          'car': {
+            'vehicles': _vehicles.map((v) => v.toMap()).toList(),
+            'events': _events.map((e) => e.toMap()).toList(),
+            'reminders': _reminders.map((r) => r.toMap()).toList(),
+            'activeVehicleId': _activeVehicleId,
+          },
+          'updatedAt': DateTime.now().toIso8601String(),
+          'appVersion': appVersion,
+        }
+      });
 
-  double _fuelTotal(List<CarEvent> list) =>
-      _total(list.where((event) => event.fuel).toList());
+      request.write(payload);
+      final response = await request.close();
 
-  double _expenseTotal(List<CarEvent> list) =>
-      _total(list.where((event) => !event.fuel).toList());
-
-  double _liters(List<CarEvent> list) =>
-      list.where((event) => event.fuel).fold<double>(0, (sum, event) => sum + event.liters);
-
-  double _distance(List<CarEvent> list) {
-    final readings =
-        list.where((event) => event.fuel && event.odometer > 0).map((event) => event.odometer).toList();
-    if (readings.length < 2) return 0;
-    readings.sort();
-    return readings.last - readings.first;
-  }
-
-  double _consumption(List<CarEvent> list) {
-    final liters = _liters(list);
-    final distance = _distance(list);
-    return liters > 0 && distance > 0 ? distance / liters : 0;
-  }
-
-  double _maxOdometer(List<CarEvent> list) =>
-      list.fold<double>(0, (max, event) => event.odometer > max ? event.odometer : max);
-
-  String get _tabTitle => ['Visão geral', 'Histórico', 'Análises', 'Meu carro'][tab];
-
-  String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Bom dia, Jefferson';
-    if (hour < 18) return 'Boa tarde, Jefferson';
-    return 'Boa noite, Jefferson';
-  }
-
-  String _periodBadgeText() {
-    if (period == 'Mês atual') {
-      try {
-        return DateFormat('MMM', 'pt_BR')
-            .format(DateTime.now())
-            .toUpperCase()
-            .replaceAll('.', '');
-      } catch (_) {
-        return 'MÊS';
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Sincronização em nuvem concluída com sucesso!'),
+              backgroundColor: DrivvoColors.primaryTeal,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
+    } catch (e) {
+      debugPrint('Cloudflare sync error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro na sincronização: $e'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
     }
-    if (period == '30 dias') return '30D';
-    if (period == '90 dias') return '90D';
-    if (period == 'Ano atual') return '${DateTime.now().year}';
-    return 'TUDO';
+  }
+
+  void _addOrUpdateEvent(CarEvent event) {
+    setState(() {
+      final idx = _events.indexWhere((e) => e.id == event.id);
+      if (idx >= 0) {
+        _events[idx] = event;
+      } else {
+        _events.insert(0, event);
+      }
+      // Update vehicle odometer if higher
+      if (event.odometer > _activeVehicle.odometer) {
+        _activeVehicle.odometer = event.odometer;
+      }
+    });
+    _saveLocalState();
+  }
+
+  void _deleteEvent(String id) {
+    setState(() {
+      _events.removeWhere((e) => e.id == id);
+    });
+    _saveLocalState();
+  }
+
+  void _showSpeedDialMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: const BoxDecoration(
+                  color: DrivvoColors.divider,
+                  borderRadius: BorderRadius.all(Radius.circular(2)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Adicionar novo registro',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: DrivvoColors.textDark),
+            ),
+            const SizedBox(height: 16),
+            _buildSpeedDialItem(
+              icon: Icons.local_gas_station,
+              color: DrivvoColors.fuelOrange,
+              title: 'Abastecimento',
+              subtitle: 'Registre combustível, preço por litro e odômetro',
+              onTap: () {
+                Navigator.pop(ctx);
+                _openFuelingForm();
+              },
+            ),
+            _buildSpeedDialItem(
+              icon: Icons.build,
+              color: DrivvoColors.servicePurple,
+              title: 'Serviço / Manutenção',
+              subtitle: 'Troca de óleo, filtros, revisão ou oficina',
+              onTap: () {
+                Navigator.pop(ctx);
+                _openServiceExpenseForm(isService: true);
+              },
+            ),
+            _buildSpeedDialItem(
+              icon: Icons.receipt_long,
+              color: DrivvoColors.expenseBlue,
+              title: 'Despesa',
+              subtitle: 'Estacionamento, pedágio, lavagem ou seguro',
+              onTap: () {
+                Navigator.pop(ctx);
+                _openServiceExpenseForm(isService: false);
+              },
+            ),
+            _buildSpeedDialItem(
+              icon: Icons.alarm,
+              color: DrivvoColors.reminderAlert,
+              title: 'Lembrete',
+              subtitle: 'Criar alerta por data ou quilometragem',
+              onTap: () {
+                Navigator.pop(ctx);
+                _openReminderForm();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpeedDialItem({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(vertical: 4),
+      leading: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        child: Icon(icon, color: Colors.white, size: 24),
+      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: DrivvoColors.textMuted)),
+      onTap: onTap,
+    );
+  }
+
+  void _openFuelingForm({CarEvent? event}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FuelingFormScreen(
+          vehicle: _activeVehicle,
+          latestOdometer: _latestOdometer,
+          existingEvent: event,
+          onSave: (savedEvent) {
+            _addOrUpdateEvent(savedEvent);
+          },
+        ),
+      ),
+    );
+  }
+
+  void _openServiceExpenseForm({required bool isService, CarEvent? event}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ServiceExpenseFormScreen(
+          isService: isService,
+          vehicle: _activeVehicle,
+          latestOdometer: _latestOdometer,
+          existingEvent: event,
+          onSave: (savedEvent) {
+            _addOrUpdateEvent(savedEvent);
+          },
+        ),
+      ),
+    );
+  }
+
+  void _openReminderForm({CarReminder? reminder}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReminderFormScreen(
+          vehicle: _activeVehicle,
+          latestOdometer: _latestOdometer,
+          existingReminder: reminder,
+          onSave: (savedRem) {
+            setState(() {
+              final idx = _reminders.indexWhere((r) => r.id == savedRem.id);
+              if (idx >= 0) {
+                _reminders[idx] = savedRem;
+              } else {
+                _reminders.add(savedRem);
+              }
+            });
+            _saveLocalState();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showVehicleSelector() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Meus Veículos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            ..._vehicles.map((v) => ListTile(
+              leading: const Icon(Icons.directions_car, color: DrivvoColors.primaryTeal),
+              title: Text('${v.name} (${v.model})', style: TextStyle(fontWeight: v.id == _activeVehicleId ? FontWeight.bold : FontWeight.normal)),
+              subtitle: Text('${NumberFormat('#,###', 'pt_BR').format(v.odometer)} km • Tanque: ${v.tankCapacity.toInt()}L'),
+              trailing: v.id == _activeVehicleId ? const Icon(Icons.check, color: DrivvoColors.primaryTeal) : null,
+              onTap: () {
+                setState(() => _activeVehicleId = v.id);
+                Navigator.pop(ctx);
+              },
+            )),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.edit, color: DrivvoColors.primaryTeal),
+              title: const Text('Editar Veículo Atual'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _editVehicleDialog(_activeVehicle);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _editVehicleDialog(CarVehicle vehicle) {
+    final nameCtrl = TextEditingController(text: vehicle.name);
+    final modelCtrl = TextEditingController(text: vehicle.model);
+    final plateCtrl = TextEditingController(text: vehicle.plate);
+    final tankCtrl = TextEditingController(text: vehicle.tankCapacity.toString());
+    final odoCtrl = TextEditingController(text: vehicle.odometer.toString());
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Editar Veículo'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nome do Carro (ex: Astra)')),
+              TextField(controller: modelCtrl, decoration: const InputDecoration(labelText: 'Modelo (ex: Chevrolet Astra)')),
+              TextField(controller: plateCtrl, decoration: const InputDecoration(labelText: 'Placa')),
+              TextField(controller: tankCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Capacidade do Tanque (Litros)')),
+              TextField(controller: odoCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Odômetro Atual (km)')),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: DrivvoColors.primaryTeal, foregroundColor: Colors.white),
+            onPressed: () {
+              setState(() {
+                vehicle.name = nameCtrl.text.trim();
+                vehicle.model = modelCtrl.text.trim();
+                vehicle.plate = plateCtrl.text.trim();
+                vehicle.tankCapacity = double.tryParse(tankCtrl.text.replaceAll(',', '.')) ?? 52.0;
+                vehicle.odometer = int.tryParse(odoCtrl.text.replaceAll('.', '')) ?? vehicle.odometer;
+              });
+              _saveLocalState();
+              Navigator.pop(ctx);
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (loading) {
-      return Scaffold(
-        backgroundColor: ink,
-        body: Center(child: CircularProgressIndicator(color: blue)),
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: DrivvoColors.primaryTeal),
+        ),
       );
     }
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        if (tab != 0) {
-          setState(() => tab = 0);
-          return;
-        }
-        final now = DateTime.now();
-        if (_lastBackPress == null || now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
-          _lastBackPress = now;
-          _snack('Pressione voltar novamente para sair do Finanza Auto.');
-          return;
-        }
-        SystemNavigator.pop();
-      },
-      child: Scaffold(
-        backgroundColor: ink,
-        extendBody: true,
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              if (loadError.isNotEmpty) _errorBanner(),
-              Expanded(
-                child: GestureDetector(
-                  onHorizontalDragEnd: (details) {
-                    if (details.primaryVelocity == null) return;
-                    if (details.primaryVelocity! < -300) {
-                      // Deslizar para a esquerda -> próxima tela
-                      if (tab < 3) {
-                        HapticFeedback.selectionClick();
-                        setState(() => tab = tab + 1);
-                      }
-                    } else if (details.primaryVelocity! > 300) {
-                      // Deslizar para a direita -> tela anterior
-                      if (tab > 0) {
-                        HapticFeedback.selectionClick();
-                        setState(() => tab = tab - 1);
-                      }
-                    }
-                  },
-                  behavior: HitTestBehavior.translucent,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: child,
-                    ),
-                    child: KeyedSubtree(
-                      key: ValueKey<int>(tab),
-                      child: [
-                        _homeTab(),
-                        _historyTab(),
-                        _analyticsTab(),
-                        _vehicleTab(),
-                      ][tab],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        bottomNavigationBar: _glassBottomNavigation(),
-      ),
-    );
-  }
 
-  Widget _nextTopBar() {
-    final isHome = tab == 0;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isHome ? 'Visão geral' : 'Finanza · Carro',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMuted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isHome ? _greeting() : _tabTitle,
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMain,
-                        fontSize: 27,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ],
+    return Scaffold(
+      appBar: AppBar(
+        title: _isSearchOpen
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+                cursorColor: Colors.white,
+                decoration: const InputDecoration(
+                  hintText: 'Buscar por combustível, posto, notas...',
+                  hintStyle: TextStyle(color: Colors.white70),
+                  border: InputBorder.none,
                 ),
-              ),
-              if (isHome)
-                IconButton(
-                  onPressed: _filterSheet,
-                  tooltip: 'Filtros e veículo',
-                  icon: Icon(Icons.tune_rounded, color: textMuted, size: 22),
-                ),
-            ],
-          ),
-          if (isHome) ...[
-            const SizedBox(height: 10),
-            Text(
-              '${currentVehicle.name} · ${_maxOdometer(allVehicleEvents).round()} km',
-              style: TextStyle(
-                fontFamily: 'DM Sans',
-                color: textMuted,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _glassBottomNavigation() => Stack(
-        alignment: Alignment.bottomCenter,
-        clipBehavior: Clip.none,
-        children: [
-          // Gradiente suave de fade que escurece/suaviza os elementos que passam por baixo da navbar
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 120,
-            child: IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      ink.withOpacity(0.0),
-                      ink.withOpacity(0.55),
-                      ink.withOpacity(0.92),
-                    ],
-                    stops: const [0.0, 0.45, 1.0],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(32),
-                child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                  child: Container(
-                    height: 64,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: isDarkTheme
-                            ? [
-                                const Color(0xFF282830).withOpacity(0.68),
-                                const Color(0xFF141418).withOpacity(0.82),
-                              ]
-                            : [
-                                Colors.white.withOpacity(0.94),
-                                Colors.white.withOpacity(0.82),
-                              ],
-                      ),
-                      borderRadius: BorderRadius.circular(32),
-                      border: Border.all(
-                        color: isDarkTheme
-                            ? Colors.white.withOpacity(0.18)
-                            : Colors.white.withOpacity(0.85),
-                        width: 1.2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(isDarkTheme ? 0.60 : 0.10),
-                          blurRadius: 36,
-                          offset: const Offset(0, 16),
-                          spreadRadius: -4,
-                        ),
-                        BoxShadow(
-                          color: isDarkTheme
-                              ? Colors.white.withOpacity(0.05)
-                              : Colors.black.withOpacity(0.04),
-                          blurRadius: 1,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _navItem(0, Icons.home_rounded),
-                        _navItem(1, Icons.receipt_long_rounded),
-                        _navItem(2, Icons.insights_rounded),
-                        _navItem(3, Icons.directions_car_rounded),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-
-  Widget _navItem(int index, IconData icon) {
-    final active = tab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          if (tab == index) return;
-          HapticFeedback.selectionClick();
-          setState(() => tab = index);
-        },
-        behavior: HitTestBehavior.opaque,
-        child: Center(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            width: active ? 60 : 46,
-            height: 48,
-            decoration: BoxDecoration(
-              gradient: active
-                  ? LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: isDarkTheme
-                          ? [
-                              const Color(0xFF3E3E4A).withOpacity(0.95),
-                              const Color(0xFF282832).withOpacity(0.92),
-                            ]
-                          : [
-                              const Color(0xFF0F172A),
-                              const Color(0xFF1E293B),
-                            ],
-                    )
-                  : null,
-              borderRadius: BorderRadius.circular(24),
-              border: active
-                  ? Border.all(
-                      color: isDarkTheme
-                          ? Colors.white.withOpacity(0.24)
-                          : Colors.black.withOpacity(0.08),
-                      width: 1.0,
-                    )
-                  : null,
-              boxShadow: active
-                  ? [
-                      BoxShadow(
-                        color: (isDarkTheme ? Colors.black : Colors.black12).withOpacity(0.35),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Icon(
-              icon,
-              size: active ? 22 : 20,
-              color: active
-                  ? Colors.white
-                  : (isDarkTheme ? const Color(0xFF8E8E94) : const Color(0xFF94A3B8)),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _errorBanner() => Container(
-        width: double.infinity,
-        margin: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: coral.withOpacity(.12),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: coral.withOpacity(.25)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline_rounded, color: coral, size: 17),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                loadError,
-                style: const TextStyle(
-                  fontFamily: 'DM Sans',
-                  color: Color(0xffffb0a4),
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-
-  Widget _homeTab() {
-    final list = filteredEvents;
-    final total = _total(list);
-    return RefreshIndicator(
-      color: blue,
-      backgroundColor: panel,
-      onRefresh: _load,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-        children: [
-          _nextTopBar(),
-          if (pendingFuelImports.isNotEmpty && !dismissedPendingFuel)
-            _pendingFuelBanner(),
-          _quickAddPill(),
-          _centralDeRecursosPill(),
-          const SizedBox(height: 14),
-          _heroCardGlass(list, total),
-          const SizedBox(height: 14),
-          _ritmoSemanalCard(list),
-          const SizedBox(height: 14),
-          _ritmoMensalCard(list),
-          const SizedBox(height: 14),
-          _chartCard(list),
-          const SizedBox(height: 20),
-          _ultimasTransacoesHeader(),
-          const SizedBox(height: 10),
-          _recentList(list),
-        ],
-      ),
-    );
-  }
-
-  Widget _pendingFuelBanner() {
-    final count = pendingFuelImports.length;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: _pendingFuelReviewModal,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDarkTheme
-                  ? [amber.withOpacity(0.18), const Color(0xFF1F1A14)]
-                  : [const Color(0xFFFEF3C7), const Color(0xFFFDE68A)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: amber.withOpacity(isDarkTheme ? 0.35 : 0.5),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: amber.withOpacity(0.12),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: amber.withOpacity(0.25),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.local_gas_station_rounded,
-                  size: 20,
-                  color: isDarkTheme ? amber : const Color(0xFFB45309),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Importação de Abastecimentos',
-                          style: TextStyle(
-                            fontFamily: 'DM Sans',
-                            color: isDarkTheme ? textMain : const Color(0xFF78350F),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: amber,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '$count',
-                            style: const TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: Colors.black,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Revisar, editar ou aceitar registros até Setembro',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: isDarkTheme ? textMuted : const Color(0xFF92400E),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: isDarkTheme ? amber : const Color(0xFFB45309),
-                size: 22,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _quickAddPill() => Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        child: InkWell(
-          onTap: _quickAddTransactionSheet,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDarkTheme
-                    ? [const Color(0xFF222634), const Color(0xFF161822)]
-                    : [const Color(0xFF0F172A), const Color(0xFF1E293B)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isDarkTheme ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: (isDarkTheme ? Colors.black : Colors.black26).withOpacity(0.25),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  alignment: Alignment.center,
+                onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
+              )
+            : GestureDetector(
+                onTap: _showVehicleSelector,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: blue.withOpacity(0.20),
-                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white24),
                   ),
-                  child: Icon(
-                    Icons.add_rounded,
-                    size: 22,
-                    color: blue,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          '${_activeVehicle.name} (${_activeVehicle.model} - ${NumberFormat('#,###', 'pt_BR').format(_latestOdometer)} km)',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_drop_down, color: Colors.white, size: 18),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
+              ),
+        actions: [
+          IconButton(
+            icon: Icon(_isSearchOpen ? Icons.close : Icons.search),
+            onPressed: () {
+              setState(() {
+                _isSearchOpen = !_isSearchOpen;
+                if (!_isSearchOpen) {
+                  _searchQuery = '';
+                  _searchController.clear();
+                }
+              });
+            },
+          ),
+          IconButton(
+            icon: _isSyncing
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Icon(Icons.cloud_sync_outlined),
+            onPressed: _isSyncing ? null : _syncWithCloudflare,
+          ),
+        ],
+      ),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          // 0: Histórico (Feed Timeline)
+          TimelineFeedTab(
+            vehicle: _activeVehicle,
+            events: _events.where((e) => e.vehicleId == _activeVehicleId).toList(),
+            reminders: _reminders.where((r) => r.vehicleId == _activeVehicleId).toList(),
+            searchQuery: _searchQuery,
+            onEventTap: (event) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => FuelingDetailsScreen(
+                    event: event,
+                    allEvents: _events.where((e) => e.vehicleId == _activeVehicleId).toList(),
+                    vehicle: _activeVehicle,
+                    onEdit: () => _openFuelingForm(event: event),
+                    onDelete: () => _deleteEvent(event.id),
+                  ),
+                ),
+              );
+            },
+            onReminderTap: () => setState(() => _currentIndex = 2),
+          ),
+          // 1: Relatórios
+          ReportsTab(
+            vehicle: _activeVehicle,
+            events: _events.where((e) => e.vehicleId == _activeVehicleId).toList(),
+          ),
+          // 2: Lembretes
+          RemindersTab(
+            vehicle: _activeVehicle,
+            reminders: _reminders.where((r) => r.vehicleId == _activeVehicleId).toList(),
+            latestOdometer: _latestOdometer,
+            onAddReminder: () => _openReminderForm(),
+            onEditReminder: (rem) => _openReminderForm(reminder: rem),
+            onToggleReminder: (rem) {
+              setState(() {
+                rem.isCompleted = !rem.isCompleted;
+                if (rem.isCompleted) {
+                  rem.targetOdometer = _latestOdometer + rem.repeatIntervalKm;
+                }
+              });
+              _saveLocalState();
+            },
+            onDeleteReminder: (rem) {
+              setState(() => _reminders.removeWhere((r) => r.id == rem.id));
+              _saveLocalState();
+            },
+          ),
+          // 3: Mais
+          MoreTab(
+            vehicle: _activeVehicle,
+            totalRecords: _events.length,
+            onRestoreBackup: () async {
+              await _loadAllData();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('146 abastecimentos reais restaurados com sucesso!'),
+                    backgroundColor: DrivvoColors.primaryTeal,
+                  ),
+                );
+              }
+            },
+            onSyncCloudflare: _syncWithCloudflare,
+            onCheckUpdates: _checkAppUpdates,
+          ),
+        ],
+      ),
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 6,
+        color: Colors.white,
+        elevation: 8,
+        child: SizedBox(
+          height: 60,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavButton(index: 0, icon: Icons.format_list_bulleted, label: 'Histórico'),
+              _buildNavButton(index: 1, icon: Icons.bar_chart_rounded, label: 'Relatórios'),
+              const SizedBox(width: 48), // Spacer for centered FAB
+              _buildNavButton(index: 2, icon: Icons.alarm, label: 'Lembretes'),
+              _buildNavButton(index: 3, icon: Icons.more_horiz, label: 'Mais'),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showSpeedDialMenu,
+        backgroundColor: DrivvoColors.primaryTeal,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add, size: 28),
+      ),
+    );
+  }
+
+  Widget _buildNavButton({required int index, required IconData icon, required String label}) {
+    final isSelected = _currentIndex == index;
+    final color = isSelected ? DrivvoColors.primaryTeal : DrivvoColors.textMuted;
+    return InkWell(
+      onTap: () => setState(() => _currentIndex = index),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 1. TIMELINE FEED TAB (100% DRIVVO DESIGN)
+// ==========================================
+class TimelineFeedTab extends StatelessWidget {
+  final CarVehicle vehicle;
+  final List<CarEvent> events;
+  final List<CarReminder> reminders;
+  final String searchQuery;
+  final Function(CarEvent) onEventTap;
+  final VoidCallback onReminderTap;
+
+  const TimelineFeedTab({
+    super.key,
+    required this.vehicle,
+    required this.events,
+    required this.reminders,
+    required this.searchQuery,
+    required this.onEventTap,
+    required this.onReminderTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Filter events by query
+    final filtered = events.where((e) {
+      if (searchQuery.isEmpty) return true;
+      final q = searchQuery.toLowerCase();
+      return e.fuelType.toLowerCase().contains(q) ||
+          e.station.toLowerCase().contains(q) ||
+          e.driver.toLowerCase().contains(q) ||
+          e.note.toLowerCase().contains(q) ||
+          e.odometer.toString().contains(q);
+    }).toList();
+
+    // Sort descending by odometer/date
+    filtered.sort((a, b) {
+      if (a.odometer != b.odometer) {
+        return b.odometer.compareTo(a.odometer);
+      }
+      return b.date.compareTo(a.date);
+    });
+
+    // Group by Month (e.g. 'SETEMBRO 2026', 'AGOSTO 2026')
+    final Map<String, List<CarEvent>> monthGroups = {};
+    for (final e in filtered) {
+      final key = _formatMonthHeader(e.parsedDate);
+      monthGroups.putIfAbsent(key, () => []).add(e);
+    }
+
+    // Top reminder banner
+    CarReminder? urgentReminder;
+    for (final r in reminders) {
+      if (!r.isCompleted) {
+        urgentReminder = r;
+        break;
+      }
+    }
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 90),
+      children: [
+        if (urgentReminder != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: InkWell(
+              onTap: onReminderTap,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: DrivvoColors.reminderAlertBg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFFE082)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(color: DrivvoColors.reminderAlert, shape: BoxShape.circle),
+                      child: const Icon(Icons.alarm, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'LEMBRETES',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: DrivvoColors.reminderAlert, letterSpacing: 0.8),
+                          ),
+                          Text(
+                            urgentReminder.title,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: DrivvoColors.textDark),
+                          ),
+                          Text(
+                            'Faltam ${NumberFormat('#,###', 'pt_BR').format(math.max(0, urgentReminder.targetOdometer - vehicle.odometer))} km',
+                            style: const TextStyle(fontSize: 12, color: DrivvoColors.textMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right, color: DrivvoColors.textMuted),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+        // Timeline Groups
+        ...monthGroups.entries.map((entry) {
+          final monthTitle = entry.key;
+          final monthEvents = entry.value;
+
+          // Compute Month totals
+          double monthAmount = 0.0;
+          double monthLiters = 0.0;
+          int minOdo = 99999999;
+          int maxOdo = 0;
+
+          for (final ev in monthEvents) {
+            monthAmount += ev.amount;
+            monthLiters += ev.liters;
+            if (ev.odometer < minOdo) minOdo = ev.odometer;
+            if (ev.odometer > maxOdo) maxOdo = ev.odometer;
+          }
+          final monthKm = (maxOdo > minOdo && minOdo != 99999999) ? (maxOdo - minOdo) : 0;
+          final avgKmL = (monthLiters > 0 && monthKm > 0) ? (monthKm / monthLiters) : 0.0;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Month Summary Card (Drivvo continuous track header)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: DrivvoColors.divider),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2)),
+                    ],
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Abastecimento Rápido',
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                      Text(
+                        monthTitle,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF37474F),
+                          letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Litros, preço e valor com cálculo automático',
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: Colors.white.withOpacity(0.68),
-                          fontSize: 12,
-                        ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Text(
+                            'R$ ${NumberFormat('#,##0.00', 'pt_BR').format(monthAmount)}',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: DrivvoColors.textDark),
+                          ),
+                          const Text('  •  ', style: TextStyle(color: DrivvoColors.textLight)),
+                          Text(
+                            '$monthKm km',
+                            style: const TextStyle(fontSize: 13, color: DrivvoColors.textDark),
+                          ),
+                          if (avgKmL > 0) ...[
+                            const Text('  •  ', style: TextStyle(color: DrivvoColors.textLight)),
+                            Text(
+                              '${avgKmL.toStringAsFixed(3)} km/L',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: DrivvoColors.textDark),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
+              ),
+
+              // Events list with continuous left track line
+              ...monthEvents.map((ev) {
+                // Calculate km/L and delta km for this event
+                final stats = _computeEventEfficiency(ev, events);
+
+                return Stack(
+                  children: [
+                    // Vertical track line
+                    Positioned(
+                      left: 35,
+                      top: 0,
+                      bottom: 0,
+                      child: Container(width: 2, color: DrivvoColors.trackLine),
+                    ),
+                    // Timeline Item Row
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: InkWell(
+                        onTap: () => onEventTap(ev),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: DrivvoColors.divider.withOpacity(0.6)),
+                          ),
+                          child: Row(
+                            children: [
+                              // Node circle on track
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: _getEventColor(ev.type),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(_getEventIcon(ev.type), color: Colors.white, size: 20),
+                              ),
+                              const SizedBox(width: 14),
+                              // Event Info (Left)
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      ev.type == 'fuel' ? ev.fuelType : (ev.title.isNotEmpty ? ev.title : ev.category),
+                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: DrivvoColors.textDark),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    RichText(
+                                      text: TextSpan(
+                                        style: const TextStyle(fontSize: 12, color: DrivvoColors.textMuted, fontFamily: 'DM Sans'),
+                                        children: [
+                                          TextSpan(text: '${NumberFormat('#,###', 'pt_BR').format(ev.odometer)} km  •  '),
+                                          if (stats.kmL > 0) ...[
+                                            TextSpan(
+                                              text: '${stats.kmL.toStringAsFixed(3)} km/L',
+                                              style: const TextStyle(fontWeight: FontWeight.bold, color: DrivvoColors.textDark),
+                                            ),
+                                            const TextSpan(text: '  •  '),
+                                          ],
+                                          if (ev.type == 'fuel') TextSpan(text: '${ev.liters.toStringAsFixed(3)} L'),
+                                        ],
+                                      ),
+                                    ),
+                                    if (ev.station.isNotEmpty || ev.driver.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        [ev.station, ev.driver].where((s) => s.isNotEmpty).join(' • '),
+                                        style: const TextStyle(fontSize: 11, color: DrivvoColors.textLight),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              // Event Amount & Date (Right)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'R$ ${NumberFormat('#,##0.00', 'pt_BR').format(ev.amount)}',
+                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: DrivvoColors.textDark),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    _formatDayMonth(ev.parsedDate),
+                                    style: const TextStyle(fontSize: 12, color: DrivvoColors.textMuted),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+
+  static String _formatMonthHeader(DateTime dt) {
+    const months = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
+    return '${months[dt.month - 1]} ${dt.year}';
+  }
+
+  static String _formatDayMonth(DateTime dt) {
+    const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    return '${dt.day} ${months[dt.month - 1]}';
+  }
+
+  static Color _getEventColor(String type) {
+    switch (type) {
+      case 'fuel':
+        return DrivvoColors.fuelOrange;
+      case 'service':
+        return DrivvoColors.servicePurple;
+      case 'expense':
+      default:
+        return DrivvoColors.expenseBlue;
+    }
+  }
+
+  static IconData _getEventIcon(String type) {
+    switch (type) {
+      case 'fuel':
+        return Icons.local_gas_station;
+      case 'service':
+        return Icons.build;
+      case 'expense':
+      default:
+        return Icons.receipt_long;
+    }
+  }
+
+  static ({double kmL, int deltaKm, double costPerKm}) _computeEventEfficiency(CarEvent ev, List<CarEvent> allEvents) {
+    if (ev.type != 'fuel' || ev.liters <= 0) return (kmL: 0.0, deltaKm: 0, costPerKm: 0.0);
+
+    // Find previous fueling with lower odometer
+    final fuelEvents = allEvents.where((e) => e.type == 'fuel').toList();
+    fuelEvents.sort((a, b) => a.odometer.compareTo(b.odometer));
+
+    final idx = fuelEvents.indexWhere((e) => e.id == ev.id);
+    if (idx > 0) {
+      final prev = fuelEvents[idx - 1];
+      final delta = ev.odometer - prev.odometer;
+      if (delta > 0) {
+        final efficiency = delta / ev.liters;
+        final cost = ev.amount / delta;
+        return (kmL: efficiency, deltaKm: delta, costPerKm: cost);
+      }
+    }
+    return (kmL: 0.0, deltaKm: 0, costPerKm: 0.0);
+  }
+}
+
+// ==========================================
+// 2. FUELING FORM SCREEN (100% DRIVVO FORM)
+// ==========================================
+class FuelingFormScreen extends StatefulWidget {
+  final CarVehicle vehicle;
+  final int latestOdometer;
+  final CarEvent? existingEvent;
+  final Function(CarEvent) onSave;
+
+  const FuelingFormScreen({
+    super.key,
+    required this.vehicle,
+    required this.latestOdometer,
+    this.existingEvent,
+    required this.onSave,
+  });
+
+  @override
+  State<FuelingFormScreen> createState() => _FuelingFormScreenState();
+}
+
+class _FuelingFormScreenState extends State<FuelingFormScreen> {
+  late DateTime _selectedDate;
+  late TimeOfDay _selectedTime;
+  late TextEditingController _odometerController;
+  late TextEditingController _priceController;
+  late TextEditingController _totalController;
+  late TextEditingController _litersController;
+  late TextEditingController _stationController;
+  late TextEditingController _driverController;
+  late TextEditingController _notesController;
+
+  String _selectedFuelType = 'Etanol';
+  bool _isFullTank = true;
+  String _selectedPayment = 'Dinheiro';
+
+  bool _isUpdatingFields = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final ev = widget.existingEvent;
+    _selectedDate = ev != null ? ev.parsedDate : DateTime.now();
+    _selectedTime = TimeOfDay.now();
+    _odometerController = TextEditingController(text: ev != null ? ev.odometer.toString() : (widget.latestOdometer > 0 ? widget.latestOdometer.toString() : ''));
+    _priceController = TextEditingController(text: ev != null && ev.pricePerLiter > 0 ? ev.pricePerLiter.toStringAsFixed(2).replaceAll('.', ',') : '');
+    _totalController = TextEditingController(text: ev != null && ev.amount > 0 ? ev.amount.toStringAsFixed(2).replaceAll('.', ',') : '');
+    _litersController = TextEditingController(text: ev != null && ev.liters > 0 ? ev.liters.toStringAsFixed(3).replaceAll('.', ',') : '');
+    _stationController = TextEditingController(text: ev?.station ?? '');
+    _driverController = TextEditingController(text: ev?.driver ?? 'Rafaela');
+    _notesController = TextEditingController(text: ev?.note ?? '');
+
+    if (ev != null) {
+      _selectedFuelType = ev.fuelType;
+      _isFullTank = ev.isFullTank;
+      _selectedPayment = ev.paymentMethod.isNotEmpty ? ev.paymentMethod : 'Dinheiro';
+    }
+
+    _priceController.addListener(() => _onCalculationChanged('price'));
+    _totalController.addListener(() => _onCalculationChanged('total'));
+    _litersController.addListener(() => _onCalculationChanged('liters'));
+  }
+
+  @override
+  void dispose() {
+    _odometerController.dispose();
+    _priceController.dispose();
+    _totalController.dispose();
+    _litersController.dispose();
+    _stationController.dispose();
+    _driverController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  void _onCalculationChanged(String source) {
+    if (_isUpdatingFields) return;
+    _isUpdatingFields = true;
+
+    try {
+      final p = double.tryParse(_priceController.text.replaceAll(',', '.'));
+      final t = double.tryParse(_totalController.text.replaceAll(',', '.'));
+      final l = double.tryParse(_litersController.text.replaceAll(',', '.'));
+
+      if (source == 'price' || source == 'total') {
+        if (p != null && p > 0 && t != null && t > 0) {
+          final computedLiters = t / p;
+          _litersController.text = computedLiters.toStringAsFixed(3).replaceAll('.', ',');
+        }
+      } else if (source == 'liters') {
+        if (p != null && p > 0 && l != null && l > 0) {
+          final computedTotal = p * l;
+          _totalController.text = computedTotal.toStringAsFixed(2).replaceAll('.', ',');
+        } else if (t != null && t > 0 && l != null && l > 0) {
+          final computedPrice = t / l;
+          _priceController.text = computedPrice.toStringAsFixed(2).replaceAll('.', ',');
+        }
+      }
+    } catch (_) {}
+
+    _isUpdatingFields = false;
+  }
+
+  void _submit() {
+    final odo = int.tryParse(_odometerController.text.replaceAll('.', '')) ?? 0;
+    final amount = double.tryParse(_totalController.text.replaceAll(',', '.')) ?? 0.0;
+    final liters = double.tryParse(_litersController.text.replaceAll(',', '.')) ?? 0.0;
+    var ppl = double.tryParse(_priceController.text.replaceAll(',', '.')) ?? 0.0;
+    if (ppl == 0.0 && liters > 0 && amount > 0) {
+      ppl = amount / liters;
+    }
+
+    if (odo <= 0 || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Informe ao menos o Odômetro e o Valor Total.')),
+      );
+      return;
+    }
+
+    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    final timeStr = '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}';
+
+    final savedEvent = CarEvent(
+      id: widget.existingEvent?.id ?? 'fuel-${DateTime.now().millisecondsSinceEpoch}',
+      vehicleId: widget.vehicle.id,
+      type: 'fuel',
+      date: dateStr,
+      time: timeStr,
+      amount: amount,
+      odometer: odo,
+      fuelType: _selectedFuelType,
+      liters: liters,
+      pricePerLiter: ppl,
+      isFullTank: _isFullTank,
+      title: 'Abastecimento ($_selectedFuelType)',
+      category: 'Combustivel',
+      station: _stationController.text.trim(),
+      driver: _driverController.text.trim(),
+      paymentMethod: _selectedPayment,
+      note: _notesController.text.trim(),
+    );
+
+    widget.onSave(savedEvent);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: DrivvoColors.fuelOrange,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('Abastecimento'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Vehicle Info Tile
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+              child: Row(
+                children: [
+                  const Icon(Icons.directions_car, color: DrivvoColors.textMuted),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Veículo', style: TextStyle(fontSize: 11, color: DrivvoColors.textLight)),
+                      Text('${widget.vehicle.name} (${widget.vehicle.model})', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    ],
                   ),
-                  child: const Text(
-                    '+ NOVO',
-                    style: TextStyle(
-                      fontFamily: 'DM Sans',
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Date & Time Row
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2030),
+                      );
+                      if (picked != null) setState(() => _selectedDate = picked);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today, color: DrivvoColors.fuelOrange, size: 20),
+                          const SizedBox(width: 10),
+                          Text(DateFormat('dd/MM/yyyy').format(_selectedDate), style: const TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      final picked = await showTimePicker(context: context, initialTime: _selectedTime);
+                      if (picked != null) setState(() => _selectedTime = picked);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time, color: DrivvoColors.fuelOrange, size: 20),
+                          const SizedBox(width: 10),
+                          Text(_selectedTime.format(context), style: const TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
-          ),
-        ),
-      );
+            const SizedBox(height: 12),
 
-  Widget _centralDeRecursosPill() => InkWell(
-        onTap: _quickActionChooserSheet,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: isDarkTheme ? const Color(0xFF222226) : const Color(0xFFF1F3F6),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.directions_car_rounded,
-                  size: 20,
-                  color: isDarkTheme ? Colors.white : const Color(0xFF0F172A),
-                ),
+            // Odometer
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _odometerController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      icon: Icon(Icons.speed, color: DrivvoColors.fuelOrange),
+                      labelText: 'Odômetro (km)',
+                      border: InputBorder.none,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 40),
+                    child: Text(
+                      'Último odômetro: ${NumberFormat('#,###', 'pt_BR').format(widget.latestOdometer)} km',
+                      style: const TextStyle(fontSize: 12, color: DrivvoColors.textLight),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            const SizedBox(height: 12),
+
+            // Fuel Type Selection
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Tipo de Combustível', style: TextStyle(fontSize: 12, color: DrivvoColors.textLight)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: ['Etanol', 'Gasolina Comum', 'Gasolina Aditivada', 'Diesel', 'GNV'].map((type) {
+                      final isSelected = _selectedFuelType == type;
+                      return ChoiceChip(
+                        label: Text(type),
+                        selected: isSelected,
+                        selectedColor: DrivvoColors.fuelOrange,
+                        labelStyle: TextStyle(color: isSelected ? Colors.white : DrivvoColors.textDark, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+                        onSelected: (selected) {
+                          if (selected) setState(() => _selectedFuelType = type);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 3 Auto-calculating Fields: Preço/L, Valor Total, Litros
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _priceController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Preço / L',
+                            prefixText: 'R$ ',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _totalController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Valor total',
+                            prefixText: 'R$ ',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _litersController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Litros',
+                      suffixText: 'L',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Tank Full Switch
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.local_gas_station, color: DrivvoColors.fuelOrange),
+                      SizedBox(width: 12),
+                      Text('Está completando o tanque?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    ],
+                  ),
+                  Switch(
+                    value: _isFullTank,
+                    activeColor: DrivvoColors.fuelOrange,
+                    onChanged: (val) => setState(() => _isFullTank = val),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Posto de Combustível
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _stationController,
+                    decoration: const InputDecoration(
+                      icon: Icon(Icons.place, color: DrivvoColors.fuelOrange),
+                      labelText: 'Posto de combustível',
+                      hintText: 'Ex: Zanforlim, Shell, Ipiranga',
+                      border: InputBorder.none,
+                    ),
+                  ),
+                  Wrap(
+                    spacing: 6,
+                    children: ['Zanforlim', 'Rafaela', 'Shell', 'Ipiranga', 'Petrobras'].map((st) {
+                      return ActionChip(
+                        label: Text(st, style: const TextStyle(fontSize: 11)),
+                        onPressed: () => setState(() => _stationController.text = st),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Motorista
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _driverController,
+                    decoration: const InputDecoration(
+                      icon: Icon(Icons.person, color: DrivvoColors.fuelOrange),
+                      labelText: 'Motorista',
+                      border: InputBorder.none,
+                    ),
+                  ),
+                  Wrap(
+                    spacing: 6,
+                    children: ['Rafaela', 'Jefferson'].map((dr) {
+                      return ActionChip(
+                        label: Text(dr, style: const TextStyle(fontSize: 11)),
+                        onPressed: () => setState(() => _driverController.text = dr),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Mais opções
+            Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+                backgroundColor: Colors.white,
+                collapsedBackgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                title: const Text('Mais opções', style: TextStyle(fontSize: 14, color: DrivvoColors.textMuted)),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      children: [
+                        DropdownButtonFormField<String>(
+                          value: _selectedPayment,
+                          decoration: const InputDecoration(labelText: 'Forma de Pagamento', border: OutlineInputBorder()),
+                          items: ['Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'Pix']
+                              .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                              .toList(),
+                          onChanged: (val) => setState(() => _selectedPayment = val ?? 'Dinheiro'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _notesController,
+                          maxLines: 2,
+                          decoration: const InputDecoration(labelText: 'Observações / Notas', border: OutlineInputBorder()),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Save Button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: DrivvoColors.fuelOrange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 2,
+                ),
+                onPressed: _submit,
+                child: const Text('SALVAR', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 3. FUELING DETAILS SCREEN (100% DRIVVO)
+// ==========================================
+class FuelingDetailsScreen extends StatelessWidget {
+  final CarEvent event;
+  final List<CarEvent> allEvents;
+  final CarVehicle vehicle;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const FuelingDetailsScreen({
+    super.key,
+    required this.event,
+    required this.allEvents,
+    required this.vehicle,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Compute efficiency metrics
+    final stats = TimelineFeedTab._computeEventEfficiency(event, allEvents);
+    final tankCapacity = vehicle.tankCapacity > 0 ? vehicle.tankCapacity : 52.0;
+    final tankPercent = (event.liters / tankCapacity * 100).clamp(0, 100).toInt();
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: DrivvoColors.fuelOrange,
+        title: const Text('Abastecimento'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Excluir abastecimento?'),
+                  content: const Text('Esta ação removerá este abastecimento do histórico.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        onDelete();
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Excluir'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () {
+              Navigator.pop(context);
+              onEdit();
+            },
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Card 1: Fuel Info & Visual Tank Gauge
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: DrivvoColors.divider),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2)),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Central do veículo',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMain,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      event.fuelType,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: DrivvoColors.fuelOrangeDark),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Planejamento, consumo e manutenções',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMuted,
-                        fontSize: 12,
+                    // Tank Graphic Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: DrivvoColors.fuelOrangeLight,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: DrivvoColors.fuelOrange.withOpacity(0.5)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.water_drop, color: DrivvoColors.fuelOrangeDark, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$tankPercent% do Tanque',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: DrivvoColors.fuelOrangeDark),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                // 3 Top Stats Columns
+                Row(
+                  children: [
+                    _buildStatColumn('Preço / L', 'R$ ${event.pricePerLiter.toStringAsFixed(2)}'),
+                    _buildStatColumn('Valor total', 'R$ ${NumberFormat('#,##0.00', 'pt_BR').format(event.amount)}'),
+                    _buildStatColumn('Volume', '${event.liters.toStringAsFixed(3)} L'),
+                  ],
+                ),
+                const Divider(height: 24),
+                // 3 Bottom Stats Columns
+                Row(
+                  children: [
+                    _buildStatColumn('Completo', event.isFullTank ? 'Sim' : 'Não'),
+                    _buildStatColumn('Média', stats.kmL > 0 ? '${stats.kmL.toStringAsFixed(3)} km/L' : '-'),
+                    _buildStatColumn('Custo/Km', stats.costPerKm > 0 ? 'R$ ${stats.costPerKm.toStringAsFixed(2)}' : '-'),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Visual Tank Progress Bar
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: tankPercent / 100,
+                    backgroundColor: DrivvoColors.trackLine,
+                    valueColor: const AlwaysStoppedAnimation<Color>(DrivvoColors.fuelOrange),
+                    minHeight: 8,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Card 2: DETALHES
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: DrivvoColors.divider),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2)),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'DETALHES',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: DrivvoColors.textLight, letterSpacing: 0.8),
+                ),
+                const SizedBox(height: 12),
+                _buildDetailRow(Icons.place, 'Posto de combustível', event.station.isNotEmpty ? event.station : 'Não informado'),
+                _buildDetailRow(Icons.speed, 'Odômetro', '${NumberFormat('#,###', 'pt_BR').format(event.odometer)} km'),
+                _buildDetailRow(Icons.calendar_today, 'Data e Hora', '${DateFormat('dd/MM/yyyy').format(event.parsedDate)} ${event.time}'),
+                _buildDetailRow(Icons.person, 'Motorista', event.driver.isNotEmpty ? event.driver : 'Não informado'),
+                _buildDetailRow(Icons.payment, 'Forma de pagamento', event.paymentMethod.isNotEmpty ? event.paymentMethod : 'Não informado'),
+                if (stats.deltaKm > 0)
+                  _buildDetailRow(Icons.timeline, 'Distância percorrida', '${NumberFormat('#,###', 'pt_BR').format(stats.deltaKm)} km'),
+                if (event.note.isNotEmpty)
+                  _buildDetailRow(Icons.notes, 'Observações', event.note),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildStatColumn(String label, String value) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, color: DrivvoColors.textMuted)),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: DrivvoColors.textDark)),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildDetailRow(IconData icon, String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: DrivvoColors.textMuted, size: 20),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 11, color: DrivvoColors.textLight)),
+                const SizedBox(height: 2),
+                Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: DrivvoColors.textDark)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 4. SERVICE / EXPENSE FORM SCREEN
+// ==========================================
+class ServiceExpenseFormScreen extends StatefulWidget {
+  final bool isService;
+  final CarVehicle vehicle;
+  final int latestOdometer;
+  final CarEvent? existingEvent;
+  final Function(CarEvent) onSave;
+
+  const ServiceExpenseFormScreen({
+    super.key,
+    required this.isService,
+    required this.vehicle,
+    required this.latestOdometer,
+    this.existingEvent,
+    required this.onSave,
+  });
+
+  @override
+  State<ServiceExpenseFormScreen> createState() => _ServiceExpenseFormScreenState();
+}
+
+class _ServiceExpenseFormScreenState extends State<ServiceExpenseFormScreen> {
+  late DateTime _selectedDate;
+  late TextEditingController _odometerController;
+  late TextEditingController _titleController;
+  late TextEditingController _amountController;
+  late TextEditingController _notesController;
+  String _selectedCategory = '';
+
+  final List<String> _serviceCategories = ['Troca de Óleo', 'Filtro de Óleo', 'Filtro de Ar', 'Pastilhas de Freio', 'Suspensão', 'Alinhamento / Balanceamento', 'Bateria', 'Oficina'];
+  final List<String> _expenseCategories = ['Estacionamento', 'Pedágio', 'Lavagem', 'IPVA', 'Seguro', 'Multa', 'Outros'];
+
+  @override
+  void initState() {
+    super.initState();
+    final ev = widget.existingEvent;
+    _selectedDate = ev != null ? ev.parsedDate : DateTime.now();
+    _odometerController = TextEditingController(text: ev != null ? ev.odometer.toString() : (widget.latestOdometer > 0 ? widget.latestOdometer.toString() : ''));
+    _titleController = TextEditingController(text: ev?.title ?? '');
+    _amountController = TextEditingController(text: ev != null && ev.amount > 0 ? ev.amount.toStringAsFixed(2).replaceAll('.', ',') : '');
+    _notesController = TextEditingController(text: ev?.note ?? '');
+    _selectedCategory = ev?.category ?? (widget.isService ? _serviceCategories.first : _expenseCategories.first);
+  }
+
+  @override
+  void dispose() {
+    _odometerController.dispose();
+    _titleController.dispose();
+    _amountController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final odo = int.tryParse(_odometerController.text.replaceAll('.', '')) ?? 0;
+    final amount = double.tryParse(_amountController.text.replaceAll(',', '.')) ?? 0.0;
+    final title = _titleController.text.trim().isNotEmpty ? _titleController.text.trim() : _selectedCategory;
+
+    if (amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Informe o valor total.')));
+      return;
+    }
+
+    final saved = CarEvent(
+      id: widget.existingEvent?.id ?? 'exp-${DateTime.now().millisecondsSinceEpoch}',
+      vehicleId: widget.vehicle.id,
+      type: widget.isService ? 'service' : 'expense',
+      date: DateFormat('yyyy-MM-dd').format(_selectedDate),
+      time: '12:00',
+      amount: amount,
+      odometer: odo,
+      title: title,
+      category: _selectedCategory,
+      note: _notesController.text.trim(),
+    );
+
+    widget.onSave(saved);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final themeColor = widget.isService ? DrivvoColors.servicePurple : DrivvoColors.expenseBlue;
+    final title = widget.isService ? 'Serviço / Manutenção' : 'Despesa';
+
+    return Scaffold(
+      appBar: AppBar(backgroundColor: themeColor, title: Text(title)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+              child: Column(
+                children: [
+                  TextField(controller: _odometerController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Odômetro (km)', border: OutlineInputBorder())),
+                  const SizedBox(height: 12),
+                  TextField(controller: _amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Valor Total', prefixText: 'R$ ', border: OutlineInputBorder())),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _selectedCategory,
+                    decoration: const InputDecoration(labelText: 'Categoria', border: OutlineInputBorder()),
+                    items: (widget.isService ? _serviceCategories : _expenseCategories).map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                    onChanged: (val) => setState(() => _selectedCategory = val ?? ''),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(controller: _titleController, decoration: const InputDecoration(labelText: 'Descrição / Título', border: OutlineInputBorder())),
+                  const SizedBox(height: 12),
+                  TextField(controller: _notesController, maxLines: 2, decoration: const InputDecoration(labelText: 'Observações / Oficina', border: OutlineInputBorder())),
+                ],
               ),
-              Icon(Icons.tune_rounded, size: 18, color: textMuted),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: themeColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                onPressed: _submit,
+                child: const Text('SALVAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 5. REMINDER FORM SCREEN
+// ==========================================
+class ReminderFormScreen extends StatefulWidget {
+  final CarVehicle vehicle;
+  final int latestOdometer;
+  final CarReminder? existingReminder;
+  final Function(CarReminder) onSave;
+
+  const ReminderFormScreen({
+    super.key,
+    required this.vehicle,
+    required this.latestOdometer,
+    this.existingReminder,
+    required this.onSave,
+  });
+
+  @override
+  State<ReminderFormScreen> createState() => _ReminderFormScreenState();
+}
+
+class _ReminderFormScreenState extends State<ReminderFormScreen> {
+  late TextEditingController _titleController;
+  late TextEditingController _descController;
+  late TextEditingController _targetKmController;
+  late TextEditingController _intervalKmController;
+
+  @override
+  void initState() {
+    super.initState();
+    final rem = widget.existingReminder;
+    _titleController = TextEditingController(text: rem?.title ?? '');
+    _descController = TextEditingController(text: rem?.description ?? '');
+    _targetKmController = TextEditingController(text: rem != null ? rem.targetOdometer.toString() : (widget.latestOdometer + 10000).toString());
+    _intervalKmController = TextEditingController(text: rem != null ? rem.repeatIntervalKm.toString() : '10000');
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    _targetKmController.dispose();
+    _intervalKmController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final title = _titleController.text.trim();
+    final targetKm = int.tryParse(_targetKmController.text.replaceAll('.', '')) ?? 0;
+    final intervalKm = int.tryParse(_intervalKmController.text.replaceAll('.', '')) ?? 10000;
+
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Informe o título do lembrete.')));
+      return;
+    }
+
+    final saved = CarReminder(
+      id: widget.existingReminder?.id ?? 'rem-${DateTime.now().millisecondsSinceEpoch}',
+      vehicleId: widget.vehicle.id,
+      title: title,
+      description: _descController.text.trim(),
+      targetOdometer: targetKm,
+      repeatIntervalKm: intervalKm,
+      isCompleted: false,
+    );
+
+    widget.onSave(saved);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(backgroundColor: DrivvoColors.reminderAlert, title: const Text('Lembrete')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+              child: Column(
+                children: [
+                  TextField(controller: _titleController, decoration: const InputDecoration(labelText: 'Título do Lembrete (ex: Troca de Óleo)', border: OutlineInputBorder())),
+                  const SizedBox(height: 12),
+                  TextField(controller: _descController, decoration: const InputDecoration(labelText: 'Descrição (opcional)', border: OutlineInputBorder())),
+                  const SizedBox(height: 12),
+                  TextField(controller: _targetKmController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quilometragem Alvo (km)', border: OutlineInputBorder())),
+                  const SizedBox(height: 12),
+                  TextField(controller: _intervalKmController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Repetir a cada (km)', border: OutlineInputBorder())),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: DrivvoColors.reminderAlert, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                onPressed: _submit,
+                child: const Text('SALVAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 6. RELATÓRIOS TAB (REPORTS & CHARTS)
+// ==========================================
+class ReportsTab extends StatefulWidget {
+  final CarVehicle vehicle;
+  final List<CarEvent> events;
+
+  const ReportsTab({super.key, required this.vehicle, required this.events});
+
+  @override
+  State<ReportsTab> createState() => _ReportsTabState();
+}
+
+class _ReportsTabState extends State<ReportsTab> {
+  int _selectedPeriod = 4; // 0: Este Mês, 1: 3 Meses, 2: 6 Meses, 3: Este Ano, 4: Geral (Todo o período)
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final filtered = widget.events.where((e) {
+      if (_selectedPeriod == 4) return true;
+      final d = e.parsedDate;
+      if (_selectedPeriod == 0) return d.year == now.year && d.month == now.month;
+      if (_selectedPeriod == 1) return now.difference(d).inDays <= 90;
+      if (_selectedPeriod == 2) return now.difference(d).inDays <= 180;
+      if (_selectedPeriod == 3) return d.year == now.year;
+      return true;
+    }).toList();
+
+    double totalSpent = 0.0;
+    double totalFuelSpent = 0.0;
+    double totalOtherSpent = 0.0;
+    double totalLiters = 0.0;
+    int minOdo = 99999999;
+    int maxOdo = 0;
+
+    for (final e in filtered) {
+      totalSpent += e.amount;
+      if (e.type == 'fuel') {
+        totalFuelSpent += e.amount;
+        totalLiters += e.liters;
+      } else {
+        totalOtherSpent += e.amount;
+      }
+      if (e.odometer > 0) {
+        if (e.odometer < minOdo) minOdo = e.odometer;
+        if (e.odometer > maxOdo) maxOdo = e.odometer;
+      }
+    }
+
+    final totalKm = (maxOdo > minOdo && minOdo != 99999999) ? (maxOdo - minOdo) : 0;
+    final avgKmL = (totalLiters > 0 && totalKm > 0) ? (totalKm / totalLiters) : 0.0;
+    final avgCostKm = (totalKm > 0 && totalSpent > 0) ? (totalSpent / totalKm) : 0.0;
+    final avgPriceLiter = (totalLiters > 0 && totalFuelSpent > 0) ? (totalFuelSpent / totalLiters) : 0.0;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
+      children: [
+        // Period Filter Chips
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: ['Este Mês', '3 Meses', '6 Meses', 'Este Ano', 'Todo o Período'].asMap().entries.map((entry) {
+              final isSel = _selectedPeriod == entry.key;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(entry.value),
+                  selected: isSel,
+                  selectedColor: DrivvoColors.primaryTeal,
+                  labelStyle: TextStyle(color: isSel ? Colors.white : DrivvoColors.textDark, fontWeight: isSel ? FontWeight.bold : FontWeight.normal),
+                  onSelected: (val) {
+                    if (val) setState(() => _selectedPeriod = entry.key);
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // KPI Metric Cards Grid
+        Row(
+          children: [
+            _buildKpiCard('Gasto Total', 'R$ ${NumberFormat('#,##0.00', 'pt_BR').format(totalSpent)}', Icons.account_balance_wallet, DrivvoColors.primaryTeal),
+            const SizedBox(width: 12),
+            _buildKpiCard('Combustível', '${NumberFormat('#,##0.0', 'pt_BR').format(totalLiters)} L', Icons.local_gas_station, DrivvoColors.fuelOrange),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _buildKpiCard('Distância', '${NumberFormat('#,###', 'pt_BR').format(totalKm)} km', Icons.directions_car, Colors.indigo),
+            const SizedBox(width: 12),
+            _buildKpiCard('Consumo Médio', avgKmL > 0 ? '${avgKmL.toStringAsFixed(2)} km/L' : '-', Icons.speed, Colors.green),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _buildKpiCard('Custo / km', avgCostKm > 0 ? 'R$ ${avgCostKm.toStringAsFixed(2)}' : '-', Icons.trending_up, Colors.deepOrange),
+            const SizedBox(width: 12),
+            _buildKpiCard('Preço Médio / L', avgPriceLiter > 0 ? 'R$ ${avgPriceLiter.toStringAsFixed(2)}' : '-', Icons.attach_money, Colors.teal),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // Summary Chart: Fuel vs Other Expenses
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: DrivvoColors.divider)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Distribuição de Despesas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    flex: (totalFuelSpent > 0 ? (totalFuelSpent / (totalSpent > 0 ? totalSpent : 1) * 100).toInt() : 95).clamp(1, 100),
+                    child: Container(height: 12, decoration: const BoxDecoration(color: DrivvoColors.fuelOrange, borderRadius: BorderRadius.horizontal(left: Radius.circular(6)))),
+                  ),
+                  Expanded(
+                    flex: (totalOtherSpent > 0 ? (totalOtherSpent / (totalSpent > 0 ? totalSpent : 1) * 100).toInt() : 5).clamp(1, 100),
+                    child: Container(height: 12, decoration: const BoxDecoration(color: DrivvoColors.servicePurple, borderRadius: BorderRadius.horizontal(right: Radius.circular(6)))),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(width: 10, height: 10, decoration: const BoxDecoration(color: DrivvoColors.fuelOrange, shape: BoxShape.circle)),
+                      const SizedBox(width: 6),
+                      Text('Combustível: R$ ${NumberFormat('#,##0.00', 'pt_BR').format(totalFuelSpent)}', style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Container(width: 10, height: 10, decoration: const BoxDecoration(color: DrivvoColors.servicePurple, shape: BoxShape.circle)),
+                      const SizedBox(width: 6),
+                      Text('Outros: R$ ${NumberFormat('#,##0.00', 'pt_BR').format(totalOtherSpent)}', style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                ],
+              ),
             ],
           ),
         ),
-      );
+      ],
+    );
+  }
 
-  Widget _heroCardGlass(List<CarEvent> list, double total) => Container(
-        padding: const EdgeInsets.all(20),
+  Widget _buildKpiCard(String title, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
-          ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: DrivvoColors.divider),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'GASTOS NO PERÍODO',
-                  style: TextStyle(
-                    fontFamily: 'DM Sans',
-                    color: textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isDarkTheme ? const Color(0xFF222226) : const Color(0xFFE9ECEF),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _periodBadgeText(),
-                    style: TextStyle(
-                      fontFamily: 'DM Sans',
-                      color: textMain,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
+                Text(title, style: const TextStyle(fontSize: 12, color: DrivvoColors.textMuted)),
+                Icon(icon, color: color, size: 18),
               ],
             ),
-            const SizedBox(height: 14),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                _money(total),
-                maxLines: 1,
-                style: TextStyle(
-                  fontFamily: 'DM Sans',
-                  color: textMain,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -1.0,
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Combustível',
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _money(_fuelTotal(list)),
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMain,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Despesas',
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _money(_expenseTotal(list)),
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMain,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Divider(
-              color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
-              height: 1,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '${list.length} lançamento(s) considerados no período.',
-              style: TextStyle(
-                fontFamily: 'DM Sans',
-                color: isDarkTheme ? const Color(0xFF66666A) : const Color(0xFF94A3B8),
-                fontSize: 12,
-              ),
+            const SizedBox(height: 8),
+            Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 7. LEMBRETES TAB (REMINDERS)
+// ==========================================
+class RemindersTab extends StatelessWidget {
+  final CarVehicle vehicle;
+  final List<CarReminder> reminders;
+  final int latestOdometer;
+  final VoidCallback onAddReminder;
+  final Function(CarReminder) onEditReminder;
+  final Function(CarReminder) onToggleReminder;
+  final Function(CarReminder) onDeleteReminder;
+
+  const RemindersTab({
+    super.key,
+    required this.vehicle,
+    required this.reminders,
+    required this.latestOdometer,
+    required this.onAddReminder,
+    required this.onEditReminder,
+    required this.onToggleReminder,
+    required this.onDeleteReminder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Lembretes e Manutenções', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            TextButton.icon(
+              icon: const Icon(Icons.add, color: DrivvoColors.primaryTeal),
+              label: const Text('Novo', style: TextStyle(color: DrivvoColors.primaryTeal, fontWeight: FontWeight.bold)),
+              onPressed: onAddReminder,
             ),
           ],
         ),
-      );
-
-  Widget _ritmoSemanalCard(List<CarEvent> list) {
-    final distance = _distance(list);
-    final consumption = _consumption(list);
-    final costPerKm = distance > 0 ? _total(list) / distance : 0.0;
-    final fuelEvents = list.where((e) => e.fuel && e.pricePerLiter > 0).toList();
-    final avgPrice = fuelEvents.isNotEmpty
-        ? fuelEvents.fold<double>(0, (s, e) => s + e.pricePerLiter) / fuelEvents.length
-        : 0.0;
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.speed_rounded, size: 18, color: textMain),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Eficiência e consumo',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMain,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      'Indicadores de desempenho',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _microCard(
-                  label: 'Consumo médio',
-                  value: consumption > 0
-                      ? '${consumption.toStringAsFixed(1).replaceAll('.', ',')} km/l'
-                      : '—',
-                  valueColor: consumption > 0 ? const Color(0xFF4ADE80) : textMain,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _microCard(
-                  label: 'Custo por km',
-                  value: costPerKm > 0
-                      ? '-R\$ ${costPerKm.toStringAsFixed(2).replaceAll('.', ',')}'
-                      : '—',
-                  wineTint: true,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _microCard(
-                  label: 'Km rodados',
-                  value: distance > 0 ? '${distance.round()} km' : '—',
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _microCard(
-                  label: 'Preço médio / L',
-                  value: avgPrice > 0
-                      ? 'R\$ ${avgPrice.toStringAsFixed(2).replaceAll('.', ',')}'
-                      : '—',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '${list.length} lançamento(s) considerados no período.',
-            style: TextStyle(
-              fontFamily: 'DM Sans',
-              color: isDarkTheme ? const Color(0xFF66666A) : const Color(0xFF94A3B8),
-              fontSize: 12,
+        const SizedBox(height: 8),
+        if (reminders.isEmpty)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Text('Nenhum lembrete cadastrado.', style: TextStyle(color: DrivvoColors.textMuted)),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          )
+        else
+          ...reminders.map((rem) {
+            final diffKm = rem.targetOdometer - latestOdometer;
+            final isDue = diffKm <= 0;
+            final isWarning = diffKm > 0 && diffKm <= 1500;
 
-  Widget _ritmoMensalCard(List<CarEvent> list) {
-    final now = DateTime.now();
-    final monthList = allVehicleEvents.where((e) {
-      final d = _parseDate(e.date);
-      return d != null && d.year == now.year && d.month == now.month;
-    }).toList();
-    final monthSpent = _total(monthList);
-    final dailyAvg = monthSpent > 0 ? monthSpent / (now.day > 0 ? now.day : 1) : 0.0;
-    final currentOdo = _maxOdometer(allVehicleEvents);
+            final statusColor = rem.isCompleted
+                ? Colors.grey
+                : (isDue
+                    ? Colors.red
+                    : (isWarning ? Colors.orange : Colors.green));
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.build_circle_outlined, size: 18, color: textMain),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Revisão e alertas',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMain,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      'Manutenção preventiva do Astra',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _microCard(
-                  label: 'Troca de óleo',
-                  value: 'em 2.800 km',
-                  wineTint: true,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _microCard(
-                  label: 'Gasto no mês',
-                  value: monthSpent > 0 ? '-${_money(monthSpent)}' : 'R\$ 0,00',
-                  wineTint: monthSpent > 0,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _microCard(
-                  label: 'Média diária',
-                  value: dailyAvg > 0 ? '-${_money(dailyAvg)}' : 'R\$ 0,00',
-                  wineTint: dailyAvg > 0,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _microCard(
-                  label: 'Hodômetro atual',
-                  value: currentOdo > 0 ? '${currentOdo.round()} km' : '—',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Próxima revisão recomendada aos ${(currentOdo > 0 ? (currentOdo + 2800).round() : 165000)} km.',
-            style: TextStyle(
-              fontFamily: 'DM Sans',
-              color: isDarkTheme ? const Color(0xFF66666A) : const Color(0xFF94A3B8),
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+            final statusText = rem.isCompleted
+                ? 'Concluído'
+                : (isDue ? 'Vencido (${(-diffKm)} km atrás)' : 'Faltam ${NumberFormat('#,###', 'pt_BR').format(diffKm)} km');
 
-  Widget _microCard({
-    required String label,
-    required String value,
-    Color? valueColor,
-    bool wineTint = false,
-  }) {
-    Color bg;
-    Color labelCol;
-    Color valCol;
-
-    if (wineTint) {
-      bg = isDarkTheme ? const Color(0xFF271416) : const Color(0xFFFEE2E2);
-      labelCol = isDarkTheme ? const Color(0xFFFFAAAA) : const Color(0xFFDC2626);
-      valCol = isDarkTheme ? const Color(0xFFFF5555) : const Color(0xFFB91C1C);
-    } else {
-      bg = isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF1F3F6);
-      labelCol = textMuted;
-      valCol = valueColor ?? textMain;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: 'DM Sans',
-              color: labelCol,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: 'DM Sans',
-              color: valCol,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String title, String subtitle, {Widget? trailing}) => Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontFamily: 'DM Sans',
-                    color: textMain,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontFamily: 'DM Sans',
-                    color: textMuted,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (trailing != null) trailing,
-        ],
-      );
-
-  Widget _periodDropdown() => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: panel,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: strokeColor),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: period,
-            dropdownColor: panelRaised,
-            icon: Icon(Icons.keyboard_arrow_down_rounded, color: textMuted, size: 16),
-            style: TextStyle(
-              fontFamily: 'DM Sans',
-              color: textMain,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-            items: ['Tudo', 'Mês atual', '30 dias', '90 dias', 'Ano atual']
-                .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-                .toList(),
-            onChanged: (value) => setState(() => period = value ?? period),
-          ),
-        ),
-      );
-
-  Widget _chartCard(List<CarEvent> list) {
-    final chart = _chartValues(list);
-    final maxValue = chart.values.fold<double>(0, (max, value) => value > max ? value : max);
-    final totalChart = chart.values.fold<double>(0, (sum, val) => sum + val);
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.show_chart_rounded, size: 18, color: textMain),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Evolução mensal',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMain,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      'Gastos nos últimos 6 meses',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                _shortMoney(totalChart),
-                style: TextStyle(
-                  fontFamily: 'DM Sans',
-                  color: textMain,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          if (maxValue == 0)
-            SizedBox(
-              height: 110,
-              child: Center(
-                child: Text(
-                  'Ainda não há gastos registrados',
-                  style: TextStyle(
-                    fontFamily: 'DM Sans',
-                    color: textMuted,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            )
-          else
-            SizedBox(
-              height: 130,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: chart.entries.map((entry) {
-                  final height = maxValue == 0 ? 4.0 : 88 * entry.value / maxValue;
-                  final isPositive = entry.value > 0;
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        width: 28,
-                        height: height.clamp(4.0, 88.0).toDouble(),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: isPositive
-                              ? (isDarkTheme ? const Color(0xFF2A2A32) : const Color(0xFFD1D5DB))
-                              : (isDarkTheme ? const Color(0xFF1A1A1E) : const Color(0xFFF1F3F6)),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        entry.key.toUpperCase(),
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMuted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-          const SizedBox(height: 12),
-          Divider(
-            color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
-            height: 1,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text(
-                'Total no período recente',
-                style: TextStyle(
-                  fontFamily: 'DM Sans',
-                  color: textMuted,
-                  fontSize: 12,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                _money(totalChart),
-                style: TextStyle(
-                  fontFamily: 'DM Sans',
-                  color: textMain,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Map<String, double> _chartValues(List<CarEvent> list) {
-    final dates = list.map((event) => _parseDate(event.date)).whereType<DateTime>().toList();
-    final end = dates.isEmpty ? DateTime.now() : dates.reduce((a, b) => a.isAfter(b) ? a : b);
-    final result = <String, double>{};
-    for (var index = 5; index >= 0; index--) {
-      final date = DateTime(end.year, end.month - index, 1);
-      final key = DateFormat('MMM', 'pt_BR').format(date).replaceAll('.', '');
-      result[key] = list.where((event) {
-        final eventDate = _parseDate(event.date);
-        return eventDate != null && eventDate.year == date.year && eventDate.month == date.month;
-      }).fold<double>(0, (sum, event) => sum + event.amount);
-    }
-    return result;
-  }
-
-  Widget _ultimasTransacoesHeader() => Row(
-        children: [
-          Text(
-            'Últimos lançamentos',
-            style: TextStyle(
-              fontFamily: 'DM Sans',
-              color: textMain,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => setState(() => tab = 1),
-            child: Text(
-              'Ver todos',
-              style: TextStyle(
-                fontFamily: 'DM Sans',
-                color: textMuted,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      );
-
-  Widget _recentList(List<CarEvent> list) => list.isEmpty
-      ? _emptyState('Nenhum lançamento ainda', 'Use o botão + no topo para começar.')
-      : Column(children: list.take(5).map(_glassEventTile).toList());
-
-  Widget _glassEventTile(CarEvent event) {
-    final icon = event.fuel ? Icons.local_gas_station_rounded : _expenseIcon(event.category);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: () => _entrySheet(fuel: event.fuel, edit: event),
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF1F3F6),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: isDarkTheme ? Colors.white : const Color(0xFF0F172A),
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event.fuel
-                          ? '${event.fuelType} · ${event.liters.toStringAsFixed(1).replaceAll('.', ',')} L'
-                          : (event.title.isEmpty ? _categoryLabel(event.category) : event.title),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMain,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      [
-                        _dateLabel(event.date),
-                        if (event.odometer > 0) '${event.odometer.round()} km',
-                        if (event.note.isNotEmpty) event.note,
-                      ].join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '-${_money(event.amount)}',
-                style: const TextStyle(
-                  fontFamily: 'DM Sans',
-                  color: Color(0xFFFF5555),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _quickActionChooserSheet() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Central de Ações',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMain,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(sheetContext),
-                    icon: Icon(Icons.close_rounded, color: textMuted),
-                  ),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: DrivvoColors.divider),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
                 ],
               ),
-              const SizedBox(height: 14),
-              _actionTile(
-                icon: Icons.local_gas_station_rounded,
-                title: 'Registrar abastecimento',
-                subtitle: 'Litros, preço por litro, combustível e odômetro',
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _entrySheet(fuel: true);
-                },
-              ),
-              _actionTile(
-                icon: Icons.build_rounded,
-                title: 'Registrar manutenção ou serviço',
-                subtitle: 'Troca de óleo, revisão, peças, oficina',
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _entrySheet(fuel: false);
-                },
-              ),
-              _actionTile(
-                icon: Icons.receipt_long_rounded,
-                title: 'Lançamento rápido de despesa',
-                subtitle: 'Pedágio, lava-rápido, estacionamento ou taxas',
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _quickExpenseSheet();
-                },
-              ),
-              _actionTile(
-                icon: Icons.directions_car_rounded,
-                title: 'Gerenciar veículo e odômetro',
-                subtitle: 'Atualizar quilometragem e configurações',
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _vehicleSheet(currentVehicle);
-                },
-              ),
-              _actionTile(
-                icon: Icons.calculate_rounded,
-                title: 'Calculadora Flex (Etanol vs Gasolina)',
-                subtitle: 'Descubra qual combustível compensa com a regra de 70%',
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _flexCalculatorSheet();
-                },
-              ),
-              _actionTile(
-                icon: Icons.rule_folder_rounded,
-                title: 'Revisar abastecimentos pendentes',
-                subtitle: 'Aprovar, editar ou descartar dados importados (Abril a Setembro)',
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _pendingFuelReviewModal();
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _actionTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) =>
-      Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF8F9FB),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDarkTheme ? const Color(0xFF26262C) : const Color(0x0F000000),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isDarkTheme ? const Color(0xFF27272E) : Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: textMain, size: 20),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMain,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right_rounded, color: textMuted, size: 20),
-              ],
-            ),
-          ),
-        ),
-      );
-
-  Future<void> _filterSheet() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: StatefulBuilder(
-          builder: (ctx, setSheetState) => Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Filtros e Veículo',
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMain,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(sheetContext),
-                      icon: Icon(Icons.close_rounded, color: textMuted),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'VEÍCULO ATIVO',
-                  style: TextStyle(
-                    fontFamily: 'DM Sans',
-                    color: textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: vehicles.map((v) {
-                    final isSel = activeVehicle == v.id;
-                    return ChoiceChip(
-                      label: Text(v.name),
-                      selected: isSel,
-                      onSelected: (val) async {
-                        if (val) {
-                          setState(() => activeVehicle = v.id);
-                          setSheetState(() {});
-                          await _save();
-                        }
-                      },
-                      labelStyle: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: isSel ? Colors.white : textMuted,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                      selectedColor: isDarkTheme ? const Color(0xFF25252B) : const Color(0xFF0F172A),
-                      backgroundColor: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF1F3F6),
-                      side: BorderSide.none,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  'PERÍODO',
-                  style: TextStyle(
-                    fontFamily: 'DM Sans',
-                    color: textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: ['Tudo', 'Mês atual', '30 dias', '90 dias', 'Ano atual'].map((p) {
-                    final isSel = period == p;
-                    return ChoiceChip(
-                      label: Text(p),
-                      selected: isSel,
-                      onSelected: (val) {
-                        if (val) {
-                          setState(() => period = p);
-                          setSheetState(() {});
-                        }
-                      },
-                      labelStyle: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: isSel ? Colors.white : textMuted,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                      selectedColor: isDarkTheme ? const Color(0xFF25252B) : const Color(0xFF0F172A),
-                      backgroundColor: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF1F3F6),
-                      side: BorderSide.none,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  'TEMA VISUAL',
-                  style: TextStyle(
-                    fontFamily: 'DM Sans',
-                    color: textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _themeSelectorWidget(onChanged: () => setSheetState(() {})),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _historyTab() {
-    final list = filteredEvents;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
-      children: [
-        _nextTopBar(),
-        _pageIntro(
-          'Histórico completo',
-          '${allVehicleEvents.length} registros salvos neste dispositivo',
-          Icons.receipt_long_rounded,
-          blue,
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: searchController,
-          onChanged: (value) => setState(() => search = value),
-          decoration: InputDecoration(
-            hintText: 'Buscar por posto, categoria ou descrição...',
-            prefixIcon: Icon(Icons.search_rounded, color: textMuted),
-          ),
-        ),
-        const SizedBox(height: 12),
-        _filterChips(),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Text(
-              '${list.length} resultados encontrados',
-              style: TextStyle(
-                fontFamily: 'DM Sans',
-                color: textMuted,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const Spacer(),
-            _sortDropdown(),
-          ],
-        ),
-        const SizedBox(height: 10),
-        if (list.isEmpty)
-          _emptyState('Nada encontrado', 'Tente mudar o filtro ou registrar um novo lançamento.')
-        else
-          ...list.map(_glassEventTile),
-      ],
-    );
-  }
-
-  Widget _filterChips() {
-    final values = ['Todos', 'Abastecimentos', 'Despesas'];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: values.map((value) {
-          final selected = typeFilter == value;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(value),
-              selected: selected,
-              onSelected: (_) => setState(() => typeFilter = value),
-              selectedColor: blue.withOpacity(0.18),
-              backgroundColor: panel,
-              side: BorderSide(
-                color: selected ? blue.withOpacity(0.6) : strokeColor,
-              ),
-              labelStyle: TextStyle(
-                fontFamily: 'DM Sans',
-                color: selected ? (isDarkTheme ? Colors.white : blue) : textMuted,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _sortDropdown() => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-        decoration: BoxDecoration(
-          color: panel,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: strokeColor),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: sort,
-            dropdownColor: panelRaised,
-            icon: Icon(Icons.swap_vert_rounded, color: textMuted, size: 16),
-            style: TextStyle(
-              fontFamily: 'DM Sans',
-              color: textMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-            items: ['Mais recentes', 'Mais antigos', 'Maior valor', 'Menor valor', 'Maior km', 'Menor km']
-                .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-                .toList(),
-            onChanged: (value) => setState(() => sort = value ?? sort),
-          ),
-        ),
-      );
-
-  Widget _analyticsTab() {
-    final list = filteredEvents;
-    final fuel = _fuelTotal(list);
-    final expense = _expenseTotal(list);
-    final fuelTypes = <String, double>{};
-    final places = <String, int>{};
-    for (final event in list.where((event) => event.fuel)) {
-      fuelTypes[event.fuelType] = (fuelTypes[event.fuelType] ?? 0) + event.amount;
-      if (event.note.trim().isNotEmpty) places[event.note.trim()] = (places[event.note.trim()] ?? 0) + 1;
-    }
-    final orderedPlaces = places.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-    final orderedFuel = fuelTypes.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
-      children: [
-        _nextTopBar(),
-        _pageIntro(
-          'Análises do carro',
-          'Entenda para onde seu dinheiro está indo',
-          Icons.insights_rounded,
-          blue,
-        ),
-        const SizedBox(height: 16),
-        _analysisSummary(fuel, expense, list),
-        const SizedBox(height: 20),
-        _sectionTitle('Gasto por mês', 'Acompanhe a evolução do custo total'),
-        const SizedBox(height: 10),
-        _chartCard(list),
-        const SizedBox(height: 20),
-        _sectionTitle('Combustível', 'Distribuição do que foi abastecido'),
-        const SizedBox(height: 10),
-        _breakdownCard(orderedFuel, fuel, Icons.local_gas_station_rounded, mint),
-        const SizedBox(height: 20),
-        _sectionTitle('Onde você abastece', 'Postos e locais mais frequentes'),
-        const SizedBox(height: 10),
-        _placesCard(orderedPlaces),
-        const SizedBox(height: 20),
-        _sectionTitle('Manutenção preventiva', 'Próximos cuidados para não esquecer'),
-        const SizedBox(height: 10),
-        _maintenanceCard(list),
-      ],
-    );
-  }
-
-  Widget _analysisSummary(double fuel, double expense, List<CarEvent> list) => GlassPanel(
-        radius: 20,
-        opacity: isDarkTheme ? .88 : .96,
-        blur: 16,
-        borderColor: strokeColor,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(child: _summaryValue('Total', _money(fuel + expense), textMain)),
-                Expanded(child: _summaryValue('Combustível', _money(fuel), mint)),
-                Expanded(child: _summaryValue('Despesas', _money(expense), coral)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Icon(Icons.info_outline_rounded, size: 15, color: textMuted),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${list.length} lançamentos analisados · ${_distance(list).round()} km acompanhados',
-                    style: TextStyle(
-                      fontFamily: 'DM Sans',
-                      color: textMuted,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-
-  Widget _summaryValue(String label, String value, Color color) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'DM Sans',
-              color: textMuted,
-              fontSize: 11,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: 'DM Sans',
-              color: color,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.3,
-            ),
-          ),
-        ],
-      );
-
-  Widget _breakdownCard(
-    List<MapEntry<String, double>> items,
-    double total,
-    IconData icon,
-    Color color,
-  ) {
-    if (items.isEmpty) {
-      return _emptyState('Sem abastecimentos', 'Os dados aparecerão aqui quando forem registrados.');
-    }
-    return GlassPanel(
-      radius: 20,
-      opacity: isDarkTheme ? .88 : .96,
-      blur: 16,
-      borderColor: strokeColor,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: items.take(4).map((item) {
-          final ratio = total > 0 ? item.value / total : 0.0;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Icon(icon, color: color, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      item.key,
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMain,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      _money(item.value),
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMuted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 7),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(5),
-                  child: LinearProgressIndicator(
-                    value: ratio,
-                    minHeight: 6,
-                    backgroundColor: strokeColor,
-                    color: color,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _placesCard(List<MapEntry<String, int>> places) {
-    if (places.isEmpty) {
-      return _emptyState(
-        'Sem locais registrados',
-        'O posto ou local aparece quando você informa uma observação.',
-      );
-    }
-    return GlassPanel(
-      radius: 20,
-      opacity: isDarkTheme ? .88 : .96,
-      blur: 16,
-      borderColor: strokeColor,
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        children: places.take(5).toList().asMap().entries.map((entry) {
-          final item = entry.value;
-          return ListTile(
-            dense: true,
-            leading: CircleAvatar(
-              radius: 14,
-              backgroundColor: blue.withOpacity(.12),
-              child: Text(
-                '${entry.key + 1}',
-                style: TextStyle(
-                  fontFamily: 'DM Sans',
-                  color: blue,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-            title: Text(
-              item.key,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'DM Sans',
-                color: textMain,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            trailing: Text(
-              '${item.value}x',
-              style: TextStyle(
-                fontFamily: 'DM Sans',
-                color: textMuted,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _maintenanceCard(List<CarEvent> list) {
-    final expenses = list.where((event) => !event.fuel).toList()..sort((a, b) => b.amount.compareTo(a.amount));
-    final service = list.where((event) {
-      if (event.fuel) return false;
-      final text = '${event.title} ${event.note}'.toLowerCase();
-      return ['oleo', 'óleo', 'filtro', 'revis', 'troca'].any(text.contains);
-    }).toList()
-      ..sort((a, b) => '${a.date}${a.odometer}'.compareTo('${b.date}${b.odometer}'));
-    final latestService = service.isEmpty ? null : service.last;
-    final currentOdometer = _maxOdometer(list);
-    final nextService = latestService != null && latestService.odometer > 0 ? latestService.odometer + 5000 : 0.0;
-    final serviceLabel = latestService == null || nextService == 0
-        ? 'Registre troca de óleo ou revisão'
-        : currentOdometer >= nextService
-            ? 'Revisão atrasada · ${currentOdometer.round() - nextService.round()} km'
-            : '${(nextService - currentOdometer).round()} km restantes';
-    return GlassPanel(
-      radius: 20,
-      opacity: isDarkTheme ? .88 : .96,
-      blur: 16,
-      borderColor: strokeColor,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: amber.withOpacity(.14),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Icon(Icons.build_circle_outlined, color: amber, size: 19),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Cuidados do veículo',
-                  style: TextStyle(
-                    fontFamily: 'DM Sans',
-                    color: textMain,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _maintenanceLine(
-            'Maior despesa registrada',
-            expenses.isEmpty
-                ? 'Nenhuma ainda'
-                : '${_categoryLabel(expenses.first.category)} · ${_money(expenses.first.amount)}',
-          ),
-          const SizedBox(height: 8),
-          _maintenanceLine('Último hodômetro conhecido', '${currentOdometer.round()} km'),
-          const SizedBox(height: 8),
-          _maintenanceLine('Próxima revisão', serviceLabel),
-        ],
-      ),
-    );
-  }
-
-  Widget _maintenanceLine(String label, String value) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: panelSoft,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: strokeColor),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'DM Sans',
-                  color: textMuted,
-                  fontSize: 11,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                value,
-                textAlign: TextAlign.right,
-                style: TextStyle(
-                  fontFamily: 'DM Sans',
-                  color: textMain,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-
-  Widget _vehicleTab() {
-    final list = allVehicleEvents;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
-      children: [
-        _nextTopBar(),
-        _pageIntro(
-          'Seu veículo',
-          'Cadastro, desempenho e dados locais',
-          Icons.directions_car_rounded,
-          amber,
-        ),
-        const SizedBox(height: 18),
-        GlassPanel(
-          radius: 24,
-          opacity: isDarkTheme ? .88 : .96,
-          blur: 18,
-          borderColor: strokeColor,
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+              child: Row(
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: amber.withOpacity(.14),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: amber.withOpacity(.20)),
-                    ),
-                    child: Icon(Icons.directions_car_rounded, color: amber, size: 24),
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(color: statusColor.withOpacity(0.15), shape: BoxShape.circle),
+                    child: Icon(Icons.alarm, color: statusColor, size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -2820,3530 +2631,254 @@ class _CarHomeState extends State<CarHome> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          currentVehicle.name,
+                          rem.title,
                           style: TextStyle(
-                            fontFamily: 'DM Sans',
-                            color: textMain,
-                            fontSize: 19,
-                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            decoration: rem.isCompleted ? TextDecoration.lineThrough : null,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          currentVehicle.model.isEmpty ? 'Modelo não informado' : currentVehicle.model,
-                          style: TextStyle(
-                            fontFamily: 'DM Sans',
-                            color: textMuted,
-                            fontSize: 12,
-                          ),
+                        if (rem.description.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(rem.description, style: const TextStyle(fontSize: 12, color: DrivvoColors.textMuted)),
+                        ],
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
+                              child: Text(statusText, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: statusColor)),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Alvo: ${NumberFormat('#,###', 'pt_BR').format(rem.targetOdometer)} km',
+                              style: const TextStyle(fontSize: 11, color: DrivvoColors.textLight),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    onPressed: () => _vehicleSheet(currentVehicle),
-                    icon: Icon(Icons.edit_outlined, color: textMuted, size: 20),
+                    icon: Icon(rem.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked, color: rem.isCompleted ? Colors.green : Colors.grey),
+                    onPressed: () => onToggleReminder(rem),
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+            );
+          }),
+      ],
+    );
+  }
+}
+
+// ==========================================
+// 8. MAIS TAB (SETTINGS, GARAGE, BACKUP)
+// ==========================================
+class MoreTab extends StatelessWidget {
+  final CarVehicle vehicle;
+  final int totalRecords;
+  final Future<void> Function() onRestoreBackup;
+  final Future<void> Function() onSyncCloudflare;
+  final VoidCallback onCheckUpdates;
+
+  const MoreTab({
+    super.key,
+    required this.vehicle,
+    required this.totalRecords,
+    required this.onRestoreBackup,
+    required this.onSyncCloudflare,
+    required this.onCheckUpdates,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
+      children: [
+        // Vehicle Profile Card
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: DrivvoColors.divider),
+          ),
+          child: Row(
+            children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: panelSoft.withOpacity(isDarkTheme ? 0.6 : 0.7),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: strokeColor),
-                ),
-                child: Row(
+                width: 50,
+                height: 50,
+                decoration: const BoxDecoration(color: DrivvoColors.lightTeal, shape: BoxShape.circle),
+                child: const Icon(Icons.directions_car, color: DrivvoColors.primaryTeal, size: 28),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: _vehicleInfo('Hodômetro', '${_maxOdometer(list).round()} km')),
-                    Container(width: 1, height: 28, color: strokeColor),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 12),
-                        child: _vehicleInfo('Registros', '${list.length}'),
-                      ),
-                    ),
-                    Container(width: 1, height: 28, color: strokeColor),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 12),
-                        child: _vehicleInfo('Placa', currentVehicle.plate.isEmpty ? '—' : currentVehicle.plate),
-                      ),
-                    ),
+                    Text(vehicle.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text('${vehicle.model} • Tanque: ${vehicle.tankCapacity.toInt()}L', style: const TextStyle(fontSize: 13, color: DrivvoColors.textMuted)),
+                    Text('$totalRecords abastecimentos registrados', style: const TextStyle(fontSize: 12, color: DrivvoColors.primaryTeal, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
-              if (currentVehicle.targetConsumption > 0 || currentVehicle.tankCapacity > 0) ...[
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: panelSoft.withOpacity(isDarkTheme ? 0.6 : 0.7),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: strokeColor),
-                  ),
-                  child: Row(
-                    children: [
-                      if (currentVehicle.targetConsumption > 0)
-                        Expanded(
-                          child: _vehicleInfo('Meta', '${currentVehicle.targetConsumption.toStringAsFixed(1)} km/L'),
-                        ),
-                      if (currentVehicle.targetConsumption > 0 && currentVehicle.tankCapacity > 0)
-                        Container(width: 1, height: 28, color: strokeColor),
-                      if (currentVehicle.tankCapacity > 0)
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 12),
-                            child: _vehicleInfo('Tanque', '${currentVehicle.tankCapacity.toStringAsFixed(0)} L'),
-                          ),
-                        ),
-                      Container(width: 1, height: 28, color: strokeColor),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 12),
-                          child: _vehicleInfo('Revisão', '${currentVehicle.serviceIntervalKm.round()} km'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              _maintenanceProgressCard(list),
             ],
           ),
         ),
-        const SizedBox(height: 22),
-        _sectionTitle(
-          'Meus veículos',
-          'Toque para alternar o veículo ativo',
-          trailing: IconButton(
-            onPressed: () => _vehicleSheet(),
-            icon: Icon(Icons.add_circle_outline_rounded, color: blue),
-          ),
-        ),
-        const SizedBox(height: 10),
-        ...vehicles.map((vehicle) => _vehicleRow(vehicle)),
-        const SizedBox(height: 22),
-        _sectionTitle('Tema e personalização', 'Escolha a identidade visual que combina com seu estilo'),
-        const SizedBox(height: 10),
-        _themeSelectorWidget(),
-        const SizedBox(height: 22),
-        _sectionTitle('Dados e backup', 'Tudo fica salvo localmente no aparelho'),
-        const SizedBox(height: 10),
-        GlassPanel(
-          radius: 20,
-          opacity: isDarkTheme ? .88 : .96,
-          blur: 16,
-          borderColor: strokeColor,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: mint.withOpacity(.12),
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                    child: Icon(Icons.lock_outline_rounded, color: mint, size: 18),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Dados somente neste dispositivo',
-                          style: TextStyle(
-                            fontFamily: 'DM Sans',
-                            color: textMain,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Sem sincronização externa ou conta obrigatória.',
-                          style: TextStyle(
-                            fontFamily: 'DM Sans',
-                            color: textMuted,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.verified_user_outlined, color: mint, size: 18),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _copyBackup,
-                      icon: const Icon(Icons.content_copy_rounded, size: 16),
-                      label: const Text('Copiar JSON'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: textMain,
-                        side: BorderSide(color: strokeColor),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        textStyle: const TextStyle(
-                          fontFamily: 'DM Sans',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _restoreBackup,
-                      icon: const Icon(Icons.restore_rounded, size: 16),
-                      label: const Text('Restaurar'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: blue,
-                        side: BorderSide(color: blue.withOpacity(.35)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        textStyle: const TextStyle(
-                          fontFamily: 'DM Sans',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: _syncWithCloudflareModal,
-                      icon: const Icon(Icons.cloud_sync_rounded, size: 16),
-                      label: const Text('Sincronizar Cloudflare'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFF6821F),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        textStyle: const TextStyle(
-                          fontFamily: 'DM Sans',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 22),
-        _sectionTitle('Atualizações do aplicativo', 'Mantenha o Finanza Auto sempre atualizado'),
-        const SizedBox(height: 10),
-        _appUpdateCard(),
         const SizedBox(height: 16),
-        Center(
-          child: Text(
-            'Fonte: CSV Drivvo · ${events.length} registros importados',
-            style: TextStyle(
-              fontFamily: 'DM Sans',
-              color: textSoft,
-              fontSize: 11,
-            ),
-          ),
+
+        // Section: Ferramentas & Dados
+        _buildSectionHeader('FERRAMENTAS & SINCRONIZAÇÃO'),
+        _buildSettingsTile(
+          icon: Icons.cloud_sync,
+          color: DrivvoColors.primaryTeal,
+          title: 'Sincronização em Nuvem (Cloudflare)',
+          subtitle: 'finanza-auto.jeffef.workers.dev',
+          onTap: () async {
+            await onSyncCloudflare();
+          },
+        ),
+        _buildSettingsTile(
+          icon: Icons.calculate,
+          color: DrivvoColors.fuelOrange,
+          title: 'Calculadora Flex (Etanol x Gasolina)',
+          subtitle: 'Compare a relação de paridade 70%',
+          onTap: () {
+            _showFlexCalculator(context);
+          },
+        ),
+        _buildSettingsTile(
+          icon: Icons.restore,
+          color: Colors.teal,
+          title: 'Restaurar Dados Originais (146 abastecimentos)',
+          subtitle: 'Recarrega os registros reais de 2020 a 2026',
+          onTap: () {
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Restaurar histórico completo?'),
+                content: const Text('Isso recarregará todos os 146 registros oficiais do Drivvo até Setembro de 2026.'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: DrivvoColors.primaryTeal, foregroundColor: Colors.white),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      await onRestoreBackup();
+                    },
+                    child: const Text('Restaurar'),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // Section: Sobre & Atualizações
+        _buildSectionHeader('SOBRE & APLICATIVO'),
+        _buildSettingsTile(
+          icon: Icons.system_update,
+          color: Colors.blueAccent,
+          title: 'Verificar Atualizações',
+          subtitle: 'Versão atual: v$appVersion (Build $appBuildNumber)',
+          onTap: onCheckUpdates,
+        ),
+        _buildSettingsTile(
+          icon: Icons.info_outline,
+          color: Colors.grey,
+          title: 'Finanza Auto 2.0 - Drivvo Edition',
+          subtitle: 'Interface 100% alinhada com Drivvo e dados reais.',
+          onTap: () {},
         ),
       ],
     );
   }
 
-  Widget _appUpdateCard() => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
-          ),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF1F3F6),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.cloud_sync_rounded, color: textMain, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Versão instalada: v$appVersion',
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMain,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Atualizações distribuídas diretamente via GitHub',
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMuted,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _checkingUpdate ? null : () => _checkAppUpdates(manual: true),
-                    icon: _checkingUpdate
-                        ? SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: textMain),
-                          )
-                        : const Icon(Icons.refresh_rounded, size: 16),
-                    label: Text(_checkingUpdate ? 'Verificando...' : 'Verificar atualizações'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: textMain,
-                      side: BorderSide(
-                        color: isDarkTheme ? const Color(0xFF26262C) : const Color(0x1F000000),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      textStyle: const TextStyle(
-                        fontFamily: 'DM Sans',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-
-  Future<void> _checkAppUpdates({bool manual = false}) async {
-    if (_checkingUpdate) return;
-    setState(() => _checkingUpdate = true);
-    try {
-      final info = await UpdaterService.checkUpdate(
-        currentVersion: appVersion,
-        currentBuild: appBuildNumber,
-      );
-      if (!mounted) return;
-      if (info != null && info.hasUpdate) {
-        _showUpdateDialog(info);
-      } else if (manual) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFF0F172A),
-            content: Text(
-              'Você já está na versão mais recente (v$appVersion).',
-              style: const TextStyle(fontFamily: 'DM Sans', color: Colors.white),
-            ),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _checkingUpdate = false);
-    }
-  }
-
-  Future<void> _showUpdateDialog(AppUpdateInfo info) async {
-    double progress = 0.0;
-    bool downloading = false;
-    String statusText = '';
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetCtx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: isDarkTheme ? const Color(0xFF1E1E22) : const Color(0xFFF1F3F6),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        Icons.rocket_launch_rounded,
-                        color: isDarkTheme ? Colors.white : Colors.black,
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                'Nova versão disponível',
-                                style: TextStyle(
-                                  fontFamily: 'DM Sans',
-                                  color: textMain,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF34C759).withOpacity(0.18),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  'v${info.version}',
-                                  style: const TextStyle(
-                                    fontFamily: 'DM Sans',
-                                    color: Color(0xFF34C759),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            'Versão atual instalada: v$appVersion',
-                            style: TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: textMuted,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: isDarkTheme ? const Color(0xFF1A1A1E) : const Color(0xFFF8F9FA),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isDarkTheme ? const Color(0xFF222226) : const Color(0x14000000),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'NOVIDADES',
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMuted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        info.releaseNotes,
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMain,
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (downloading) ...[
-                  const SizedBox(height: 18),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            statusText.isEmpty ? 'Baixando atualização...' : statusText,
-                            style: TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: textMuted,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Text(
-                            '${(progress * 100).toInt()}%',
-                            style: TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: textMain,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: LinearProgressIndicator(
-                          value: progress > 0 ? progress : null,
-                          minHeight: 6,
-                          backgroundColor: isDarkTheme ? const Color(0xFF25252B) : const Color(0xFFE2E8F0),
-                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: downloading
-                            ? null
-                            : () async {
-                                setSheetState(() {
-                                  downloading = true;
-                                  statusText = 'Baixando APK...';
-                                });
-                                final filePath = await UpdaterService.downloadApk(
-                                  info.downloadUrl,
-                                  version: info.version,
-                                  buildNumber: info.buildNumber,
-                                  onProgress: (p) {
-                                    setSheetState(() => progress = p);
-                                  },
-                                );
-                                if (filePath != null) {
-                                  final canInstall = await UpdaterService.canRequestPackageInstalls();
-                                  if (!canInstall) {
-                                    setSheetState(() {
-                                      statusText = 'Autorize a instalação de apps nas configurações...';
-                                    });
-                                    await UpdaterService.openInstallPermissionSettings();
-                                  }
-                                  setSheetState(() {
-                                    statusText = 'Abrindo instalador...';
-                                  });
-                                  final installed = await UpdaterService.installApk(filePath);
-                                  if (!installed && mounted) {
-                                    setSheetState(() {
-                                      downloading = false;
-                                      statusText = 'Abrindo no navegador para concluir...';
-                                    });
-                                    await UpdaterService.openInBrowser(info.downloadUrl);
-                                  }
-                                } else {
-                                  setSheetState(() {
-                                    downloading = false;
-                                    statusText = 'Falha no download direto. Abrindo navegador...';
-                                  });
-                                  if (mounted) {
-                                    await UpdaterService.openInBrowser(info.downloadUrl);
-                                  }
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isDarkTheme ? Colors.white : const Color(0xFF0F172A),
-                          foregroundColor: isDarkTheme ? Colors.black : Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          downloading ? 'Instalando...' : 'Instalar atualização',
-                          style: const TextStyle(
-                            fontFamily: 'DM Sans',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton.icon(
-                        onPressed: () => UpdaterService.openInBrowser(info.downloadUrl),
-                        icon: const Icon(Icons.open_in_browser_rounded, size: 16),
-                        label: const Text('Baixar pelo navegador'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: textMuted,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          textStyle: const TextStyle(
-                            fontFamily: 'DM Sans',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(sheetCtx),
-                      style: TextButton.styleFrom(
-                        foregroundColor: textMuted,
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                        textStyle: const TextStyle(
-                          fontFamily: 'DM Sans',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      child: const Text('Depois'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+  static Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: DrivvoColors.textLight, letterSpacing: 0.8),
       ),
     );
   }
 
-  Widget _pageIntro(String title, String subtitle, IconData icon, Color color) => Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: color.withOpacity(.12),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: color.withOpacity(.18)),
-            ),
-            child: Icon(icon, color: color, size: 21),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontFamily: 'DM Sans',
-                    color: textMain,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -.5,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontFamily: 'DM Sans',
-                    color: textMuted,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-
-  Widget _vehicleInfo(String label, String value) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'DM Sans',
-              color: textMuted,
-              fontSize: 10,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: 'DM Sans',
-              color: textMain,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      );
-
-  Widget _vehicleRow(CarVehicle vehicle) {
-    final selected = vehicle.id == activeVehicle;
+  static Widget _buildSettingsTile({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: () async {
-          setState(() => activeVehicle = vehicle.id);
-          await _save();
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: selected ? blue.withOpacity(.12) : panel,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? blue.withOpacity(.45) : strokeColor,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.directions_car_outlined,
-                color: selected ? blue : textMuted,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      vehicle.name,
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: selected ? blue : textMain,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    Text(
-                      vehicle.model.isEmpty ? 'Modelo não informado' : vehicle.model,
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMuted,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (selected) Icon(Icons.check_circle_rounded, color: blue, size: 19),
-              IconButton(
-                onPressed: () => _vehicleSheet(vehicle),
-                icon: Icon(Icons.more_horiz_rounded, color: textSoft, size: 19),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _emptyState(String title, String subtitle) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
-        decoration: BoxDecoration(
-          color: panel,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: strokeColor),
-        ),
-        child: Column(
-          children: [
-            Icon(Icons.inbox_outlined, color: textSoft, size: 28),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: TextStyle(
-                fontFamily: 'DM Sans',
-                color: textMain,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'DM Sans',
-                color: textMuted,
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
-      );
-
-  IconData _expenseIcon(String category) =>
-      {
-        'Maintenance': Icons.build_rounded,
-        'Insurance': Icons.shield_outlined,
-        'Tax': Icons.description_outlined,
-        'Parking': Icons.local_parking_rounded,
-        'Wash': Icons.water_drop_outlined,
-        'Fine': Icons.warning_amber_rounded,
-      }[category] ??
-      Icons.receipt_long_outlined;
-
-  Future<void> _setThemeMode(AppThemeMode mode) async {
-    _themeMode.value = mode;
-    _darkMode.value = mode != AppThemeMode.light;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('finanza_auto_theme_mode', mode.name);
-    await prefs.setBool('finanza_auto_dark_theme', isDarkTheme);
-    final label = mode == AppThemeMode.light
-        ? 'Tema Clean Snow Minimal ativado.'
-        : 'Tema Dark OLED Finanza Next ativado.';
-    if (mounted) _snack(label);
-  }
-
-  Future<void> _toggleTheme() async {
-    final nextMode = _themeMode.value == AppThemeMode.oled ? AppThemeMode.light : AppThemeMode.oled;
-    await _setThemeMode(nextMode);
-  }
-
-  Widget _themeSelectorWidget({VoidCallback? onChanged}) {
-    final themeOptions = [
-      (
-        mode: AppThemeMode.oled,
-        title: 'OLED Next',
-        subtitle: 'Preto puro & Azul',
-        color: const Color(0xff0a84ff),
-        bg: const Color(0xff000000),
-        icon: Icons.nightlight_round,
-      ),
-      (
-        mode: AppThemeMode.light,
-        title: 'Clean Snow',
-        subtitle: 'Minimal Claro',
-        color: const Color(0xff3b82f6),
-        bg: const Color(0xffffffff),
-        icon: Icons.wb_sunny_rounded,
-      ),
-    ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final itemWidth = (constraints.maxWidth - 10) / 2;
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: themeOptions.map((opt) {
-            final isSelected = _themeMode.value == opt.mode;
-            return SizedBox(
-              width: itemWidth,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    _setThemeMode(opt.mode);
-                    if (onChanged != null) onChanged();
-                    setState(() {});
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isSelected ? opt.color.withOpacity(.14) : panelRaised,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isSelected ? opt.color : strokeColor,
-                        width: isSelected ? 1.8 : 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 34,
-                          height: 34,
-                          decoration: BoxDecoration(
-                            color: opt.bg,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected ? opt.color : Colors.white24,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Icon(opt.icon, color: opt.color, size: 16),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                opt.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: 'DM Sans',
-                                  fontSize: 13,
-                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
-                                  color: isSelected ? opt.color : textMain,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                opt.subtitle,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: 'DM Sans',
-                                  fontSize: 10,
-                                  color: textMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (isSelected)
-                          Icon(Icons.check_circle_rounded, color: opt.color, size: 16),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        );
-      },
-    );
-  }
-
-  Future<void> _copyBackup() async {
-    final backup = JsonEncoder.withIndent('  ').convert({
-      'app': 'Finanza Auto',
-      'version': '2.0',
-      'car': {
-        'vehicles': vehicles.map((vehicle) => vehicle.toMap()).toList(),
-        'events': events.map((event) => event.toMap()).toList(),
-        'activeVehicleId': activeVehicle,
-      },
-    });
-    await Clipboard.setData(ClipboardData(text: backup));
-    _snack('Backup copiado. Guarde o JSON em um arquivo seguro.');
-  }
-
-  Future<void> _restoreBackup() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final raw = data?.text?.trim() ?? '';
-    if (raw.isEmpty) {
-      _snack('Nenhum JSON encontrado na área de transferência.');
-      return;
-    }
-    try {
-      final decoded = _tryDecodeMap(raw);
-      if (decoded == null) throw const FormatException('invalid backup');
-      final car = _carMap(decoded);
-      final loadedVehicles = <CarVehicle>[];
-      final loadedEvents = <CarEvent>[];
-      for (final item in _listValue(car, ['vehicles', 'vehicleList', 'items'])) {
-        if (item is Map) loadedVehicles.add(CarVehicle.fromMap(item.cast<String, dynamic>()));
-      }
-      for (final item in _listValue(car, ['events', 'items', 'records'])) {
-        if (item is Map) loadedEvents.add(CarEvent.fromMap(item.cast<String, dynamic>()));
-      }
-      if (loadedVehicles.isEmpty) loadedVehicles.add(CarVehicle(id: 'vehicle-1', name: 'Meu carro'));
-      final validIds = loadedVehicles.map((vehicle) => vehicle.id).toSet();
-      for (final event in loadedEvents) {
-        if (loadedVehicles.length == 1 || !validIds.contains(event.vehicleId)) {
-          event.vehicleId = loadedVehicles.first.id;
-        }
-      }
-      if (!mounted) return;
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          backgroundColor: panelRaised,
-          title: const Text('Restaurar backup?'),
-          content: Text(
-            '${loadedEvents.length} registros e ${loadedVehicles.length} veículo(s) substituirão os dados atuais deste aparelho.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              style: FilledButton.styleFrom(backgroundColor: blue),
-              child: const Text('Restaurar'),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true) return;
-      setState(() {
-        vehicles = loadedVehicles;
-        events = loadedEvents;
-        activeVehicle = loadedVehicles.first.id;
-      });
-      await _save();
-      _snack('Backup restaurado com sucesso!');
-    } catch (_) {
-      _snack('O conteúdo copiado não é um backup válido do Finanza Auto.');
-    }
-  }
-
-  Future<void> _deleteEvent(CarEvent event) async {
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: panelRaised,
-        title: const Text('Excluir lançamento?'),
-        content: const Text('Esta ação remove o registro somente deste dispositivo.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(backgroundColor: coral),
-            child: const Text('Excluir'),
-          ),
-        ],
-      ),
-    );
-    if (shouldDelete != true) return;
-    setState(() => events.removeWhere((item) => item.id == event.id));
-    await _save();
-    _snack('Lançamento excluído.');
-  }
-
-  Future<void> _quickExpenseSheet() async {
-    final amount = TextEditingController();
-    final title = TextEditingController();
-    var category = 'Other';
-    final categories = <String, String>{
-      'Maintenance': 'Manutenção',
-      'Insurance': 'Seguro',
-      'Tax': 'Imposto / documento',
-      'Parking': 'Estacionamento',
-      'Wash': 'Lavagem',
-      'Fine': 'Multa',
-      'Other': 'Outro',
-    };
-    try {
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: panel,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        builder: (sheetContext) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              14,
-              20,
-              MediaQuery.viewInsetsOf(sheetContext).bottom + 18,
-            ),
-            child: StatefulBuilder(
-              builder: (context, setModalState) => SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: textSoft,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Lançamento rápido',
-                            style: TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: textMain,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.pop(sheetContext),
-                          icon: Icon(Icons.close_rounded, color: textMuted),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      'Registre um gasto rápido sem preencher detalhes adicionais.',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    TextField(
-                      controller: amount,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      autofocus: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Valor pago',
-                        prefixText: 'R\$ ',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'CATEGORIA',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMuted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: categories.entries.map((entry) {
-                          final isSel = category == entry.key;
-                          final icon = _expenseIcon(entry.key);
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: FilterChip(
-                              showCheckmark: false,
-                              avatar: Icon(
-                                icon,
-                                size: 16,
-                                color: isSel ? Colors.white : textMuted,
-                              ),
-                              label: Text(entry.value),
-                              selected: isSel,
-                              onSelected: (_) => setModalState(() => category = entry.key),
-                              selectedColor: isDarkTheme ? const Color(0xFF282832) : const Color(0xFF1E1E22),
-                              backgroundColor: panelSoft,
-                              side: BorderSide(
-                                color: isSel ? blue.withOpacity(0.6) : strokeColor,
-                              ),
-                              labelStyle: TextStyle(
-                                fontFamily: 'DM Sans',
-                                color: isSel ? Colors.white : textMuted,
-                                fontSize: 12,
-                                fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                              ),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: title,
-                      decoration: const InputDecoration(
-                        labelText: 'Descrição rápida (opcional)',
-                        hintText: 'Ex.: Estacionamento shopping',
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () async {
-                          final value = _number(amount.text);
-                          if (value <= 0) {
-                            _snack('Informe um valor válido.');
-                            return;
-                          }
-                          final event = CarEvent(
-                            id: 'local-${DateTime.now().microsecondsSinceEpoch}',
-                            vehicleId: activeVehicle,
-                            type: 'expense',
-                            date: _isoToday(),
-                            amount: value,
-                            odometer: _maxOdometer(allVehicleEvents),
-                            title: title.text.trim().isEmpty ? _categoryLabel(category) : title.text.trim(),
-                            category: category,
-                            note: 'Lançamento rápido',
-                          );
-                          setState(() => events.insert(0, event));
-                          await _save();
-                          if (sheetContext.mounted) Navigator.pop(sheetContext);
-                          _snack('Despesa salva com sucesso.');
-                        },
-                        icon: const Icon(Icons.check_rounded),
-                        label: const Text('Salvar agora'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: blue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          textStyle: const TextStyle(
-                            fontFamily: 'DM Sans',
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    } finally {
-      amount.dispose();
-      title.dispose();
-    }
-  }
-
-  Widget _formRow(List<Widget> children) =>
-      Row(crossAxisAlignment: CrossAxisAlignment.start, children: children);
-
-  Future<void> _entrySheet({required bool fuel, CarEvent? edit}) async {
-    final date = TextEditingController(text: edit?.date ?? _isoToday());
-    final odo = TextEditingController(
-      text: edit == null || edit.odometer == 0 ? '' : edit.odometer.round().toString(),
-    );
-    final liters = TextEditingController(
-      text: edit == null || edit.liters == 0 ? '' : edit.liters.toString(),
-    );
-    final price = TextEditingController(
-      text: edit == null || edit.pricePerLiter == 0 ? '' : edit.pricePerLiter.toString(),
-    );
-    final amount = TextEditingController(
-      text: edit == null || edit.amount == 0 ? '' : edit.amount.toStringAsFixed(2),
-    );
-    final title = TextEditingController(text: edit?.title ?? '');
-    final note = TextEditingController(text: edit?.note ?? '');
-    var selectedFuel = edit?.fuelType ?? 'Etanol';
-    var selectedCategory = edit?.category ?? 'Maintenance';
-    final categories = <String, String>{
-      'Maintenance': 'Manutenção',
-      'Insurance': 'Seguro',
-      'Tax': 'Imposto / documento',
-      'Parking': 'Estacionamento',
-      'Wash': 'Lavagem',
-      'Fine': 'Multa',
-      'Other': 'Outro',
-    };
-    try {
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: panel,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        builder: (sheetContext) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              14,
-              20,
-              MediaQuery.viewInsetsOf(sheetContext).bottom + 18,
-            ),
-            child: StatefulBuilder(
-              builder: (context, setModalState) {
-                final calculated = _number(liters.text) * _number(price.text);
-                return SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: textSoft,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              edit == null
-                                  ? (fuel ? 'Novo abastecimento' : 'Nova despesa')
-                                  : 'Editar lançamento',
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
-                                color: textMain,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => Navigator.pop(sheetContext),
-                            icon: Icon(Icons.close_rounded, color: textMuted),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        fuel
-                            ? 'Registre o abastecimento para acompanhar o consumo médio.'
-                            : 'Mantenha todas as despesas do carro organizadas em um só lugar.',
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      _formRow([
-                        Expanded(
-                          child: TextField(
-                            controller: date,
-                            readOnly: true,
-                            onTap: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                firstDate: DateTime(2000),
-                                lastDate: DateTime.now().add(const Duration(days: 365)),
-                                initialDate: _parseDate(date.text) ?? DateTime.now(),
-                                builder: (context, child) => Theme(
-                                  data: Theme.of(context).copyWith(
-                                    colorScheme: ColorScheme.dark(
-                                      primary: blue,
-                                      surface: panelRaised,
-                                    ),
-                                  ),
-                                  child: child!,
-                                ),
-                              );
-                              if (picked != null) {
-                                date.text = DateFormat('yyyy-MM-dd').format(picked);
-                                setModalState(() {});
-                              }
-                            },
-                            decoration: const InputDecoration(
-                              labelText: 'Data',
-                              prefixIcon: Icon(Icons.calendar_today_outlined, size: 17),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: odo,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Hodômetro',
-                              suffixText: 'km',
-                            ),
-                          ),
-                        ),
-                      ]),
-                      const SizedBox(height: 12),
-                      if (fuel) ...[
-                        DropdownButtonFormField<String>(
-                          value: selectedFuel,
-                          decoration: const InputDecoration(
-                            labelText: 'Tipo de combustível',
-                            prefixIcon: Icon(Icons.local_gas_station_outlined, size: 18),
-                          ),
-                          items: ['Etanol', 'Gasolina', 'Diesel', 'GNV', 'Flex']
-                              .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-                              .toList(),
-                          onChanged: (value) => setModalState(() => selectedFuel = value ?? selectedFuel),
-                        ),
-                        const SizedBox(height: 12),
-                        _formRow([
-                          Expanded(
-                            child: TextField(
-                              controller: liters,
-                              onChanged: (_) => setModalState(() {}),
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(labelText: 'Litros'),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: price,
-                              onChanged: (_) => setModalState(() {}),
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(
-                                labelText: 'Preço / litro',
-                                prefixText: 'R\$ ',
-                              ),
-                            ),
-                          ),
-                        ]),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: amount,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: InputDecoration(
-                            labelText: 'Total pago',
-                            prefixText: 'R\$ ',
-                            hintText: calculated > 0 ? calculated.toStringAsFixed(2) : null,
-                          ),
-                        ),
-                      ] else ...[
-                        Text(
-                          'CATEGORIA',
-                          style: TextStyle(
-                            fontFamily: 'DM Sans',
-                            color: textMuted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.1,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: categories.entries.map((entry) {
-                              final isSel = selectedCategory == entry.key;
-                              final icon = _expenseIcon(entry.key);
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: FilterChip(
-                                  showCheckmark: false,
-                                  avatar: Icon(
-                                    icon,
-                                    size: 16,
-                                    color: isSel ? Colors.white : textMuted,
-                                  ),
-                                  label: Text(entry.value),
-                                  selected: isSel,
-                                  onSelected: (_) => setModalState(() => selectedCategory = entry.key),
-                                  selectedColor: isDarkTheme ? const Color(0xFF282832) : const Color(0xFF1E1E22),
-                                  backgroundColor: panelSoft,
-                                  side: BorderSide(
-                                    color: isSel ? blue.withOpacity(0.6) : strokeColor,
-                                  ),
-                                  labelStyle: TextStyle(
-                                    fontFamily: 'DM Sans',
-                                    color: isSel ? Colors.white : textMuted,
-                                    fontSize: 12,
-                                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                                  ),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextField(
-                          controller: amount,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: 'Valor pago', prefixText: 'R\$ '),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: title,
-                          decoration: const InputDecoration(
-                            labelText: 'Descrição',
-                            hintText: 'Ex.: Troca de óleo, IPVA, Seguro...',
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: note,
-                        decoration: InputDecoration(
-                          labelText: fuel ? 'Posto ou observação' : 'Observação adicional',
-                          hintText: fuel ? 'Ex.: Posto Shell Centro' : 'Detalhes opcionais',
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: () async {
-                            final value = _number(amount.text) > 0 ? _number(amount.text) : calculated;
-                            if (value <= 0) {
-                              _snack('Informe um valor válido.');
-                              return;
-                            }
-                            final event = edit ??
-                                CarEvent(
-                                  id: 'local-${DateTime.now().microsecondsSinceEpoch}',
-                                  vehicleId: activeVehicle,
-                                  type: fuel ? 'fuel' : 'expense',
-                                  date: date.text,
-                                  amount: value,
-                                );
-                            event.vehicleId = activeVehicle;
-                            event.type = fuel ? 'fuel' : 'expense';
-                            event.date = date.text.isEmpty ? _isoToday() : date.text;
-                            event.amount = value;
-                            event.odometer = _number(odo.text);
-                            event.liters = _number(liters.text);
-                            event.pricePerLiter = _number(price.text);
-                            event.fuelType = selectedFuel;
-                            event.title = title.text.trim();
-                            event.category = selectedCategory;
-                            event.note = note.text.trim();
-                            setState(() {
-                              if (edit == null) events.insert(0, event);
-                              final vehicle = currentVehicle;
-                              if (event.odometer > vehicle.odometer) {
-                                vehicle.odometer = event.odometer;
-                              }
-                            });
-                            await _save();
-                            if (sheetContext.mounted) Navigator.pop(sheetContext);
-                            _snack(edit == null ? 'Lançamento salvo com sucesso.' : 'Lançamento atualizado.');
-                          },
-                          style: FilledButton.styleFrom(
-                            backgroundColor: blue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            textStyle: const TextStyle(
-                              fontFamily: 'DM Sans',
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14,
-                            ),
-                          ),
-                          child: Text(edit == null ? 'Salvar lançamento' : 'Salvar alterações'),
-                        ),
-                      ),
-                      if (edit != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Center(
-                            child: TextButton.icon(
-                              onPressed: () {
-                                Navigator.pop(sheetContext);
-                                _deleteEvent(edit);
-                              },
-                              icon: const Icon(Icons.delete_outline_rounded, color: coral, size: 17),
-                              label: const Text(
-                                'Excluir lançamento',
-                                style: TextStyle(
-                                  fontFamily: 'DM Sans',
-                                  color: coral,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      );
-    } finally {
-      for (final controller in [date, odo, liters, price, amount, title, note]) {
-        controller.dispose();
-      }
-    }
-  }
-
-  Future<void> _deleteVehicle(CarVehicle vehicle) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: panelRaised,
-        title: const Text('Excluir veículo?'),
-        content: const Text('Os registros vinculados a este veículo também serão removidos deste dispositivo.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(backgroundColor: coral),
-            child: const Text('Excluir'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    setState(() {
-      vehicles.removeWhere((item) => item.id == vehicle.id);
-      events.removeWhere((event) => event.vehicleId == vehicle.id);
-      activeVehicle = vehicles.first.id;
-    });
-    await _save();
-    _snack('Veículo excluído.');
-  }
-
-  Future<void> _vehicleSheet([CarVehicle? edit]) async {
-    final name = TextEditingController(text: edit?.name ?? '');
-    final model = TextEditingController(text: edit?.model ?? '');
-    final plate = TextEditingController(text: edit?.plate ?? '');
-    final odometer = TextEditingController(
-      text: edit == null || edit.odometer == 0 ? '' : edit.odometer.round().toString(),
-    );
-    final targetConsumption = TextEditingController(
-      text: edit == null || edit.targetConsumption == 0 ? '' : edit.targetConsumption.toString(),
-    );
-    final tankCapacity = TextEditingController(
-      text: edit == null || edit.tankCapacity == 0 ? '' : edit.tankCapacity.toString(),
-    );
-    final serviceInterval = TextEditingController(
-      text: edit == null || edit.serviceIntervalKm == 0 ? '10000' : edit.serviceIntervalKm.round().toString(),
-    );
-    try {
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: panel,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        builder: (sheetContext) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              14,
-              20,
-              MediaQuery.viewInsetsOf(sheetContext).bottom + 18,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: textSoft,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          edit == null ? 'Adicionar veículo' : 'Editar veículo',
-                          style: TextStyle(
-                            fontFamily: 'DM Sans',
-                            color: textMain,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(sheetContext),
-                        icon: Icon(Icons.close_rounded, color: textMuted),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    'Cadastre os dados e metas para organizar o consumo e manutenção.',
-                    style: TextStyle(
-                      fontFamily: 'DM Sans',
-                      color: textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  TextField(
-                    controller: name,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome do veículo',
-                      hintText: 'Ex.: Astra, Gol, Moto...',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _formRow([
-                    Expanded(
-                      child: TextField(
-                        controller: model,
-                        decoration: const InputDecoration(
-                          labelText: 'Modelo / ano',
-                          hintText: 'Ex.: 2.0 2011',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: plate,
-                        textCapitalization: TextCapitalization.characters,
-                        decoration: const InputDecoration(
-                          labelText: 'Placa',
-                          hintText: 'ABC1D23',
-                        ),
-                      ),
-                    ),
-                  ]),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: odometer,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Hodômetro atual',
-                      suffixText: 'km',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _formRow([
-                    Expanded(
-                      child: TextField(
-                        controller: targetConsumption,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Meta de consumo',
-                          suffixText: 'km/L',
-                          hintText: 'Ex.: 10.5',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: tankCapacity,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Tanque total',
-                          suffixText: 'L',
-                          hintText: 'Ex.: 52',
-                        ),
-                      ),
-                    ),
-                  ]),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: serviceInterval,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Intervalo de revisão / óleo',
-                      suffixText: 'km',
-                      hintText: 'Padrão: 10000 km',
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () async {
-                        if (name.text.trim().isEmpty) {
-                          _snack('Informe um nome para o veículo.');
-                          return;
-                        }
-                        setState(() {
-                          if (edit == null) {
-                            final vehicle = CarVehicle(
-                              id: 'local-${DateTime.now().microsecondsSinceEpoch}',
-                              name: name.text.trim(),
-                              model: model.text.trim(),
-                              plate: plate.text.trim(),
-                              odometer: _number(odometer.text),
-                              targetConsumption: _number(targetConsumption.text),
-                              tankCapacity: _number(tankCapacity.text),
-                              serviceIntervalKm: _number(serviceInterval.text) > 0
-                                  ? _number(serviceInterval.text)
-                                  : 10000,
-                            );
-                            vehicles.add(vehicle);
-                            activeVehicle = vehicle.id;
-                          } else {
-                            edit.name = name.text.trim();
-                            edit.model = model.text.trim();
-                            edit.plate = plate.text.trim();
-                            edit.odometer = _number(odometer.text);
-                            edit.targetConsumption = _number(targetConsumption.text);
-                            edit.tankCapacity = _number(tankCapacity.text);
-                            edit.serviceIntervalKm = _number(serviceInterval.text) > 0
-                                ? _number(serviceInterval.text)
-                                : 10000;
-                          }
-                        });
-                        await _save();
-                        if (sheetContext.mounted) Navigator.pop(sheetContext);
-                        _snack(edit == null ? 'Veículo adicionado com sucesso.' : 'Veículo atualizado.');
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        textStyle: const TextStyle(
-                          fontFamily: 'DM Sans',
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                        ),
-                      ),
-                      child: Text(edit == null ? 'Adicionar veículo' : 'Salvar alterações'),
-                    ),
-                  ),
-                  if (edit != null && vehicles.length > 1)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Center(
-                        child: TextButton.icon(
-                          onPressed: () async {
-                            Navigator.pop(sheetContext);
-                            await _deleteVehicle(edit);
-                          },
-                          icon: const Icon(Icons.delete_outline_rounded, color: coral, size: 17),
-                          label: const Text(
-                            'Excluir veículo',
-                            style: TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: coral,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    } finally {
-      for (final controller in [name, model, plate, odometer, targetConsumption, tankCapacity, serviceInterval]) {
-        controller.dispose();
-      }
-    }
-  }
-
-  void _snack(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(fontFamily: 'DM Sans', fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: panelRaised,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
-  // --- FERRAMENTA 1: Monitor de Próxima Revisão / Troca de Óleo ---
-  Widget _maintenanceProgressCard(List<CarEvent> list) {
-    final currentKm = _maxOdometer(list);
-    final interval = currentVehicle.serviceIntervalKm > 0 ? currentVehicle.serviceIntervalKm : 10000.0;
-    
-    // Procura o último registro com 'óleo' ou 'revisão'
-    double lastServiceKm = 0;
-    for (final e in list) {
-      final text = '${e.title} ${e.note} ${e.category}'.toLowerCase();
-      if ((text.contains('óleo') || text.contains('oleo') || text.contains('revis') || text.contains('filtro')) && e.odometer > 0) {
-        if (e.odometer > lastServiceKm) lastServiceKm = e.odometer;
-      }
-    }
-
-    final baseKm = lastServiceKm > 0 ? lastServiceKm : (currentKm - (currentKm % interval));
-    final nextServiceKm = baseKm + interval;
-    final remainingKm = (nextServiceKm - currentKm).round();
-    final pct = interval > 0 ? ((currentKm - baseKm) / interval).clamp(0.0, 1.0) : 0.0;
-    final isAlert = remainingKm <= 1000;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: (isAlert ? coral : blue).withOpacity(0.09),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: (isAlert ? coral : blue).withOpacity(0.25)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: DrivvoColors.divider),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: (isAlert ? coral : blue).withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  isAlert ? Icons.warning_amber_rounded : Icons.build_circle_rounded,
-                  color: isAlert ? coral : blue,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Próxima Troca de Óleo / Revisão',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: textMain,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      remainingKm <= 0
-                          ? 'Atenção: Revisão vencida ou necessária imediatamente!'
-                          : 'Faltam aproximadamente $remainingKm km (prevista para ${nextServiceKm.round()} km)',
-                      style: TextStyle(
-                        fontFamily: 'DM Sans',
-                        color: isAlert ? coral : textMuted,
-                        fontSize: 11,
-                        fontWeight: isAlert ? FontWeight.w700 : FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: pct,
-              minHeight: 6,
-              backgroundColor: strokeColor,
-              color: isAlert ? coral : (pct > 0.8 ? amber : mint),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- FERRAMENTA 2: Calculadora Flex (Regra dos 70%) ---
-  Future<void> _flexCalculatorSheet() async {
-    final ethanolCtrl = TextEditingController();
-    final gasCtrl = TextEditingController();
-    double ratio = 0;
-    String verdict = '';
-    Color verdictColor = blue;
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
-          void calculate() {
-            final e = _number(ethanolCtrl.text);
-            final g = _number(gasCtrl.text);
-            if (e > 0 && g > 0) {
-              final r = (e / g) * 100;
-              setSheetState(() {
-                ratio = r;
-                if (r <= 70.0) {
-                  verdict = 'Compensa abastecer com ETANOL (Relação: ${r.toStringAsFixed(1)}%)';
-                  verdictColor = mint;
-                } else if (r <= 73.0) {
-                  verdict = 'Relação equilibrada (${r.toStringAsFixed(1)}%). O Etanol ainda pode compensar pelo consumo!';
-                  verdictColor = amber;
-                } else {
-                  verdict = 'Compensa abastecer com GASOLINA (Relação: ${r.toStringAsFixed(1)}%)';
-                  verdictColor = coral;
-                }
-              });
-            } else {
-              setSheetState(() {
-                ratio = 0;
-                verdict = '';
-              });
-            }
-          }
-
-          return SafeArea(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(22, 14, 22, MediaQuery.of(ctx).viewInsets.bottom + 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: amber.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(Icons.calculate_rounded, color: amber, size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Calculadora Flex',
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
-                                color: textMain,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Text(
-                              'Regra dos 70%: Etanol vs Gasolina',
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
-                                color: textMuted,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(sheetContext),
-                        icon: Icon(Icons.close_rounded, color: textMuted),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: ethanolCtrl,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          onChanged: (_) => calculate(),
-                          decoration: const InputDecoration(
-                            labelText: 'Preço Etanol (R\$)',
-                            hintText: 'Ex: 3,89',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: gasCtrl,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          onChanged: (_) => calculate(),
-                          decoration: const InputDecoration(
-                            labelText: 'Preço Gasolina (R\$)',
-                            hintText: 'Ex: 5,79',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (verdict.isNotEmpty) ...[
-                    const SizedBox(height: 18),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: verdictColor.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: verdictColor.withOpacity(0.3)),
-                      ),
-                      child: Text(
-                        verdict,
-                        style: TextStyle(
-                          fontFamily: 'DM Sans',
-                          color: verdictColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  Text(
-                    'Dica: Em veículos flex, o etanol rende em média 70% a 73% do rendimento da gasolina.',
-                    style: TextStyle(
-                      fontFamily: 'DM Sans',
-                      color: textMuted,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  // --- Adição Rápida de Abastecimento (Estilo Finext / Finanza Next) ---
-  Future<void> _quickAddTransactionSheet() async {
-    final amountCtrl = TextEditingController();
-    final litersCtrl = TextEditingController();
-    final priceCtrl = TextEditingController();
-    final odoCtrl = TextEditingController(
-      text: _maxOdometer(allVehicleEvents) > 0 ? _maxOdometer(allVehicleEvents).round().toString() : '',
-    );
-    final stationCtrl = TextEditingController();
-    final dateCtrl = TextEditingController(text: _isoToday());
-    String selectedFuel = 'Gasolina';
-    bool isFullTank = true;
-    bool isUpdatingFields = false;
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
-          // Formatação utilitária com vírgula padrão BR
-          String formatNumber(double val, int decimals) {
-            if (val <= 0 || val.isNaN || val.isInfinite) return '';
-            return val.toStringAsFixed(decimals).replaceAll('.', ',');
-          }
-
-          void updateFromLiters() {
-            if (isUpdatingFields) return;
-            final lit = _number(litersCtrl.text);
-            final prc = _number(priceCtrl.text);
-            final amt = _number(amountCtrl.text);
-
-            if (lit > 0 && prc > 0) {
-              isUpdatingFields = true;
-              amountCtrl.text = formatNumber(lit * prc, 2);
-              isUpdatingFields = false;
-            } else if (lit > 0 && amt > 0) {
-              isUpdatingFields = true;
-              priceCtrl.text = formatNumber(amt / lit, 2);
-              isUpdatingFields = false;
-            }
-            setSheetState(() {});
-          }
-
-          void updateFromPrice() {
-            if (isUpdatingFields) return;
-            final prc = _number(priceCtrl.text);
-            final amt = _number(amountCtrl.text);
-            final lit = _number(litersCtrl.text);
-
-            if (prc > 0 && amt > 0) {
-              isUpdatingFields = true;
-              litersCtrl.text = formatNumber(amt / prc, 3);
-              isUpdatingFields = false;
-            } else if (prc > 0 && lit > 0) {
-              isUpdatingFields = true;
-              amountCtrl.text = formatNumber(lit * prc, 2);
-              isUpdatingFields = false;
-            }
-            setSheetState(() {});
-          }
-
-          void updateFromAmount() {
-            if (isUpdatingFields) return;
-            final amt = _number(amountCtrl.text);
-            final prc = _number(priceCtrl.text);
-            final lit = _number(litersCtrl.text);
-
-            if (amt > 0 && prc > 0) {
-              isUpdatingFields = true;
-              litersCtrl.text = formatNumber(amt / prc, 3);
-              isUpdatingFields = false;
-            } else if (amt > 0 && lit > 0) {
-              isUpdatingFields = true;
-              priceCtrl.text = formatNumber(amt / lit, 2);
-              isUpdatingFields = false;
-            }
-            setSheetState(() {});
-          }
-
-          final displayAmount = _number(amountCtrl.text) > 0
-              ? _number(amountCtrl.text)
-              : (_number(litersCtrl.text) * _number(priceCtrl.text));
-
-          final fuelOptions = ['Gasolina', 'Etanol', 'Diesel', 'GNV', 'Flex'];
-
-          return Container(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isDarkTheme ? const Color(0xFF131418) : Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: isDarkTheme ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(isDarkTheme ? 0.6 : 0.2),
-                        blurRadius: 28,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Top Drag Handle & Title Bar
-                          Row(
-                            children: [
-                              Container(
-                                width: 38,
-                                height: 38,
-                                decoration: BoxDecoration(
-                                  color: amber.withOpacity(0.16),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                alignment: Alignment.center,
-                                child: Icon(Icons.local_gas_station_rounded, color: amber, size: 20),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Abastecimento Rápido',
-                                      style: TextStyle(
-                                        fontFamily: 'DM Sans',
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w800,
-                                        color: textMain,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Cálculo automático de litros e valor',
-                                      style: TextStyle(
-                                        fontFamily: 'DM Sans',
-                                        fontSize: 12,
-                                        color: textMuted,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                onPressed: () => Navigator.pop(sheetContext),
-                                icon: Icon(Icons.close_rounded, color: textMuted, size: 20),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-
-                          // Finext-style Hero Amount Card
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: isDarkTheme ? const Color(0xFF1C1D24) : const Color(0xFFF3F4F6),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isDarkTheme ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.05),
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  'VALOR TOTAL',
-                                  style: TextStyle(
-                                    fontFamily: 'DM Sans',
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.1,
-                                    color: textMuted,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                TextField(
-                                  controller: amountCtrl,
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  textAlign: TextAlign.center,
-                                  onChanged: (_) => updateFromAmount(),
-                                  style: TextStyle(
-                                    fontFamily: 'DM Sans',
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w900,
-                                    color: blue,
-                                    letterSpacing: -0.5,
-                                  ),
-                                  decoration: InputDecoration(
-                                    isDense: true,
-                                    prefixText: 'R\$ ',
-                                    prefixStyle: TextStyle(
-                                      fontFamily: 'DM Sans',
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w800,
-                                      color: textMuted,
-                                    ),
-                                    hintText: displayAmount > 0 ? displayAmount.toStringAsFixed(2).replaceAll('.', ',') : '0,00',
-                                    hintStyle: TextStyle(
-                                      fontFamily: 'DM Sans',
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.w900,
-                                      color: textMuted.withOpacity(0.35),
-                                    ),
-                                    border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Litros & Preço/L com cálculo reativo bidirecional
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: isDarkTheme ? const Color(0xFF181920) : const Color(0xFFF9FAFB),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: isDarkTheme ? const Color(0xFF262732) : const Color(0xFFE5E7EB),
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'LITROS (L)',
-                                        style: TextStyle(
-                                          fontFamily: 'DM Sans',
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: textMuted,
-                                        ),
-                                      ),
-                                      TextField(
-                                        controller: litersCtrl,
-                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                        onChanged: (_) => updateFromLiters(),
-                                        style: TextStyle(
-                                          fontFamily: 'DM Sans',
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w800,
-                                          color: textMain,
-                                        ),
-                                        decoration: InputDecoration(
-                                          isDense: true,
-                                          hintText: '0,000',
-                                          suffixText: 'L',
-                                          suffixStyle: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: textMuted,
-                                          ),
-                                          border: InputBorder.none,
-                                          contentPadding: const EdgeInsets.symmetric(vertical: 6),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: isDarkTheme ? const Color(0xFF181920) : const Color(0xFFF9FAFB),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: isDarkTheme ? const Color(0xFF262732) : const Color(0xFFE5E7EB),
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'PREÇO / LITRO',
-                                        style: TextStyle(
-                                          fontFamily: 'DM Sans',
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: textMuted,
-                                        ),
-                                      ),
-                                      TextField(
-                                        controller: priceCtrl,
-                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                        onChanged: (_) => updateFromPrice(),
-                                        style: TextStyle(
-                                          fontFamily: 'DM Sans',
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w800,
-                                          color: textMain,
-                                        ),
-                                        decoration: InputDecoration(
-                                          isDense: true,
-                                          hintText: '0,00',
-                                          prefixText: 'R\$ ',
-                                          prefixStyle: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: textMuted,
-                                          ),
-                                          border: InputBorder.none,
-                                          contentPadding: const EdgeInsets.symmetric(vertical: 6),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Combustível Chips (Gasolina, Etanol, Diesel, GNV, Flex)
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: fuelOptions.map((f) {
-                                final isSel = selectedFuel == f;
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: ChoiceChip(
-                                    label: Text(f),
-                                    selected: isSel,
-                                    onSelected: (_) => setSheetState(() => selectedFuel = f),
-                                    selectedColor: isDarkTheme ? const Color(0xFF2A2A38) : const Color(0xFF1E293B),
-                                    backgroundColor: isDarkTheme ? const Color(0xFF1A1B22) : const Color(0xFFF1F5F9),
-                                    labelStyle: TextStyle(
-                                      fontFamily: 'DM Sans',
-                                      fontSize: 12,
-                                      color: isSel ? Colors.white : textMuted,
-                                      fontWeight: isSel ? FontWeight.w800 : FontWeight.w500,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      side: BorderSide(
-                                        color: isSel
-                                            ? blue
-                                            : (isDarkTheme ? const Color(0xFF2E2F3A) : const Color(0xFFE2E8F0)),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Odômetro & Tanque Cheio
-                          Row(
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child: TextField(
-                                  controller: odoCtrl,
-                                  keyboardType: TextInputType.number,
-                                  style: TextStyle(
-                                    fontFamily: 'DM Sans',
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: textMain,
-                                  ),
-                                  decoration: InputDecoration(
-                                    labelText: 'Odômetro',
-                                    suffixText: 'km',
-                                    prefixIcon: const Icon(Icons.speed_rounded, size: 18),
-                                    helperText: currentVehicle.odometer > 0
-                                        ? 'Anterior: ${currentVehicle.odometer.round()} km'
-                                        : null,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                flex: 2,
-                                child: InkWell(
-                                  onTap: () => setSheetState(() => isFullTank = !isFullTank),
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: isFullTank
-                                          ? mint.withOpacity(0.12)
-                                          : (isDarkTheme ? const Color(0xFF181920) : const Color(0xFFF3F4F6)),
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(
-                                        color: isFullTank ? mint : (isDarkTheme ? const Color(0xFF282935) : const Color(0xFFE5E7EB)),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.ev_station_rounded,
-                                          size: 16,
-                                          color: isFullTank ? mint : textMuted,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          'Tanque\nCheio',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 11,
-                                            fontWeight: isFullTank ? FontWeight.w800 : FontWeight.w600,
-                                            color: isFullTank ? mint : textMuted,
-                                            height: 1.1,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-
-                          // Posto / Local (Opcional)
-                          TextField(
-                            controller: stationCtrl,
-                            style: TextStyle(fontFamily: 'DM Sans', fontSize: 13, color: textMain),
-                            decoration: const InputDecoration(
-                              labelText: 'Posto / Bandeira (opcional)',
-                              hintText: 'Ex.: Posto Shell, Ipiranga, Petrobras',
-                              prefixIcon: Icon(Icons.place_rounded, size: 18),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-
-                          // Data
-                          TextField(
-                            controller: dateCtrl,
-                            readOnly: true,
-                            style: TextStyle(fontFamily: 'DM Sans', fontSize: 13, color: textMain),
-                            onTap: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                firstDate: DateTime(2000),
-                                lastDate: DateTime.now().add(const Duration(days: 365)),
-                                initialDate: _parseDate(dateCtrl.text) ?? DateTime.now(),
-                                builder: (context, child) => Theme(
-                                  data: Theme.of(context).copyWith(
-                                    colorScheme: ColorScheme.dark(
-                                      primary: blue,
-                                      surface: panelRaised,
-                                    ),
-                                  ),
-                                  child: child!,
-                                ),
-                              );
-                              if (picked != null) {
-                                dateCtrl.text = DateFormat('yyyy-MM-dd').format(picked);
-                                setSheetState(() {});
-                              }
-                            },
-                            decoration: const InputDecoration(
-                              labelText: 'Data',
-                              prefixIcon: Icon(Icons.calendar_today_rounded, size: 16),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Action Buttons (Finext Style: [ Cancelar ] [ OK / Salvar ])
-                          Row(
-                            children: [
-                              Expanded(
-                                flex: 1,
-                                child: OutlinedButton(
-                                  onPressed: () => Navigator.pop(sheetContext),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                    foregroundColor: textMuted,
-                                    side: BorderSide(
-                                      color: isDarkTheme ? const Color(0xFF333340) : const Color(0xFFD1D5DB),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Cancelar',
-                                    style: TextStyle(
-                                      fontFamily: 'DM Sans',
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                flex: 2,
-                                child: FilledButton.icon(
-                                  onPressed: () async {
-                                    final total = _number(amountCtrl.text) > 0 ? _number(amountCtrl.text) : displayAmount;
-                                    if (total <= 0) {
-                                      _snack('Informe o valor pago ou litros e preço.');
-                                      return;
-                                    }
-                                    final km = _number(odoCtrl.text);
-                                    final postNote = stationCtrl.text.trim();
-                                    final fullTankTag = isFullTank ? 'Tanque cheio' : '';
-                                    final combinedNote = postNote.isNotEmpty
-                                        ? (fullTankTag.isNotEmpty ? '$postNote • $fullTankTag' : postNote)
-                                        : fullTankTag;
-
-                                    final liters = _number(litersCtrl.text);
-                                    final price = _number(priceCtrl.text);
-
-                                    final event = CarEvent(
-                                      id: 'fuel-${DateTime.now().microsecondsSinceEpoch}',
-                                      vehicleId: currentVehicle.id,
-                                      type: 'fuel',
-                                      date: dateCtrl.text.isEmpty ? _isoToday() : dateCtrl.text,
-                                      amount: total,
-                                      odometer: km,
-                                      liters: liters,
-                                      pricePerLiter: price > 0 ? price : (liters > 0 ? total / liters : 0),
-                                      fuelType: selectedFuel,
-                                      title: 'Abastecimento ($selectedFuel)',
-                                      category: 'Combustivel',
-                                      note: combinedNote,
-                                    );
-
-                                    setState(() {
-                                      events.insert(0, event);
-                                      if (km > currentVehicle.odometer) {
-                                        currentVehicle.odometer = km;
-                                      }
-                                    });
-                                    await _save();
-                                    if (sheetContext.mounted) Navigator.pop(sheetContext);
-                                    _snack('Abastecimento de ${_money(total)} salvo com sucesso!');
-                                  },
-                                  icon: const Icon(Icons.check_rounded, size: 20),
-                                  label: const Text('OK / Salvar'),
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: blue,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                    textStyle: const TextStyle(
-                                      fontFamily: 'DM Sans',
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  // --- Abastecimentos Extraídos dos Prints do Drivvo (Abril a Setembro/2026) ---
-  List<CarEvent> _defaultExtractedPrintEvents([String? vehicleId]) {
-    final vId = (vehicleId != null && vehicleId.isNotEmpty)
-        ? vehicleId
-        : (vehicles.isNotEmpty ? vehicles.first.id : 'vehicle-1');
-    return [
-      CarEvent(
-        id: 'imported-fuel-2026-09-13',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-09-13',
-        amount: 128.00,
-        odometer: 164154,
-        liters: 36.676,
-        pricePerLiter: 3.49,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-08-16',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-08-16',
-        amount: 154.15,
-        odometer: 164028,
-        liters: 44.0,
-        pricePerLiter: 3.50,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-08-01',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-08-01',
-        amount: 117.20,
-        odometer: 163708,
-        liters: 35.0,
-        pricePerLiter: 3.35,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-07-20',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-07-20',
-        amount: 95.00,
-        odometer: 163550,
-        liters: 27.085,
-        pricePerLiter: 3.51,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-07-11',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-07-11',
-        amount: 154.00,
-        odometer: 163437,
-        liters: 44.047,
-        pricePerLiter: 3.50,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-06-28',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-06-28',
-        amount: 113.00,
-        odometer: 163154,
-        liters: 33.138,
-        pricePerLiter: 3.41,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-06-24',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-06-24',
-        amount: 141.36,
-        odometer: 162975,
-        liters: 39.470,
-        pricePerLiter: 3.58,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-06-20',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-06-20',
-        amount: 54.00,
-        odometer: 162774,
-        liters: 15.472,
-        pricePerLiter: 3.49,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-06-17',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-06-17',
-        amount: 144.02,
-        odometer: 162724,
-        liters: 43.280,
-        pricePerLiter: 3.33,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-06-13',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-06-13',
-        amount: 110.00,
-        odometer: 162431,
-        liters: 32.291,
-        pricePerLiter: 3.41,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-06-08',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-06-08',
-        amount: 160.00,
-        odometer: 162176,
-        liters: 45.914,
-        pricePerLiter: 3.48,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-05-30',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-05-30',
-        amount: 183.50,
-        odometer: 162100,
-        liters: 44.072,
-        pricePerLiter: 4.16,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-05-18',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-05-18',
-        amount: 130.00,
-        odometer: 162015,
-        liters: 32.861,
-        pricePerLiter: 3.96,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-04-25',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-04-25',
-        amount: 204.00,
-        odometer: 161920,
-        liters: 50.000,
-        pricePerLiter: 4.08,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-      CarEvent(
-        id: 'imported-fuel-2026-04-17',
-        vehicleId: vId,
-        type: 'fuel',
-        date: '2026-04-17',
-        amount: 210.00,
-        odometer: 161700,
-        liters: 50.715,
-        pricePerLiter: 4.14,
-        fuelType: 'Etanol',
-        title: 'Abastecimento (Etanol)',
-        category: 'Combustivel',
-        note: 'Rafaela • Tanque cheio',
-      ),
-    ];
-  }
-
-  // --- Modal de Revisão / Aprovação de Abastecimentos Pendentes ---
-  Future<void> _pendingFuelReviewModal() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDarkTheme ? const Color(0xFF131418) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
-          final totalValor = pendingFuelImports.fold<double>(0, (sum, e) => sum + e.amount);
-          final totalLiters = pendingFuelImports.fold<double>(0, (sum, e) => sum + e.liters);
-
-          return SafeArea(
-            child: Container(
-              height: MediaQuery.of(ctx).size.height * 0.88,
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: amber.withOpacity(0.18),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        alignment: Alignment.center,
-                        child: Icon(Icons.fact_check_rounded, color: amber, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Importações Pendentes',
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: textMain,
-                              ),
-                            ),
-                            Text(
-                              '${pendingFuelImports.length} abastecimentos de Abril a Setembro',
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
-                                fontSize: 12,
-                                color: textMuted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () => Navigator.pop(sheetContext),
-                        icon: Icon(Icons.close_rounded, color: textMuted),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Resumo dos registros pendentes
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isDarkTheme ? const Color(0xFF1B1C22) : const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: strokeColor),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'TOTAL PENDENTE',
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: textMuted,
-                              ),
-                            ),
-                            Text(
-                              _money(totalValor),
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: blue,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'VOLUME TOTAL',
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: textMuted,
-                              ),
-                            ),
-                            Text(
-                              '${totalLiters.toStringAsFixed(1)} L',
-                              style: TextStyle(
-                                fontFamily: 'DM Sans',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: textMain,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Ações em lote
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: pendingFuelImports.isEmpty
-                              ? null
-                              : () async {
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (dCtx) => AlertDialog(
-                                      backgroundColor: panelRaised,
-                                      title: const Text('Aprovar todos os abastecimentos?'),
-                                      content: Text('Serão adicionados ${pendingFuelImports.length} lançamentos ao histórico do seu Astra.'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(dCtx, false),
-                                          child: const Text('Cancelar'),
-                                        ),
-                                        FilledButton(
-                                          onPressed: () => Navigator.pop(dCtx, true),
-                                          style: FilledButton.styleFrom(backgroundColor: blue),
-                                          child: const Text('Aprovar Todos'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirm != true) return;
-
-                                  setState(() {
-                                    for (final p in pendingFuelImports) {
-                                      events.insert(0, p);
-                                      if (p.odometer > currentVehicle.odometer) {
-                                        currentVehicle.odometer = p.odometer;
-                                      }
-                                    }
-                                    pendingFuelImports.clear();
-                                  });
-                                  await _save();
-                                  if (sheetContext.mounted) Navigator.pop(sheetContext);
-                                  _snack('Todos os abastecimentos foram aprovados e adicionados!');
-                                },
-                          icon: const Icon(Icons.done_all_rounded, size: 16),
-                          label: const Text('Aprovar Todos'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: mint,
-                            side: BorderSide(color: mint.withOpacity(0.5)),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      TextButton.icon(
-                        onPressed: () async {
-                          setState(() {
-                            dismissedPendingFuel = true;
-                          });
-                          await _save();
-                          if (sheetContext.mounted) Navigator.pop(sheetContext);
-                          _snack('Importação pendente ocultada da tela inicial.');
-                        },
-                        icon: Icon(Icons.visibility_off_outlined, size: 16, color: textMuted),
-                        label: Text('Ocultar', style: TextStyle(color: textMuted, fontSize: 12)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Lista de itens
-                  Expanded(
-                    child: pendingFuelImports.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.check_circle_outline_rounded, color: mint, size: 48),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Tudo em dia!',
-                                  style: TextStyle(
-                                    fontFamily: 'DM Sans',
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 16,
-                                    color: textMain,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Não há novos abastecimentos pendentes de revisão.',
-                                  style: TextStyle(fontFamily: 'DM Sans', color: textMuted, fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.separated(
-                            itemCount: pendingFuelImports.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
-                            itemBuilder: (ctx, index) {
-                              final item = pendingFuelImports[index];
-                              return Container(
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: isDarkTheme ? const Color(0xFF181920) : const Color(0xFFF9FAFB),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: strokeColor),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: amber.withOpacity(0.18),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            _dateLabel(item.date),
-                                            style: TextStyle(
-                                              fontFamily: 'DM Sans',
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w700,
-                                              color: amber,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: isDarkTheme ? const Color(0xFF262732) : const Color(0xFFE5E7EB),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            '${item.odometer.round()} km',
-                                            style: TextStyle(
-                                              fontFamily: 'DM Sans',
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w700,
-                                              color: textMain,
-                                            ),
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        Text(
-                                          _money(item.amount),
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w800,
-                                            color: textMain,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          '${item.fuelType} • ${item.liters.toStringAsFixed(3)} L a R\$ ${item.pricePerLiter.toStringAsFixed(2)}/L',
-                                          style: TextStyle(
-                                            fontFamily: 'DM Sans',
-                                            fontSize: 12,
-                                            color: textMuted,
-                                          ),
-                                        ),
-                                        if (item.note.isNotEmpty) ...[
-                                          const Spacer(),
-                                          Text(
-                                            item.note,
-                                            style: TextStyle(
-                                              fontFamily: 'DM Sans',
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color: textMuted,
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-                                    const Divider(height: 1),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        // Recusar
-                                        TextButton.icon(
-                                          onPressed: () async {
-                                            setSheetState(() {
-                                              pendingFuelImports.removeAt(index);
-                                            });
-                                            setState(() {});
-                                            await _save();
-                                            _snack('Registro descartado.');
-                                          },
-                                          icon: const Icon(Icons.close_rounded, size: 16, color: coral),
-                                          label: const Text('Recusar', style: TextStyle(color: coral, fontSize: 12)),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        // Editar
-                                        TextButton.icon(
-                                          onPressed: () async {
-                                            await _editPendingFuelItemSheet(item);
-                                            setSheetState(() {});
-                                            setState(() {});
-                                          },
-                                          icon: Icon(Icons.edit_outlined, size: 16, color: textMain),
-                                          label: Text('Editar', style: TextStyle(color: textMain, fontSize: 12)),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        // Aceitar individualmente
-                                        FilledButton.icon(
-                                          onPressed: () async {
-                                            setState(() {
-                                              events.insert(0, item);
-                                              if (item.odometer > currentVehicle.odometer) {
-                                                currentVehicle.odometer = item.odometer;
-                                              }
-                                              pendingFuelImports.removeAt(index);
-                                            });
-                                            setSheetState(() {});
-                                            await _save();
-                                            _snack('Abastecimento aceito e gravado no histórico!');
-                                          },
-                                          icon: const Icon(Icons.check_rounded, size: 16),
-                                          label: const Text('Aceitar', style: TextStyle(fontSize: 12)),
-                                          style: FilledButton.styleFrom(
-                                            backgroundColor: blue,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                            visualDensity: VisualDensity.compact,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  // Edição rápida de um item pendente
-  Future<void> _editPendingFuelItemSheet(CarEvent item) async {
-    final amountCtrl = TextEditingController(text: item.amount.toStringAsFixed(2));
-    final litersCtrl = TextEditingController(text: item.liters.toStringAsFixed(3));
-    final priceCtrl = TextEditingController(text: item.pricePerLiter.toStringAsFixed(2));
-    final odoCtrl = TextEditingController(text: item.odometer.round().toString());
-    final dateCtrl = TextEditingController(text: item.date);
-    final noteCtrl = TextEditingController(text: item.note);
-    String selectedFuel = item.fuelType;
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDarkTheme ? const Color(0xFF141418) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(sheetContext).viewInsets.bottom + 18),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Editar Abastecimento Pendente',
-                style: TextStyle(
-                  fontFamily: 'DM Sans',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: textMain,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: amountCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Valor Total', prefixText: 'R\$ '),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: odoCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Odômetro', suffixText: 'km'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: litersCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Litros', suffixText: 'L'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: priceCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Preço/L', prefixText: 'R\$ '),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: noteCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Posto / Observação',
-                  hintText: 'Ex.: Rafaela ou Zanforlim',
-                  prefixIcon: Icon(Icons.place_rounded, size: 18),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: dateCtrl,
-                readOnly: true,
-                decoration: const InputDecoration(
-                  labelText: 'Data',
-                  prefixIcon: Icon(Icons.calendar_today_rounded, size: 16),
-                ),
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () async {
-                    item.amount = _number(amountCtrl.text);
-                    item.liters = _number(litersCtrl.text);
-                    item.pricePerLiter = _number(priceCtrl.text);
-                    item.odometer = _number(odoCtrl.text);
-                    item.note = noteCtrl.text.trim();
-                    item.fuelType = selectedFuel;
-                    await _save();
-                    if (sheetContext.mounted) Navigator.pop(sheetContext);
-                    _snack('Item atualizado.');
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: const Text('Salvar Alterações'),
-                ),
-              ),
-            ],
-          ),
+      child: ListTile(
+        leading: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
+          child: Icon(icon, color: color, size: 20),
         ),
+        title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: DrivvoColors.textMuted)),
+        trailing: const Icon(Icons.chevron_right, color: DrivvoColors.textMuted, size: 20),
+        onTap: onTap,
       ),
     );
   }
 
-  // --- FERRAMENTA 4: Sincronização em Nuvem com Cloudflare Workers ---
-  Future<void> _syncWithCloudflareModal() async {
-    const cfUrl = 'https://finanza-auto.jeffef.workers.dev/api/sync';
-    bool syncing = false;
-    String status = 'Toque em Enviar para salvar o estado na Nuvem ou em Baixar para restaurar no app.';
+  static void _showFlexCalculator(BuildContext context) {
+    final ethanolCtrl = TextEditingController(text: '3.49');
+    final gasCtrl = TextEditingController(text: '5.89');
 
-    await showModalBottomSheet<void>(
+    showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDarkTheme ? const Color(0xFF141416) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (ctx, setSheetState) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final eth = double.tryParse(ethanolCtrl.text.replaceAll(',', '.')) ?? 0.0;
+          final gas = double.tryParse(gasCtrl.text.replaceAll(',', '.')) ?? 0.0;
+          final ratio = (gas > 0 && eth > 0) ? (eth / gas) * 100 : 0.0;
+          final isEthanolBetter = ratio > 0 && ratio <= 70.0;
+
+          return Padding(
+            padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: isDarkTheme ? const Color(0xFF333338) : const Color(0xFFD1D5DB),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
+                const Text('Calculadora Flex (Álcool x Gasolina)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                const Text('A regra dos 70% indica se o etanol é economicamente mais vantajoso.', style: TextStyle(fontSize: 12, color: DrivvoColors.textMuted)),
+                const SizedBox(height: 16),
                 Row(
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF6821F).withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(12),
+                    Expanded(
+                      child: TextField(
+                        controller: ethanolCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Preço Etanol (R$)', border: OutlineInputBorder()),
+                        onChanged: (_) => setModalState(() {}),
                       ),
-                      child: const Icon(Icons.cloud_sync_rounded, color: Color(0xFFF6821F), size: 22),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Nuvem Cloudflare',
-                            style: TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: textMain,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            'Sincronização entre Celular e Web',
-                            style: TextStyle(
-                              fontFamily: 'DM Sans',
-                              color: textMuted,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                      child: TextField(
+                        controller: gasCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Preço Gasolina (R$)', border: OutlineInputBorder()),
+                        onChanged: (_) => setModalState(() {}),
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(sheetContext),
-                      icon: Icon(Icons.close_rounded, color: textMuted),
                     ),
                   ],
                 ),
@@ -6351,200 +2886,37 @@ class _CarHomeState extends State<CarHome> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: panelSoft,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: strokeColor),
+                    color: isEthanolBetter ? Colors.green.withOpacity(0.12) : Colors.amber.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: isEthanolBetter ? Colors.green : Colors.orange),
                   ),
                   child: Row(
                     children: [
-                      if (syncing)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 12),
-                          child: SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFF6821F)),
-                          ),
-                        )
-                      else
-                        const Icon(Icons.info_outline_rounded, color: Color(0xFFF6821F), size: 18),
-                      const SizedBox(width: 8),
+                      Icon(isEthanolBetter ? Icons.thumb_up : Icons.info, color: isEthanolBetter ? Colors.green : Colors.orange),
+                      const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          status,
-                          style: TextStyle(
-                            fontFamily: 'DM Sans',
-                            color: textMain,
-                            fontSize: 12,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isEthanolBetter ? 'Abasteça com ETANOL!' : 'Abasteça com GASOLINA!',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isEthanolBetter ? Colors.green.shade800 : Colors.orange.shade900),
+                            ),
+                            Text(
+                              'Relação de preço: ${ratio.toStringAsFixed(1)}% (limite recomendado: 70%)',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: syncing
-                            ? null
-                            : () async {
-                                setSheetState(() {
-                                  syncing = true;
-                                  status = 'Buscando dados na nuvem Cloudflare...';
-                                });
-                                try {
-                                  final client = HttpClient();
-                                  client.connectionTimeout = const Duration(seconds: 10);
-                                  final req = await client.getUrl(Uri.parse(cfUrl));
-                                  req.headers.set('User-Agent', 'Mozilla/5.0 FinanzaAutoApp');
-                                  final resp = await req.close();
-                                  final body = await resp.transform(utf8.decoder).join();
-                                  final decoded = jsonDecode(body) as Map<String, dynamic>;
-
-                                  if (decoded['empty'] == true) {
-                                    setSheetState(() {
-                                      syncing = false;
-                                      status = 'Nenhum dado na nuvem ainda. Faça o primeiro envio!';
-                                    });
-                                    return;
-                                  }
-
-                                  final rawState = decoded['data'] ?? decoded;
-                                  final car = _carMap(rawState as Map<String, dynamic>);
-                                  final newVehicles = <CarVehicle>[];
-                                  final newEvents = <CarEvent>[];
-                                  for (final item in _listValue(car, ['vehicles', 'vehicleList', 'items'])) {
-                                    if (item is Map) newVehicles.add(CarVehicle.fromMap(item.cast<String, dynamic>()));
-                                  }
-                                  for (final item in _listValue(car, ['events', 'items', 'records'])) {
-                                    if (item is Map) newEvents.add(CarEvent.fromMap(item.cast<String, dynamic>()));
-                                  }
-
-                                  if (newVehicles.isNotEmpty || newEvents.isNotEmpty) {
-                                    final activeId = (newVehicles.isNotEmpty) ? newVehicles.first.id : activeVehicle;
-                                    final printItems = _defaultExtractedPrintEvents(activeId);
-                                    final newPending = <CarEvent>[];
-                                    for (final p in printItems) {
-                                      if (!newEvents.any((e) => e.odometer == p.odometer && e.date == p.date)) {
-                                        newPending.add(p);
-                                      }
-                                    }
-                                    setState(() {
-                                      if (newVehicles.isNotEmpty) vehicles = newVehicles;
-                                      if (newEvents.isNotEmpty) events = newEvents;
-                                      if (vehicles.isNotEmpty && (activeVehicle.isEmpty || !vehicles.any((v) => v.id == activeVehicle))) {
-                                        activeVehicle = vehicles.first.id;
-                                      }
-                                      pendingFuelImports = newPending;
-                                      dismissedPendingFuel = false;
-                                    });
-                                    await _save();
-                                    setSheetState(() {
-                                      syncing = false;
-                                      status = 'Sucesso! ${newEvents.length} registros restaurados. ${newPending.length} abastecimentos pendentes de revisão.';
-                                    });
-                                    _snack('Dados atualizados da nuvem com sucesso!');
-                                  } else {
-                                    setSheetState(() {
-                                      syncing = false;
-                                      status = 'A nuvem não retornou registros válidos.';
-                                    });
-                                  }
-                                } catch (e) {
-                                  setSheetState(() {
-                                    syncing = false;
-                                    status = 'Erro ao baixar da nuvem: $e';
-                                  });
-                                }
-                              },
-                        icon: const Icon(Icons.cloud_download_rounded, size: 16),
-                        label: const Text('Baixar da Nuvem'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: textMain,
-                          side: BorderSide(color: strokeColor),
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: syncing
-                            ? null
-                            : () async {
-                                setSheetState(() {
-                                  syncing = true;
-                                  status = 'Enviando ${events.length} registros para o Cloudflare...';
-                                });
-                                try {
-                                  final payload = {
-                                    'version': 1,
-                                    'generatedAt': DateTime.now().toIso8601String(),
-                                    'car': {
-                                      'vehicles': vehicles.map((v) => v.toMap()).toList(),
-                                      'events': events.map((e) => e.toMap()).toList(),
-                                      'activeVehicleId': activeVehicle,
-                                    },
-                                  };
-
-                                  final client = HttpClient();
-                                  client.connectionTimeout = const Duration(seconds: 10);
-                                  final req = await client.postUrl(Uri.parse(cfUrl));
-                                  req.headers.set('Content-Type', 'application/json');
-                                  req.headers.set('User-Agent', 'Mozilla/5.0 FinanzaAutoApp');
-                                  req.add(utf8.encode(jsonEncode(payload)));
-                                  final resp = await req.close();
-                                  final body = await resp.transform(utf8.decoder).join();
-                                  final resJson = jsonDecode(body) as Map<String, dynamic>;
-
-                                  if (resp.statusCode == 200 && resJson['success'] == true) {
-                                    setSheetState(() {
-                                      syncing = false;
-                                      status = 'Dados salvos com sucesso no Cloudflare!';
-                                    });
-                                    _snack('Backup salvo na Nuvem Cloudflare com sucesso.');
-                                  } else {
-                                    setSheetState(() {
-                                      syncing = false;
-                                      status = 'Falha ao salvar: ${resJson['error'] ?? body}';
-                                    });
-                                  }
-                                } catch (e) {
-                                  setSheetState(() {
-                                    syncing = false;
-                                    status = 'Erro de conexão: $e';
-                                  });
-                                }
-                              },
-                        icon: const Icon(Icons.cloud_upload_rounded, size: 16),
-                        label: const Text('Enviar para Nuvem'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFFF6821F),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
-}
-
-class _MetricData {
-  _MetricData(this.label, this.value, this.caption, this.color, this.icon);
-  final String label;
-  final String value;
-  final String caption;
-  final Color color;
-  final IconData icon;
 }
