@@ -12,28 +12,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'updater_service.dart';
 
 // Version and API Constants
-const String appVersion = '2.3.2';
-const int appBuildNumber = 24;
+const String appVersion = '2.3.3';
+const int appBuildNumber = 25;
 const String cloudflareSyncUrl = 'https://finanza-auto.jeffef.workers.dev/api/sync';
 
-/// Available Design Styles (1. Tesla/Apple Minimalist Luxury, 2. Nubank Ultravioleta)
-enum AppDesignStyle {
-  tesla('Tesla / Apple Luxury', Icons.auto_awesome),
-  ultravioleta('Nubank Ultravioleta', Icons.credit_card);
-
-  final String label;
-  final IconData icon;
-  const AppDesignStyle(this.label, this.icon);
-}
-
-/// Available Color Palettes (Legacy/Accent)
+/// Clean Automotive Color Palettes (Aligned with official Design System)
 enum AppColorPalette {
+  crimson('Vermelho Sport', Color(0xFFDC2626), Color(0xFF991B1B), Color(0xFFEF4444), Color(0xFFFEE2E2)),
   teal('Ciano Drivvo', Color(0xFF00838F), Color(0xFF006064), Color(0xFF00ACC1), Color(0xFFE0F2F1)),
+  sapphire('Azul Safira', Color(0xFF2563EB), Color(0xFF1D4ED8), Color(0xFF3B82F6), Color(0xFFDBEAFE)),
   emerald('Verde Esmeralda', Color(0xFF059669), Color(0xFF065F46), Color(0xFF10B981), Color(0xFFD1FAE5)),
-  sapphire('Azul Safira', Color(0xFF1D4ED8), Color(0xFF1E40AF), Color(0xFF3B82F6), Color(0xFFDBEAFE)),
-  sunset('Laranja Sunset', Color(0xFFEA580C), Color(0xFFC2410C), Color(0xFFF97316), Color(0xFFFFEDD5)),
-  purple('Roxo Violeta', Color(0xFF7C3AED), Color(0xFF6D28D9), Color(0xFF8B5CF6), Color(0xFFEDE9FE)),
-  crimson('Vermelho Sport', Color(0xFFDC2626), Color(0xFF991B1B), Color(0xFFEF4444), Color(0xFFFEE2E2));
+  sunset('Laranja Âmbar', Color(0xFFEA580C), Color(0xFFC2410C), Color(0xFFF97316), Color(0xFFFFEDD5)),
+  titanium('Cinza Titânio', Color(0xFF475569), Color(0xFF334155), Color(0xFF64748B), Color(0xFFF1F5F9));
 
   final String label;
   final Color primary;
@@ -45,43 +35,39 @@ enum AppColorPalette {
 }
 
 /// Dynamic Theme State Notifiers
-final ValueNotifier<AppDesignStyle> currentDesignStyle = ValueNotifier<AppDesignStyle>(AppDesignStyle.tesla);
-final ValueNotifier<AppColorPalette> currentPalette = ValueNotifier<AppColorPalette>(AppColorPalette.teal);
+final ValueNotifier<AppColorPalette> currentPalette = ValueNotifier<AppColorPalette>(AppColorPalette.crimson);
 final ValueNotifier<bool> isDarkMode = ValueNotifier<bool>(true);
 final ValueNotifier<bool> showTimelineReminders = ValueNotifier<bool>(false);
 
 class AppTheme {
-  static bool get isTesla => currentDesignStyle.value == AppDesignStyle.tesla;
-
-  // Dynamic Backgrounds & Surfaces
-  static Color get background => isTesla ? const Color(0xFF07070A) : const Color(0xFF07050D);
-  static Color get card => isTesla ? const Color(0xFF111116) : const Color(0xFF130F20);
-  static Color get cardSubtle => isTesla ? const Color(0xFF17171F) : const Color(0xFF1A142B);
-  static Color get border => isTesla ? const Color(0x1FFFFFFF) : const Color(0x40A855F7);
-  static Color get trackLine => isTesla ? const Color(0x1FFFFFFF) : const Color(0x33A855F7);
+  // Dynamic Backgrounds & Surfaces (Cockpit Dark Zinc-950 or Clean Light)
+  static Color get background => isDarkMode.value ? const Color(0xFF09090B) : const Color(0xFFF4F4F5);
+  static Color get card => isDarkMode.value ? const Color(0xFF121215) : Colors.white;
+  static Color get cardSubtle => isDarkMode.value ? const Color(0xFF18181B) : const Color(0xFFF8FAFC);
+  static Color get border => isDarkMode.value ? const Color(0x14FFFFFF) : const Color(0xFFE4E4E7);
+  static Color get trackLine => isDarkMode.value ? const Color(0x1FFFFFFF) : const Color(0xFFE2E8F0);
 
   // Dynamic Primary & Accents
-  static Color get primary => isTesla ? const Color(0xFFFFFFFF) : const Color(0xFFA855F7);
-  static Color get primaryForeground => isTesla ? const Color(0xFF09090B) : Colors.white;
-  static Color get chipSelectedBg => isTesla ? Colors.white : const Color(0xFFA855F7);
-  static Color get chipSelectedFg => isTesla ? const Color(0xFF09090B) : Colors.white;
-  static Color get accent => isTesla ? const Color(0xFFE2E8F0) : const Color(0xFFC084FC);
-  static Color get dark => isTesla ? const Color(0xFF000000) : const Color(0xFF581C87);
-  static Color get light => isTesla ? const Color(0xFF1F2937) : const Color(0xFF3B0764);
+  static Color get primary => currentPalette.value.primary;
+  static Color get primaryForeground => Colors.white;
+  static Color get chipSelectedBg => currentPalette.value.primary;
+  static Color get chipSelectedFg => Colors.white;
+  static Color get accent => currentPalette.value.accent;
+  static Color get dark => currentPalette.value.dark;
+  static Color get light => currentPalette.value.light;
 
   // Dynamic Text Colors
-  static Color get textMain => isTesla ? const Color(0xFFF8FAFC) : const Color(0xFFFAF5FF);
-  static Color get textMuted => isTesla ? const Color(0xFF94A3B8) : const Color(0xFFC4B5FD);
-  static Color get textLight => isTesla ? const Color(0xFF64748B) : const Color(0xFF8B5CF6);
+  static Color get textMain => isDarkMode.value ? const Color(0xFFF8FAFC) : const Color(0xFF09090B);
+  static Color get textMuted => isDarkMode.value ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+  static Color get textLight => isDarkMode.value ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
 
   // Status & Brand Colors
   static const Color fuelOrange = Color(0xFFFF9800);
   static const Color fuelOrangeDark = Color(0xFFF57C00);
   static const Color servicePurple = Color(0xFF7E57C2);
   static const Color expenseBlue = Color(0xFF1E88E5);
-  static const Color reminderAlert = Color(0xFFFF5722);
+  static const Color reminderAlert = Color(0xFFEF4444);
   static const Color economyGreen = Color(0xFF10B981);
-  static const Color goldChip = Color(0xFFFDE68A);
 }
 
 /// Vehicle Model
@@ -312,12 +298,6 @@ void main() async {
   // Load saved theme settings
   try {
     final prefs = await SharedPreferences.getInstance();
-    final savedStyle = prefs.getString('finanza_auto_design_style');
-    if (savedStyle == 'ultravioleta') {
-      currentDesignStyle.value = AppDesignStyle.ultravioleta;
-    } else if (savedStyle == 'tesla') {
-      currentDesignStyle.value = AppDesignStyle.tesla;
-    }
     final savedPaletteIndex = prefs.getInt('finanza_auto_color_palette');
     if (savedPaletteIndex != null && savedPaletteIndex >= 0 && savedPaletteIndex < AppColorPalette.values.length) {
       currentPalette.value = AppColorPalette.values[savedPaletteIndex];
@@ -340,22 +320,28 @@ class DrivvoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<AppDesignStyle>(
-      valueListenable: currentDesignStyle,
-      builder: (context, style, _) {
-        final isTesla = style == AppDesignStyle.tesla;
+    return AnimatedBuilder(
+      animation: Listenable.merge([isDarkMode, currentPalette]),
+      builder: (context, _) {
+        final isDark = isDarkMode.value;
         return MaterialApp(
           title: 'Finanza Auto',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             useMaterial3: true,
             fontFamily: 'DM Sans',
-            brightness: Brightness.dark,
-            colorScheme: ColorScheme.dark(
-              primary: AppTheme.primary,
-              secondary: isTesla ? const Color(0xFF10B981) : const Color(0xFFC084FC),
-              surface: isTesla ? const Color(0xFF111116) : const Color(0xFF130F20),
-            ),
+            brightness: isDark ? Brightness.dark : Brightness.light,
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: AppTheme.primary,
+                    secondary: AppTheme.economyGreen,
+                    surface: AppTheme.card,
+                  )
+                : ColorScheme.light(
+                    primary: AppTheme.primary,
+                    secondary: AppTheme.economyGreen,
+                    surface: AppTheme.card,
+                  ),
             scaffoldBackgroundColor: AppTheme.background,
             appBarTheme: AppBarTheme(
               backgroundColor: AppTheme.background,
@@ -370,7 +356,7 @@ class DrivvoApp extends StatelessWidget {
               ),
             ),
           ),
-          home: FinanzaAutoHomePage(),
+          home: const FinanzaAutoHomePage(),
         );
       },
     );
@@ -426,42 +412,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
     super.dispose();
   }
 
-  void _toggleDesignStyle() {
-    final newStyle = currentDesignStyle.value == AppDesignStyle.tesla
-        ? AppDesignStyle.ultravioleta
-        : AppDesignStyle.tesla;
-    _setDesignStyle(newStyle);
-  }
 
-  void _setDesignStyle(AppDesignStyle newStyle) async {
-    currentDesignStyle.value = newStyle;
-    setState(() {});
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('finanza_auto_design_style', newStyle.name);
-    } catch (_) {}
-    if (mounted) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(newStyle.icon, color: Colors.white, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                newStyle == AppDesignStyle.tesla
-                    ? 'Estilo Tesla / Apple Luxury ativado!'
-                    : 'Estilo Nubank Ultravioleta ativado!',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-            ],
-          ),
-          backgroundColor: newStyle == AppDesignStyle.tesla ? const Color(0xFF18181B) : const Color(0xFF581C87),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
 
   Future<void> _checkQuickFuelAction() async {
     try {
@@ -688,13 +639,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       
-      // Check version migration to ensure updated pristine data loads on v$appVersion
-      final savedStyle = prefs.getString('finanza_auto_design_style');
-      if (savedStyle == 'ultravioleta') {
-        currentDesignStyle.value = AppDesignStyle.ultravioleta;
-      } else {
-        currentDesignStyle.value = AppDesignStyle.tesla;
-      }
+
       final lastLoadedVersion = prefs.getString('finanza_auto_loaded_version');
       final bool isNewRelease = lastLoadedVersion != appVersion;
 
@@ -1130,7 +1075,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Personalização & Cores',
+                      'Tema & Cores do Cockpit',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain),
                     ),
                     IconButton(
@@ -1146,81 +1091,12 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 Text(
-                  'ESTILO DO DESIGN SYSTEM',
+                  'PALETA AUTOMOTIVA',
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1, color: AppTheme.textMuted),
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          _setDesignStyle(AppDesignStyle.tesla);
-                          setModalState(() {});
-                        },
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                          decoration: BoxDecoration(
-                            color: AppTheme.isTesla ? Colors.white.withOpacity(0.14) : AppTheme.cardSubtle,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: AppTheme.isTesla ? Colors.white : AppTheme.border,
-                              width: AppTheme.isTesla ? 2 : 1,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.auto_awesome, color: AppTheme.isTesla ? Colors.white : AppTheme.textMuted, size: 22),
-                              const SizedBox(height: 6),
-                              Text('1. Tesla / Luxury', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.isTesla ? Colors.white : AppTheme.textMuted)),
-                              const SizedBox(height: 2),
-                              Text('Titânio & Branco', style: TextStyle(fontSize: 10, color: AppTheme.textLight)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          _setDesignStyle(AppDesignStyle.ultravioleta);
-                          setModalState(() {});
-                        },
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                          decoration: BoxDecoration(
-                            color: !AppTheme.isTesla ? const Color(0xFFA855F7).withOpacity(0.22) : AppTheme.cardSubtle,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: !AppTheme.isTesla ? const Color(0xFFA855F7) : AppTheme.border,
-                              width: !AppTheme.isTesla ? 2 : 1,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.credit_card, color: !AppTheme.isTesla ? const Color(0xFFC084FC) : AppTheme.textMuted, size: 22),
-                              const SizedBox(height: 6),
-                              Text('3. Ultravioleta', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: !AppTheme.isTesla ? const Color(0xFFFAF5FF) : AppTheme.textMuted)),
-                              const SizedBox(height: 2),
-                              Text('Black & Neon', style: TextStyle(fontSize: 10, color: AppTheme.textLight)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  'PALETA DE CORES',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1, color: AppTheme.textMuted),
-                ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
@@ -1363,9 +1239,9 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<AppDesignStyle>(
-      valueListenable: currentDesignStyle,
-      builder: (context, currentStyle, _) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([isDarkMode, currentPalette]),
+      builder: (context, _) {
         if (_isLoading) {
           return Scaffold(
             backgroundColor: AppTheme.background,
@@ -1427,41 +1303,6 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                   });
                 },
               ),
-              InkWell(
-                onTap: _toggleDesignStyle,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: AppTheme.isTesla ? Colors.white.withOpacity(0.12) : const Color(0xFFA855F7).withOpacity(0.22),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppTheme.isTesla ? Colors.white38 : const Color(0xFFA855F7),
-                      width: 1.2,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        AppTheme.isTesla ? Icons.auto_awesome : Icons.credit_card,
-                        size: 14,
-                        color: AppTheme.isTesla ? Colors.white : const Color(0xFFC084FC),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        AppTheme.isTesla ? 'Tesla' : 'Ultravioleta',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.isTesla ? Colors.white : const Color(0xFFFAF5FF),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 2),
               IconButton(
                 icon: const Icon(Icons.palette_outlined),
                 tooltip: 'Personalização & Cores',
@@ -1533,7 +1374,6 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                 vehicle: _activeVehicle,
                 events: _events,
                 totalRecords: _events.length,
-                onSelectStyle: _setDesignStyle,
                 onRestoreBackup: () async {
                   await _loadAllData(forceReloadBundled: true);
                   if (mounted) {
@@ -1577,7 +1417,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Erro ao importar JSON: $e'),
-                        backgroundColor: Colors.redAccent,
+                        backgroundColor: AppTheme.reminderAlert,
                       ),
                     );
                   }
@@ -1586,16 +1426,16 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
             ],
           ),
           bottomNavigationBar: BottomAppBar(
-            shape: const CircularNotchedRectangle(),
-            notchMargin: 6,
             color: AppTheme.card,
-            elevation: 8,
+            shape: const CircularNotchedRectangle(),
+            notchMargin: 8,
+            elevation: 10,
             child: SizedBox(
               height: 60,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildBottomNavItem(Icons.format_list_bulleted, 'Histórico', 0),
+                  _buildBottomNavItem(Icons.local_gas_station, 'Abastecer', 0),
                   _buildBottomNavItem(Icons.insert_chart_outlined, 'Relatórios', 1),
                   const SizedBox(width: 48), // FAB center space
                   _buildBottomNavItem(Icons.alarm, 'Lembretes', 2),
@@ -1606,12 +1446,12 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
           ),
           floatingActionButton: FloatingActionButton(
             onPressed: _showSpeedDialMenu,
-            backgroundColor: AppTheme.isTesla ? Colors.white : const Color(0xFFA855F7),
+            backgroundColor: AppTheme.primary,
             elevation: 6,
             shape: const CircleBorder(),
             child: Icon(
               Icons.add,
-              color: AppTheme.isTesla ? Colors.black : Colors.white,
+              color: AppTheme.primaryForeground,
               size: 28,
             ),
           ),
@@ -1623,7 +1463,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
 
   Widget _buildBottomNavItem(IconData icon, String label, int index) {
     final isSel = _currentIndex == index;
-    final color = isSel ? (AppTheme.isTesla ? Colors.white : const Color(0xFFA855F7)) : AppTheme.textMuted;
+    final color = isSel ? AppTheme.primary : AppTheme.textMuted;
     return InkWell(
       onTap: () => setState(() => _currentIndex = index),
       borderRadius: BorderRadius.circular(12),
@@ -1671,7 +1511,6 @@ class TimelineFeedTab extends StatelessWidget {
   });
 
   Widget _buildVehicleHero(BuildContext context, CarVehicle vehicle, List<CarEvent> events) {
-    final isTesla = AppTheme.isTesla;
     final latestOdo = vehicle.odometer;
     final odoFormatted = NumberFormat('#,###', 'pt_BR').format(latestOdo);
 
@@ -1731,254 +1570,219 @@ class TimelineFeedTab extends StatelessWidget {
     final String costKmFormatted = costKm > 0 ? 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(costKm)}' : '-';
     final String monthSpentFormatted = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(displayMonthSpent)}';
 
-    if (isTesla) {
-      // 1. TESLA / APPLE MINIMALIST LUXURY HERO CARD
-      return Container(
-        margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: AppTheme.card,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppTheme.border),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 16, offset: const Offset(0, 6)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'GARAGEM • CONECTADO',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textMuted, letterSpacing: 1.1),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: Text(
-                    '$odoFormatted km',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              vehicle.model.isNotEmpty ? vehicle.model : vehicle.name,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
-            ),
-            Text(
-              tankSubtitle,
-              style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
-            ),
-            const SizedBox(height: 14),
-
-            // Astra Aerodynamic Silhouette with Studio Spotlight
-            Container(
-              height: 62,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.center,
-                  radius: 0.8,
-                  colors: [Colors.white.withOpacity(0.06), Colors.transparent],
-                ),
-              ),
-              child: CustomPaint(
-                painter: _AstraSilhouettePainter(color: Colors.white.withOpacity(0.85)),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.04),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white.withOpacity(0.08)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Eficiência Média', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Text(avgKmLFormatted, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                            const SizedBox(width: 4),
-                            const Text('km/L', style: TextStyle(fontSize: 11, color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.04),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white.withOpacity(0.08)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Custo / Km', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
-                        const SizedBox(height: 2),
-                        Text(costKmFormatted, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    } else {
-      // 2. NUBANK ULTRAVIOLETA BLACK METALLIC CARD
-      return Container(
-        margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1E1535),
-              Color(0xFF0F0B1A),
-            ],
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDarkMode.value ? 0.35 : 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.35)),
-          boxShadow: [
-            BoxShadow(color: const Color(0xFFA855F7).withOpacity(0.18), blurRadius: 24, offset: const Offset(0, 8)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      vehicle.name.toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
-                        color: Color(0xFFC084FC),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Patrimônio Veicular',
-                      style: TextStyle(fontSize: 11, color: Color(0xFFE9D5FF)),
-                    ),
-                  ],
-                ),
-                // Golden Chip Graphic
-                Container(
-                  width: 38,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFDE68A), Color(0xFFD97706)],
-                    ),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFFFEF3C7), width: 1),
-                  ),
-                  child: Center(
-                    child: Container(
-                      width: 20,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black26, width: 1),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Gasto em $monthLabel',
-              style: const TextStyle(fontSize: 11, color: Color(0xFFC4B5FD)),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              monthSpentFormatted,
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.only(top: 12),
-              decoration: BoxDecoration(
-                border: Border.symmetric(horizontal: BorderSide(color: const Color(0xFFA855F7).withOpacity(0.2))),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: Status Micro-indicator & Monospace Odometer
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('ODÔMETRO', style: TextStyle(fontSize: 9, letterSpacing: 1, color: Color(0xFFA855F7), fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 2),
-                      Text('$odoFormatted km', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
-                    ],
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.economyGreen,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Text('MÉDIA', style: TextStyle(fontSize: 9, letterSpacing: 1, color: Color(0xFFA855F7), fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 2),
-                      Text('$avgKmLFormatted km/L', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text('CUSTO / KM', style: TextStyle(fontSize: 9, letterSpacing: 1, color: Color(0xFFA855F7), fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 2),
-                      Text(costKmFormatted, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFC084FC))),
-                    ],
+                  const SizedBox(width: 8),
+                  Text(
+                    'GARAGEM • ATIVO',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textMuted,
+                      letterSpacing: 1.1,
+                    ),
                   ),
                 ],
               ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardSubtle,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Text(
+                  '$odoFormatted km',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                    color: AppTheme.textMain,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Vehicle Title & Subtitle
+          Text(
+            vehicle.model.isNotEmpty ? vehicle.model : vehicle.name,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.textMain,
+              letterSpacing: -0.5,
             ),
-          ],
-        ),
-      );
-    }
+          ),
+          const SizedBox(height: 2),
+          Text(
+            tankSubtitle,
+            style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+          ),
+          const SizedBox(height: 14),
+
+          // Astra Aerodynamic Silhouette with Subtle Spotlight
+          Container(
+            height: 58,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.center,
+                radius: 0.85,
+                colors: [
+                  AppTheme.primary.withOpacity(0.08),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+            child: CustomPaint(
+              painter: _AstraSilhouettePainter(
+                color: isDarkMode.value ? Colors.white.withOpacity(0.85) : AppTheme.primary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // 3 Real Automotive KPI Tiles (Consumo Médio, Custo/Km, Gasto no Mês)
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardSubtle,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Consumo',
+                        style: TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Text(
+                            avgKmLFormatted,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textMain,
+                            ),
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            'km/L',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppTheme.economyGreen,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardSubtle,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Custo / Km',
+                        style: TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        costKmFormatted,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textMain,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardSubtle,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Gasto Mês',
+                        style: TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        monthSpentFormatted,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textMain,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -4037,7 +3841,6 @@ class MoreTab extends StatelessWidget {
   final CarVehicle vehicle;
   final List<CarEvent> events;
   final int totalRecords;
-  final Function(AppDesignStyle) onSelectStyle;
   final Future<void> Function() onRestoreBackup;
   final Future<void> Function() onSyncCloudflare;
   final VoidCallback onCheckUpdates;
@@ -4049,7 +3852,6 @@ class MoreTab extends StatelessWidget {
     required this.vehicle,
     required this.events,
     required this.totalRecords,
-    required this.onSelectStyle,
     required this.onRestoreBackup,
     required this.onSyncCloudflare,
     required this.onCheckUpdates,
@@ -4091,83 +3893,6 @@ class MoreTab extends StatelessWidget {
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 16),
-
-        // Section: Estilo do Design System
-        _buildSectionHeader('ESTILO VISUAL DO APP (DESIGN SYSTEM)'),
-        Row(
-          children: [
-            Expanded(
-              child: InkWell(
-                onTap: () => onSelectStyle(AppDesignStyle.tesla),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppTheme.isTesla ? Colors.white.withOpacity(0.12) : AppTheme.card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppTheme.isTesla ? Colors.white : AppTheme.border,
-                      width: AppTheme.isTesla ? 2 : 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Icon(Icons.auto_awesome, color: AppTheme.isTesla ? Colors.white : AppTheme.textMuted, size: 24),
-                          if (AppTheme.isTesla)
-                            const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 18),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text('1. Tesla / Luxury', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.isTesla ? Colors.white : AppTheme.textMuted)),
-                      const SizedBox(height: 4),
-                      Text('Minimalismo Apple/Tesla, Titânio e Branco puro.', style: TextStyle(fontSize: 11, color: AppTheme.textLight)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: InkWell(
-                onTap: () => onSelectStyle(AppDesignStyle.ultravioleta),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: !AppTheme.isTesla ? const Color(0xFFA855F7).withOpacity(0.2) : AppTheme.card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: !AppTheme.isTesla ? const Color(0xFFA855F7) : AppTheme.border,
-                      width: !AppTheme.isTesla ? 2 : 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Icon(Icons.credit_card, color: !AppTheme.isTesla ? const Color(0xFFC084FC) : AppTheme.textMuted, size: 24),
-                          if (!AppTheme.isTesla)
-                            const Icon(Icons.check_circle, color: Color(0xFFA855F7), size: 18),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text('3. Ultravioleta', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: !AppTheme.isTesla ? const Color(0xFFFAF5FF) : AppTheme.textMuted)),
-                      const SizedBox(height: 4),
-                      Text('Black Metal, roxo neon e chip exclusivo.', style: TextStyle(fontSize: 11, color: AppTheme.textLight)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
         ),
         const SizedBox(height: 16),
 
@@ -4331,7 +4056,7 @@ class MoreTab extends StatelessWidget {
           icon: Icons.info_outline,
           color: Colors.grey,
           title: 'Finanza Auto v$appVersion',
-          subtitle: 'Estilos Tesla Minimalist & Nubank Ultravioleta com alternador instantâneo.',
+          subtitle: 'Design System Cockpit Dark & Vermelho Esportivo com métricas reais do Astra.',
           onTap: () {},
         ),
       ],

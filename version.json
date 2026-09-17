@@ -1,8 +1,8 @@
 {
-  "version": "2.3.2",
-  "buildNumber": 24,
-  "releaseTag": "v2.3.2",
+  "version": "2.3.3",
+  "buildNumber": 25,
+  "releaseTag": "v2.3.3",
   "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/latest/download/app-release.apk",
-  "releaseNotes": "Finanza Auto 2.3.2: Alternador de estilos 1-toque no topo (Tesla / Ultravioleta) e seletor dedicado no menu Mais, correção total de contraste em todos os botões e chips, métricas 100% reais do Astra calculadas dinamicamente sem valores estáticos.",
+  "releaseNotes": "Finanza Auto 2.3.3: Tema automotivo oficial Cockpit Dark (Zinc-950 + Vermelho Esportivo) conforme Design System oficial, eliminação total de estilos experimentais, card hero do Chevrolet Astra com métricas reais, odômetro preciso e seletor de paletas automotivas.",
   "releasedAt": "2026-09-17"
 }
