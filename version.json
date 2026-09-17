@@ -1,8 +1,8 @@
 {
-  "version": "2.0.0",
-  "buildNumber": 19,
-  "releaseTag": "v2.0.0",
+  "version": "2.1.0",
+  "buildNumber": 20,
+  "releaseTag": "v2.1.0",
   "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/latest/download/app-release.apk",
-  "releaseNotes": "Finanza Auto 2.0: Redesign completo e paridade 100% com o Drivvo! Linha do tempo contínua, histórico com 147 abastecimentos reais, consumo km/L tanque a tanque, gráficos e lembretes de revisão.",
-  "releasedAt": "2026-09-16"
+  "releaseNotes": "Finanza Auto 2.1: Novo seletor de paletas de cores (Teal, Esmeralda, Safira, Sunset, Roxo, Vermelho Sport) e alternador Escuro/Claro, múltiplos gráficos analíticos de consumo e gastos, visual 2.0 com medidor de tanque refinado e lembretes opcionais na timeline.",
+  "releasedAt": "2026-09-17"
 }
