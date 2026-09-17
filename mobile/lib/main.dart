@@ -415,16 +415,23 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
     } catch (_) {}
   }
 
-  Future<void> _checkAppUpdates() async {
+  Future<void> _checkAppUpdates({bool manual = false}) async {
     try {
-      final info = await UpdaterService.checkForUpdate();
+      final info = await UpdaterService.checkUpdate(
+        currentVersion: appVersion,
+        currentBuild: appBuildNumber,
+      );
       if (info != null && info.hasUpdate && mounted) {
         _showUpdateDialog(info);
+      } else if (manual && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Você já está na versão mais recente (v2.2.0).')),
+        );
       }
     } catch (_) {}
   }
 
-  void _showUpdateDialog(UpdateInfo info) {
+  void _showUpdateDialog(AppUpdateInfo info) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -453,8 +460,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
             onPressed: () {
               Navigator.pop(ctx);
               UpdaterService.downloadAndInstallApk(
-                context: context,
-                apkUrl: info.downloadUrl,
+                downloadUrl: info.downloadUrl,
                 version: info.version,
                 buildNumber: info.buildNumber,
               );
@@ -1204,7 +1210,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
               }
             },
             onSyncCloudflare: _syncWithCloudflare,
-            onCheckUpdates: _checkAppUpdates,
+            onCheckUpdates: () => _checkAppUpdates(manual: true),
             onOpenPalette: _showPaletteModal,
             onImportJson: (jsonStr) {
               try {
