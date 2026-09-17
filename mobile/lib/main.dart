@@ -50,6 +50,7 @@ class AppTheme {
   static const Color servicePurple = Color(0xFF7E57C2);
   static const Color expenseBlue = Color(0xFF1E88E5);
   static const Color reminderAlert = Color(0xFFFF5722);
+  static const Color economyGreen = Color(0xFF059669);
 
   static Color get background => isDarkMode.value ? const Color(0xFF0A0D13) : const Color(0xFFF4F6F9);
   static Color get card => isDarkMode.value ? const Color(0xFF12161F) : const Color(0xFFFFFFFF);
@@ -338,14 +339,6 @@ class DrivvoApp extends StatelessWidget {
               brightness: dark ? Brightness.dark : Brightness.light,
             ),
             scaffoldBackgroundColor: AppTheme.background,
-            cardTheme: CardTheme(
-              color: AppTheme.card,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: AppTheme.border),
-              ),
-            ),
             appBarTheme: AppBarTheme(
               backgroundColor: palette.primary,
               foregroundColor: Colors.white,
@@ -1409,13 +1402,13 @@ class TimelineFeedTab extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Colors.emerald.withOpacity(0.12),
+                                color: AppTheme.economyGreen.withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.emerald.withOpacity(0.3)),
+                                border: Border.all(color: AppTheme.economyGreen.withOpacity(0.3)),
                               ),
                               child: Text(
                                 '${avgKmL.toStringAsFixed(2)} km/L',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.emerald),
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.economyGreen),
                               ),
                             ),
                         ],
@@ -2661,7 +2654,7 @@ class _ReportsTabState extends State<ReportsTab> {
           children: [
             _buildKpiCard('Distância', '${NumberFormat('#,###', 'pt_BR').format(totalKm)} km', Icons.directions_car, Colors.indigo),
             const SizedBox(width: 12),
-            _buildKpiCard('Consumo Médio', avgKmL > 0 ? '${avgKmL.toStringAsFixed(2)} km/L' : '-', Icons.speed, Colors.emerald),
+            _buildKpiCard('Consumo Médio', avgKmL > 0 ? '${avgKmL.toStringAsFixed(2)} km/L' : '-', Icons.speed, AppTheme.economyGreen),
           ],
         ),
         const SizedBox(height: 12),
