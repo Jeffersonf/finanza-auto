@@ -1386,6 +1386,7 @@ class TimelineFeedTab extends StatelessWidget {
   Widget _buildVehicleHero(BuildContext context, CarVehicle vehicle, List<CarEvent> events) {
     final isTesla = AppTheme.isTesla;
     final latestOdo = vehicle.odometer;
+    final odoFormatted = NumberFormat('#,###', 'pt_BR').format(latestOdo);
 
     if (isTesla) {
       // 1. TESLA / APPLE MINIMALIST LUXURY HERO CARD
@@ -1428,7 +1429,7 @@ class TimelineFeedTab extends StatelessWidget {
                     border: Border.all(color: Colors.white12),
                   ),
                   child: Text(
-                    '${NumberFormat('#,###', 'pt_BR').format(latestOdo)} km',
+                    '$odoFormatted km',
                     style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: Colors.white),
                   ),
                 ),
@@ -1609,7 +1610,7 @@ class TimelineFeedTab extends StatelessWidget {
                     children: [
                       const Text('ODÔMETRO', style: TextStyle(fontSize: 9, letterSpacing: 1, color: Color(0xFFA855F7), fontWeight: FontWeight.bold)),
                       const SizedBox(height: 2),
-                      Text('\${NumberFormat('#,###', 'pt_BR').format(latestOdo)} km', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                      Text('$odoFormatted km', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
                     ],
                   ),
                   const Column(
