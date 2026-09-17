@@ -2790,13 +2790,31 @@ class _ReportsTabState extends State<ReportsTab> {
       return Center(child: Text('Necessário ao menos 2 abastecimentos.', style: TextStyle(color: AppTheme.textMuted)));
     }
 
-    return CustomPaint(
-      painter: _LineChartPainter(
-        points: points,
-        lineColor: AppTheme.primary,
-        fillColor: AppTheme.primary.withOpacity(0.15),
-        unit: 'km/L',
-      ),
+    final minVal = points.reduce(math.min);
+    final maxVal = points.reduce(math.max);
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Mín: ${minVal.toStringAsFixed(2)} km/L', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+            Text('Máx: ${maxVal.toStringAsFixed(2)} km/L', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: CustomPaint(
+            size: Size.infinite,
+            painter: _LineChartPainter(
+              points: points,
+              lineColor: AppTheme.primary,
+              fillColor: AppTheme.primary.withOpacity(0.15),
+              unit: 'km/L',
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -2822,13 +2840,31 @@ class _ReportsTabState extends State<ReportsTab> {
       return Center(child: Text('Sem dados de preço.', style: TextStyle(color: AppTheme.textMuted)));
     }
 
-    return CustomPaint(
-      painter: _LineChartPainter(
-        points: points,
-        lineColor: AppTheme.fuelOrange,
-        fillColor: AppTheme.fuelOrange.withOpacity(0.15),
-        unit: 'R\$/L',
-      ),
+    final minVal = points.reduce(math.min);
+    final maxVal = points.reduce(math.max);
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Mín: R\$ ${minVal.toStringAsFixed(2)}/L', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+            Text('Máx: R\$ ${maxVal.toStringAsFixed(2)}/L', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: CustomPaint(
+            size: Size.infinite,
+            painter: _LineChartPainter(
+              points: points,
+              lineColor: AppTheme.fuelOrange,
+              fillColor: AppTheme.fuelOrange.withOpacity(0.15),
+              unit: 'R\$/L',
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -3065,20 +3101,6 @@ class _LineChartPainter extends CustomPainter {
 
     canvas.drawPath(fillPath, fillPaint);
     canvas.drawPath(path, linePaint);
-
-    // Min and Max Labels
-    final textStyle = TextStyle(fontSize: 10, color: Colors.grey.shade400);
-    final minPainter = TextPainter(
-      text: TextSpan(text: 'Min: ${minVal.toStringAsFixed(2)} $unit', style: textStyle),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    minPainter.paint(canvas, Offset(0, size.height - 12));
-
-    final maxPainter = TextPainter(
-      text: TextSpan(text: 'Max: ${maxVal.toStringAsFixed(2)} $unit', style: textStyle),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    maxPainter.paint(canvas, Offset(size.width - maxPainter.width, 0));
   }
 
   @override
