@@ -12,11 +12,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'updater_service.dart';
 
 // Version and API Constants
-const String appVersion = '2.2.0';
-const int appBuildNumber = 21;
+const String appVersion = '2.3.0';
+const int appBuildNumber = 22;
 const String cloudflareSyncUrl = 'https://finanza-auto.jeffef.workers.dev/api/sync';
 
-/// Available Color Palettes
+/// Available Design Styles (1. Tesla/Apple Minimalist Luxury, 2. Nubank Ultravioleta)
+enum AppDesignStyle {
+  tesla('Tesla / Apple Luxury', Icons.auto_awesome),
+  ultravioleta('Nubank Ultravioleta', Icons.credit_card);
+
+  final String label;
+  final IconData icon;
+  const AppDesignStyle(this.label, this.icon);
+}
+
+/// Available Color Palettes (Legacy/Accent)
 enum AppColorPalette {
   teal('Ciano Drivvo', Color(0xFF00838F), Color(0xFF006064), Color(0xFF00ACC1), Color(0xFFE0F2F1)),
   emerald('Verde Esmeralda', Color(0xFF059669), Color(0xFF065F46), Color(0xFF10B981), Color(0xFFD1FAE5)),
@@ -34,32 +44,41 @@ enum AppColorPalette {
   const AppColorPalette(this.label, this.primary, this.dark, this.accent, this.light);
 }
 
-/// Dynamic Theme State Notifier
+/// Dynamic Theme State Notifiers
+final ValueNotifier<AppDesignStyle> currentDesignStyle = ValueNotifier<AppDesignStyle>(AppDesignStyle.tesla);
 final ValueNotifier<AppColorPalette> currentPalette = ValueNotifier<AppColorPalette>(AppColorPalette.teal);
-final ValueNotifier<bool> isDarkMode = ValueNotifier<bool>(false); // Drivvo defaults to clean light mode
+final ValueNotifier<bool> isDarkMode = ValueNotifier<bool>(true);
 final ValueNotifier<bool> showTimelineReminders = ValueNotifier<bool>(false);
 
 class AppTheme {
-  static Color get primary => currentPalette.value.primary;
-  static Color get dark => currentPalette.value.dark;
-  static Color get accent => currentPalette.value.accent;
-  static Color get light => currentPalette.value.light;
+  static bool get isTesla => currentDesignStyle.value == AppDesignStyle.tesla;
 
+  // Dynamic Backgrounds & Surfaces
+  static Color get background => isTesla ? const Color(0xFF07070A) : const Color(0xFF07050D);
+  static Color get card => isTesla ? const Color(0xFF111116) : const Color(0xFF130F20);
+  static Color get cardSubtle => isTesla ? const Color(0xFF17171F) : const Color(0xFF1A142B);
+  static Color get border => isTesla ? const Color(0x1FFFFFFF) : const Color(0x40A855F7);
+  static Color get trackLine => isTesla ? const Color(0x1FFFFFFF) : const Color(0x33A855F7);
+
+  // Dynamic Primary & Accents
+  static Color get primary => isTesla ? const Color(0xFFFFFFFF) : const Color(0xFFA855F7);
+  static Color get accent => isTesla ? const Color(0xFFE2E8F0) : const Color(0xFFC084FC);
+  static Color get dark => isTesla ? const Color(0xFF000000) : const Color(0xFF581C87);
+  static Color get light => isTesla ? const Color(0xFF1F2937) : const Color(0xFF3B0764);
+
+  // Dynamic Text Colors
+  static Color get textMain => isTesla ? const Color(0xFFF8FAFC) : const Color(0xFFFAF5FF);
+  static Color get textMuted => isTesla ? const Color(0xFF94A3B8) : const Color(0xFFC4B5FD);
+  static Color get textLight => isTesla ? const Color(0xFF64748B) : const Color(0xFF8B5CF6);
+
+  // Status & Brand Colors
   static const Color fuelOrange = Color(0xFFFF9800);
   static const Color fuelOrangeDark = Color(0xFFF57C00);
   static const Color servicePurple = Color(0xFF7E57C2);
   static const Color expenseBlue = Color(0xFF1E88E5);
   static const Color reminderAlert = Color(0xFFFF5722);
-  static const Color economyGreen = Color(0xFF059669);
-
-  static Color get background => isDarkMode.value ? const Color(0xFF12151C) : const Color(0xFFF5F6F8);
-  static Color get card => isDarkMode.value ? const Color(0xFF1C222E) : const Color(0xFFFFFFFF);
-  static Color get cardSubtle => isDarkMode.value ? const Color(0xFF222B3A) : const Color(0xFFF0F2F5);
-  static Color get trackLine => isDarkMode.value ? const Color(0xFF333F52) : const Color(0xFFE0E3E8);
-  static Color get border => isDarkMode.value ? const Color(0xFF2C3647) : const Color(0xFFE2E5EA);
-  static Color get textMain => isDarkMode.value ? const Color(0xFFF8FAFC) : const Color(0xFF1E293B);
-  static Color get textMuted => isDarkMode.value ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-  static Color get textLight => isDarkMode.value ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+  static const Color economyGreen = Color(0xFF10B981);
+  static const Color goldChip = Color(0xFFFDE68A);
 }
 
 /// Vehicle Model
@@ -88,7 +107,7 @@ class CarVehicle {
     return CarVehicle(
       id: (map['id'] ?? 'drivvo-car').toString(),
       name: (map['name'] ?? 'Astra').toString(),
-      model: (map['model'] ?? 'Chevrolet Astra').toString(),
+      model: (map['model'] ?? 'Chevrolet Astra 2.0').toString(),
       plate: (map['plate'] ?? '').toString(),
       odometer: (map['odometer'] as num?)?.toInt() ?? 164154,
       tankCapacity: (map['tankCapacity'] as num?)?.toDouble() ?? 52.0,
@@ -312,43 +331,37 @@ class DrivvoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<AppColorPalette>(
-      valueListenable: currentPalette,
-      builder: (context, palette, _) {
-        return ValueListenableBuilder<bool>(
-          valueListenable: isDarkMode,
-          builder: (context, dark, _) {
-            return MaterialApp(
-              title: 'Finanza Auto',
-              debugShowCheckedModeBanner: false,
-              theme: ThemeData(
-                useMaterial3: true,
+    return ValueListenableBuilder<AppDesignStyle>(
+      valueListenable: currentDesignStyle,
+      builder: (context, style, _) {
+        final isTesla = style == AppDesignStyle.tesla;
+        return MaterialApp(
+          title: 'Finanza Auto',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            useMaterial3: true,
+            fontFamily: 'DM Sans',
+            brightness: Brightness.dark,
+            colorScheme: ColorScheme.dark(
+              primary: isTesla ? Colors.white : const Color(0xFFA855F7),
+              secondary: isTesla ? const Color(0xFF10B981) : const Color(0xFFC084FC),
+              surface: isTesla ? const Color(0xFF111116) : const Color(0xFF130F20),
+            ),
+            scaffoldBackgroundColor: AppTheme.background,
+            appBarTheme: AppBarTheme(
+              backgroundColor: AppTheme.background,
+              foregroundColor: AppTheme.textMain,
+              elevation: 0,
+              centerTitle: false,
+              titleTextStyle: TextStyle(
                 fontFamily: 'DM Sans',
-                brightness: dark ? Brightness.dark : Brightness.light,
-                colorScheme: ColorScheme.fromSeed(
-                  seedColor: palette.primary,
-                  primary: palette.primary,
-                  secondary: AppTheme.fuelOrange,
-                  surface: dark ? const Color(0xFF1C222E) : const Color(0xFFFFFFFF),
-                  brightness: dark ? Brightness.dark : Brightness.light,
-                ),
-                scaffoldBackgroundColor: AppTheme.background,
-                appBarTheme: AppBarTheme(
-                  backgroundColor: palette.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  centerTitle: true,
-                  titleTextStyle: const TextStyle(
-                    fontFamily: 'DM Sans',
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textMain,
               ),
-              home: const FinanzaAutoHomePage(),
-            );
-          },
+            ),
+          ),
+          home: const FinanzaAutoHomePage(),
         );
       },
     );
@@ -379,7 +392,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
     final found = _vehicles.where((v) => v.id == _activeVehicleId);
     if (found.isNotEmpty) return found.first;
     if (_vehicles.isNotEmpty) return _vehicles.first;
-    return CarVehicle(id: 'drivvo-car', name: 'Astra', model: 'Chevrolet Astra', odometer: 164154, tankCapacity: 52.0);
+    return CarVehicle(id: 'drivvo-car', name: 'Astra', model: 'Chevrolet Astra 2.0', odometer: 164154, tankCapacity: 52.0);
   }
 
   int get _latestOdometer {
@@ -404,6 +417,38 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
     super.dispose();
   }
 
+  void _toggleDesignStyle() async {
+    final newStyle = currentDesignStyle.value == AppDesignStyle.tesla
+        ? AppDesignStyle.ultravioleta
+        : AppDesignStyle.tesla;
+    currentDesignStyle.value = newStyle;
+    setState(() {});
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('finanza_auto_design_style', newStyle.name);
+    } catch (_) {}
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(newStyle.icon, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                newStyle == AppDesignStyle.tesla
+                    ? 'Estilo Tesla / Apple Luxury ativado!'
+                    : 'Estilo Nubank Ultravioleta ativado!',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          backgroundColor: newStyle == AppDesignStyle.tesla ? const Color(0xFF1E293B) : const Color(0xFF6B21A8),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   Future<void> _checkQuickFuelAction() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -425,7 +470,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
         _showUpdateDialog(info);
       } else if (manual && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Você já está na versão mais recente (v2.2.0).')),
+          const SnackBar(content: Text('Você já está na versão mais recente (v2.3.0).')),
         );
       }
     } catch (_) {}
@@ -477,9 +522,15 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       
-      // Check version migration to ensure updated pristine data loads on v2.2.0
+      // Check version migration to ensure updated pristine data loads on v2.3.0
+      final savedStyle = prefs.getString('finanza_auto_design_style');
+      if (savedStyle == 'ultravioleta') {
+        currentDesignStyle.value = AppDesignStyle.ultravioleta;
+      } else {
+        currentDesignStyle.value = AppDesignStyle.tesla;
+      }
       final lastLoadedVersion = prefs.getString('finanza_auto_loaded_version');
-      final bool isNewRelease = lastLoadedVersion != '2.2.0';
+      final bool isNewRelease = lastLoadedVersion != '2.3.0';
 
       final savedJson = prefs.getString('finanza_auto_flutter_state');
       Map<String, dynamic>? parsedSaved;
@@ -514,7 +565,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
           CarVehicle(
             id: 'drivvo-car',
             name: 'Astra',
-            model: 'Chevrolet Astra',
+            model: 'Chevrolet Astra 2.0',
             plate: '',
             odometer: 164154,
             tankCapacity: 52.0,
@@ -583,7 +634,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
         _isLoading = false;
       });
 
-      await prefs.setString('finanza_auto_loaded_version', '2.2.0');
+      await prefs.setString('finanza_auto_loaded_version', '2.3.0');
       _saveLocalState();
     } catch (e) {
       debugPrint('Error loading data: $e');
@@ -1268,12 +1319,16 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+            floatingActionButton: FloatingActionButton(
         onPressed: _showSpeedDialMenu,
-        backgroundColor: AppTheme.primary,
-        elevation: 4,
+        backgroundColor: AppTheme.isTesla ? Colors.white : const Color(0xFFA855F7),
+        elevation: 6,
         shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
+        child: Icon(
+          Icons.add,
+          color: AppTheme.isTesla ? Colors.black : Colors.white,
+          size: 28,
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
@@ -1281,7 +1336,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
 
   Widget _buildBottomNavItem(IconData icon, String label, int index) {
     final isSel = _currentIndex == index;
-    final color = isSel ? AppTheme.primary : AppTheme.textMuted;
+    final color = isSel ? (AppTheme.isTesla ? Colors.white : const Color(0xFFA855F7)) : AppTheme.textMuted;
     return InkWell(
       onTap: () => setState(() => _currentIndex = index),
       borderRadius: BorderRadius.circular(12),
@@ -1328,6 +1383,260 @@ class TimelineFeedTab extends StatelessWidget {
     required this.onReminderTap,
   });
 
+  Widget _buildVehicleHero(BuildContext context, CarVehicle vehicle, List<CarEvent> events) {
+    final isTesla = AppTheme.isTesla;
+    final latestOdo = vehicle.odometer;
+
+    if (isTesla) {
+      // 1. TESLA / APPLE MINIMALIST LUXURY HERO CARD
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppTheme.card,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppTheme.border),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 16, offset: const Offset(0, 6)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'GARAGEM • CONECTADO',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textMuted, letterSpacing: 1.1),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Text(
+                    '${NumberFormat('#,###', 'pt_BR').format(latestOdo)} km',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Chevrolet Astra 2.0',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
+            ),
+            Text(
+              'Tanque 100% (52L) • Rafaela',
+              style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+            ),
+            const SizedBox(height: 14),
+
+            // Astra Aerodynamic Silhouette with Studio Spotlight
+            Container(
+              height: 62,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.center,
+                  radius: 0.8,
+                  colors: [Colors.white.withOpacity(0.06), Colors.transparent],
+                ),
+              ),
+              child: CustomPaint(
+                painter: _AstraSilhouettePainter(color: Colors.white.withOpacity(0.85)),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white.withOpacity(0.08)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Eficiência Média', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+                        const SizedBox(height: 2),
+                        const Row(
+                          children: [
+                            Text('8,42', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                            SizedBox(width: 4),
+                            Text('km/L', style: TextStyle(fontSize: 11, color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white.withOpacity(0.08)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Custo / Km', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+                        const SizedBox(height: 2),
+                        const Text('R\$ 0,58', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    } else {
+      // 2. NUBANK ULTRAVIOLETA BLACK METALLIC CARD
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1E1535),
+              Color(0xFF0F0B1A),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.35)),
+          boxShadow: [
+            BoxShadow(color: const Color(0xFFA855F7).withOpacity(0.18), blurRadius: 24, offset: const Offset(0, 8)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'CHEVROLET ASTRA 2.0',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        color: Color(0xFFC084FC),
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Patrimônio Veicular',
+                      style: TextStyle(fontSize: 11, color: Color(0xFFE9D5FF)),
+                    ),
+                  ],
+                ),
+                // Golden Chip Graphic
+                Container(
+                  width: 38,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFDE68A), Color(0xFFD97706)],
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFFEF3C7), width: 1),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 20,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.black26, width: 1),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Gasto em Setembro de 2026',
+              style: TextStyle(fontSize: 11, color: Color(0xFFC4B5FD)),
+            ),
+            const SizedBox(height: 2),
+            const Text(
+              'R\$ 294,00',
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.only(top: 12),
+              decoration: BoxDecoration(
+                border: Border.symmetric(horizontal: BorderSide(color: const Color(0xFFA855F7).withOpacity(0.2))),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('ODÔMETRO', style: TextStyle(fontSize: 9, letterSpacing: 1, color: Color(0xFFA855F7), fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text('\${NumberFormat('#,###', 'pt_BR').format(latestOdo)} km', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ],
+                  ),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text('MÉDIA', style: TextStyle(fontSize: 9, letterSpacing: 1, color: Color(0xFFA855F7), fontWeight: FontWeight.bold)),
+                      SizedBox(height: 2),
+                      Text('8,42 km/L', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                    ],
+                  ),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('CUSTO / KM', style: TextStyle(fontSize: 9, letterSpacing: 1, color: Color(0xFFA855F7), fontWeight: FontWeight.bold)),
+                      SizedBox(height: 2),
+                      Text('R\$ 0,58', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFC084FC))),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final filtered = events.where((e) {
@@ -1366,6 +1675,7 @@ class TimelineFeedTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 90),
       children: [
+        _buildVehicleHero(context, vehicle, events),
         if (urgentReminder != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -3725,4 +4035,56 @@ class MoreTab extends StatelessWidget {
       ),
     );
   }
+}
+/// Custom Painter to draw modern aerodynamic profile of the Chevrolet Astra
+class _AstraSilhouettePainter extends CustomPainter {
+  final Color color;
+  const _AstraSilhouettePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+
+    final fillPaint = Paint()
+      ..color = color.withOpacity(0.08)
+      ..style = PaintingStyle.fill;
+
+    final w = size.width;
+    final h = size.height;
+
+    final path = Path();
+    path.moveTo(w * 0.10, h * 0.70);
+    path.lineTo(w * 0.22, h * 0.70);
+    path.arcToPoint(Offset(w * 0.36, h * 0.70), radius: Radius.circular(w * 0.07), clockwise: false);
+    path.lineTo(w * 0.64, h * 0.70);
+    path.arcToPoint(Offset(w * 0.78, h * 0.70), radius: Radius.circular(w * 0.07), clockwise: false);
+    path.lineTo(w * 0.90, h * 0.70);
+    path.quadraticBezierTo(w * 0.88, h * 0.50, w * 0.78, h * 0.35);
+    path.quadraticBezierTo(w * 0.52, h * 0.24, w * 0.40, h * 0.36);
+    path.quadraticBezierTo(w * 0.22, h * 0.48, w * 0.10, h * 0.55);
+    path.close();
+
+    canvas.drawPath(path, fillPaint);
+    canvas.drawPath(path, paint);
+
+    final wheelPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+
+    canvas.drawCircle(Offset(w * 0.29, h * 0.70), w * 0.065, wheelPaint);
+    canvas.drawCircle(Offset(w * 0.71, h * 0.70), w * 0.065, wheelPaint);
+
+    final groundPaint = Paint()
+      ..color = color.withOpacity(0.18)
+      ..strokeWidth = 1.0;
+    canvas.drawLine(Offset(w * 0.05, h * 0.78), Offset(w * 0.95, h * 0.78), groundPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _AstraSilhouettePainter oldDelegate) => oldDelegate.color != color;
 }
