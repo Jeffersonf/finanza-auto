@@ -1,8 +1,8 @@
 {
-  "version": "2.3.1",
-  "buildNumber": 23,
-  "releaseTag": "v2.3.1",
+  "version": "2.3.2",
+  "buildNumber": 24,
+  "releaseTag": "v2.3.2",
   "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/latest/download/app-release.apk",
-  "releaseNotes": "Finanza Auto 2.3.1: Identidade corrigida para Chevrolet Astra (sem complementos indevidos), melhoria no fluxo de download e instalação da atualização com diálogo de progresso e estilos Tesla & Nubank Ultravioleta com alternância instantânea.",
+  "releaseNotes": "Finanza Auto 2.3.2: Alternador de estilos 1-toque no topo (Tesla / Ultravioleta) e seletor dedicado no menu Mais, correção total de contraste em todos os botões e chips, métricas 100% reais do Astra calculadas dinamicamente sem valores estáticos.",
   "releasedAt": "2026-09-17"
 }

@@ -12,8 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'updater_service.dart';
 
 // Version and API Constants
-const String appVersion = '2.3.1';
-const int appBuildNumber = 23;
+const String appVersion = '2.3.2';
+const int appBuildNumber = 24;
 const String cloudflareSyncUrl = 'https://finanza-auto.jeffef.workers.dev/api/sync';
 
 /// Available Design Styles (1. Tesla/Apple Minimalist Luxury, 2. Nubank Ultravioleta)
@@ -62,6 +62,9 @@ class AppTheme {
 
   // Dynamic Primary & Accents
   static Color get primary => isTesla ? const Color(0xFFFFFFFF) : const Color(0xFFA855F7);
+  static Color get primaryForeground => isTesla ? const Color(0xFF09090B) : Colors.white;
+  static Color get chipSelectedBg => isTesla ? Colors.white : const Color(0xFFA855F7);
+  static Color get chipSelectedFg => isTesla ? const Color(0xFF09090B) : Colors.white;
   static Color get accent => isTesla ? const Color(0xFFE2E8F0) : const Color(0xFFC084FC);
   static Color get dark => isTesla ? const Color(0xFF000000) : const Color(0xFF581C87);
   static Color get light => isTesla ? const Color(0xFF1F2937) : const Color(0xFF3B0764);
@@ -309,6 +312,12 @@ void main() async {
   // Load saved theme settings
   try {
     final prefs = await SharedPreferences.getInstance();
+    final savedStyle = prefs.getString('finanza_auto_design_style');
+    if (savedStyle == 'ultravioleta') {
+      currentDesignStyle.value = AppDesignStyle.ultravioleta;
+    } else if (savedStyle == 'tesla') {
+      currentDesignStyle.value = AppDesignStyle.tesla;
+    }
     final savedPaletteIndex = prefs.getInt('finanza_auto_color_palette');
     if (savedPaletteIndex != null && savedPaletteIndex >= 0 && savedPaletteIndex < AppColorPalette.values.length) {
       currentPalette.value = AppColorPalette.values[savedPaletteIndex];
@@ -343,7 +352,7 @@ class DrivvoApp extends StatelessWidget {
             fontFamily: 'DM Sans',
             brightness: Brightness.dark,
             colorScheme: ColorScheme.dark(
-              primary: isTesla ? Colors.white : const Color(0xFFA855F7),
+              primary: AppTheme.primary,
               secondary: isTesla ? const Color(0xFF10B981) : const Color(0xFFC084FC),
               surface: isTesla ? const Color(0xFF111116) : const Color(0xFF130F20),
             ),
@@ -361,7 +370,7 @@ class DrivvoApp extends StatelessWidget {
               ),
             ),
           ),
-          home: const FinanzaAutoHomePage(),
+          home: FinanzaAutoHomePage(),
         );
       },
     );
@@ -417,10 +426,14 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
     super.dispose();
   }
 
-  void _toggleDesignStyle() async {
+  void _toggleDesignStyle() {
     final newStyle = currentDesignStyle.value == AppDesignStyle.tesla
         ? AppDesignStyle.ultravioleta
         : AppDesignStyle.tesla;
+    _setDesignStyle(newStyle);
+  }
+
+  void _setDesignStyle(AppDesignStyle newStyle) async {
     currentDesignStyle.value = newStyle;
     setState(() {});
     try {
@@ -428,6 +441,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
       await prefs.setString('finanza_auto_design_style', newStyle.name);
     } catch (_) {}
     if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -438,11 +452,11 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                 newStyle == AppDesignStyle.tesla
                     ? 'Estilo Tesla / Apple Luxury ativado!'
                     : 'Estilo Nubank Ultravioleta ativado!',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ],
           ),
-          backgroundColor: newStyle == AppDesignStyle.tesla ? const Color(0xFF1E293B) : const Color(0xFF6B21A8),
+          backgroundColor: newStyle == AppDesignStyle.tesla ? const Color(0xFF18181B) : const Color(0xFF581C87),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -504,7 +518,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Depois', style: TextStyle(color: AppTheme.textMuted))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: AppTheme.primaryForeground),
             onPressed: () {
               Navigator.pop(ctx);
               _startUpdateDownload(info);
@@ -520,8 +534,8 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
     double progress = 0.0;
     String statusText = 'Iniciando download...';
     bool isDownloading = true;
-    bool hasFailed = false;
     bool isComplete = false;
+    bool hasFailed = false;
     String? localApkPath;
     void Function(void Function())? updateDialogState;
 
@@ -534,17 +548,17 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
             updateDialogState = setDlgState;
             return AlertDialog(
               backgroundColor: AppTheme.card,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: Row(
                 children: [
                   Icon(
-                    hasFailed ? Icons.error_outline : (isComplete ? Icons.check_circle_outline : Icons.cloud_download),
+                    hasFailed ? Icons.error_outline : (isComplete ? Icons.check_circle_outline : Icons.downloading),
                     color: hasFailed ? Colors.redAccent : (isComplete ? Colors.greenAccent : AppTheme.primary),
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    hasFailed ? 'Falha no Download' : (isComplete ? 'Pronto para Instalar' : 'Atualizando Finanza'),
-                    style: TextStyle(color: AppTheme.textMain, fontSize: 17, fontWeight: FontWeight.bold),
+                    isComplete ? 'Download Concluído' : (hasFailed ? 'Falha no Download' : 'Baixando Atualização'),
+                    style: TextStyle(color: AppTheme.textMain, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -553,7 +567,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Nova Versão: v${info.version} (Build ${info.buildNumber})',
+                    'Instalador v${info.version} (${(info.buildNumber)})',
                     style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
                   ),
                   const SizedBox(height: 12),
@@ -568,20 +582,11 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(statusText, style: TextStyle(color: AppTheme.textMuted, fontSize: 11)),
-                        Text(
-                          '${(progress * 100).toInt()}%',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textMain, fontSize: 12),
-                        ),
-                      ],
-                    ),
+                    Text(statusText, style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
                   ] else if (hasFailed) ...[
-                    Text(
-                      'Não foi possível finalizar o download automático. Você pode baixar diretamente pelo navegador.',
-                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    const Text(
+                      'Não foi possível concluir o download automático. Você pode baixar diretamente pelo navegador abaixo:',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 13),
                     ),
                   ] else ...[
                     Text(
@@ -604,7 +609,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                   ),
                 if (isComplete && localApkPath != null)
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: AppTheme.primaryForeground),
                     onPressed: () async {
                       final canInstall = await UpdaterService.canRequestPackageInstalls();
                       if (!canInstall) {
@@ -620,7 +625,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isComplete ? Colors.white12 : AppTheme.primary,
-                    foregroundColor: Colors.white,
+                    foregroundColor: isComplete ? Colors.white : AppTheme.primaryForeground,
                   ),
                   icon: const Icon(Icons.open_in_browser, size: 16),
                   label: const Text('Via Navegador'),
@@ -1125,7 +1130,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Personalização de Cores',
+                      'Personalização & Cores',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain),
                     ),
                     IconButton(
@@ -1141,7 +1146,81 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+                Text(
+                  'ESTILO DO DESIGN SYSTEM',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1, color: AppTheme.textMuted),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          _setDesignStyle(AppDesignStyle.tesla);
+                          setModalState(() {});
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                          decoration: BoxDecoration(
+                            color: AppTheme.isTesla ? Colors.white.withOpacity(0.14) : AppTheme.cardSubtle,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: AppTheme.isTesla ? Colors.white : AppTheme.border,
+                              width: AppTheme.isTesla ? 2 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(Icons.auto_awesome, color: AppTheme.isTesla ? Colors.white : AppTheme.textMuted, size: 22),
+                              const SizedBox(height: 6),
+                              Text('1. Tesla / Luxury', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.isTesla ? Colors.white : AppTheme.textMuted)),
+                              const SizedBox(height: 2),
+                              Text('Titânio & Branco', style: TextStyle(fontSize: 10, color: AppTheme.textLight)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          _setDesignStyle(AppDesignStyle.ultravioleta);
+                          setModalState(() {});
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                          decoration: BoxDecoration(
+                            color: !AppTheme.isTesla ? const Color(0xFFA855F7).withOpacity(0.22) : AppTheme.cardSubtle,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: !AppTheme.isTesla ? const Color(0xFFA855F7) : AppTheme.border,
+                              width: !AppTheme.isTesla ? 2 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(Icons.credit_card, color: !AppTheme.isTesla ? const Color(0xFFC084FC) : AppTheme.textMuted, size: 22),
+                              const SizedBox(height: 6),
+                              Text('3. Ultravioleta', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: !AppTheme.isTesla ? const Color(0xFFFAF5FF) : AppTheme.textMuted)),
+                              const SizedBox(height: 2),
+                              Text('Black & Neon', style: TextStyle(fontSize: 10, color: AppTheme.textLight)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'PALETA DE CORES',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1, color: AppTheme.textMuted),
+                ),
+                const SizedBox(height: 10),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
@@ -1264,7 +1343,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: TextStyle(color: AppTheme.textMuted))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: AppTheme.primaryForeground),
             onPressed: () {
               setState(() {
                 vehicle.name = nameCtrl.text.trim();
@@ -1284,220 +1363,248 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: AppTheme.background,
-        body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
-      );
-    }
+    return ValueListenableBuilder<AppDesignStyle>(
+      valueListenable: currentDesignStyle,
+      builder: (context, currentStyle, _) {
+        if (_isLoading) {
+          return Scaffold(
+            backgroundColor: AppTheme.background,
+            body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+          );
+        }
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: _isSearchOpen
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: 'Buscar abastecimentos...',
-                  hintStyle: TextStyle(color: Colors.white70),
-                  border: InputBorder.none,
-                ),
-                onChanged: (val) => setState(() => _searchQuery = val.trim()),
-              )
-            : InkWell(
-                onTap: _showVehicleSelectorDialog,
+        return Scaffold(
+          backgroundColor: AppTheme.background,
+          appBar: AppBar(
+            title: _isSearchOpen
+                ? TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      hintText: 'Buscar abastecimentos...',
+                      hintStyle: TextStyle(color: Colors.white70),
+                      border: InputBorder.none,
+                    ),
+                    onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                  )
+                : InkWell(
+                    onTap: _showVehicleSelectorDialog,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              '${_activeVehicle.name} (${_activeVehicle.model} - ${NumberFormat('#,###', 'pt_BR').format(_latestOdometer)} km)',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.arrow_drop_down, color: Colors.white, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+            actions: [
+              IconButton(
+                icon: Icon(_isSearchOpen ? Icons.close : Icons.search),
+                onPressed: () {
+                  setState(() {
+                    _isSearchOpen = !_isSearchOpen;
+                    if (!_isSearchOpen) {
+                      _searchQuery = '';
+                      _searchController.clear();
+                    }
+                  });
+                },
+              ),
+              InkWell(
+                onTap: _toggleDesignStyle,
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
+                    color: AppTheme.isTesla ? Colors.white.withOpacity(0.12) : const Color(0xFFA855F7).withOpacity(0.22),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white24),
+                    border: Border.all(
+                      color: AppTheme.isTesla ? Colors.white38 : const Color(0xFFA855F7),
+                      width: 1.2,
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Flexible(
-                        child: Text(
-                          '${_activeVehicle.name} (${_activeVehicle.model} - ${NumberFormat('#,###', 'pt_BR').format(_latestOdometer)} km)',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
-                          overflow: TextOverflow.ellipsis,
+                      Icon(
+                        AppTheme.isTesla ? Icons.auto_awesome : Icons.credit_card,
+                        size: 14,
+                        color: AppTheme.isTesla ? Colors.white : const Color(0xFFC084FC),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        AppTheme.isTesla ? 'Tesla' : 'Ultravioleta',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.isTesla ? Colors.white : const Color(0xFFFAF5FF),
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_drop_down, color: Colors.white, size: 18),
                     ],
                   ),
                 ),
               ),
-        actions: [
-          IconButton(
-            icon: Icon(_isSearchOpen ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                _isSearchOpen = !_isSearchOpen;
-                if (!_isSearchOpen) {
-                  _searchQuery = '';
-                  _searchController.clear();
-                }
-              });
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.palette_outlined),
-            tooltip: 'Alterar tema de cores',
-            onPressed: _showPaletteModal,
-          ),
-          IconButton(
-            icon: _isSyncing
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Icon(Icons.cloud_sync_outlined),
-            tooltip: 'Sincronizar com a Nuvem',
-            onPressed: _isSyncing ? null : _syncWithCloudflare,
-          ),
-        ],
-      ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          // 0: Histórico (Feed Timeline 100% Drivvo)
-          TimelineFeedTab(
-            vehicle: _activeVehicle,
-            events: _events.where((e) => e.vehicleId == _activeVehicleId).toList(),
-            reminders: _reminders.where((r) => r.vehicleId == _activeVehicleId).toList(),
-            searchQuery: _searchQuery,
-            onEventTap: (event) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => FuelingDetailsScreen(
-                    event: event,
-                    allEvents: _events.where((e) => e.vehicleId == _activeVehicleId).toList(),
-                    vehicle: _activeVehicle,
-                    onEdit: () => _openFuelingForm(event: event),
-                    onDelete: () => _deleteEvent(event.id),
-                  ),
-                ),
-              );
-            },
-            onReminderTap: () => setState(() => _currentIndex = 2),
-          ),
-          // 1: Relatórios com múltiplos gráficos
-          ReportsTab(
-            vehicle: _activeVehicle,
-            events: _events.where((e) => e.vehicleId == _activeVehicleId).toList(),
-          ),
-          // 2: Lembretes
-          RemindersTab(
-            vehicle: _activeVehicle,
-            reminders: _reminders.where((r) => r.vehicleId == _activeVehicleId).toList(),
-            latestOdometer: _latestOdometer,
-            onAddReminder: () => _openReminderForm(),
-            onEditReminder: (rem) => _openReminderForm(reminder: rem),
-            onCompleteReminder: (rem) {
-              setState(() {
-                rem.isCompleted = true;
-                if (rem.repeatIntervalKm > 0) {
-                  rem.targetOdometer = _latestOdometer + rem.repeatIntervalKm;
-                  rem.isCompleted = false;
-                }
-              });
-              _saveLocalState();
-            },
-            onDeleteReminder: (rem) {
-              setState(() => _reminders.removeWhere((r) => r.id == rem.id));
-              _saveLocalState();
-            },
-          ),
-          // 3: Mais
-          MoreTab(
-            vehicle: _activeVehicle,
-            events: _events,
-            totalRecords: _events.length,
-            onRestoreBackup: () async {
-              await _loadAllData(forceReloadBundled: true);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('146 abastecimentos reais restaurados com sucesso!'),
-                    backgroundColor: AppTheme.primary,
-                  ),
-                );
-              }
-            },
-            onSyncCloudflare: _syncWithCloudflare,
-            onCheckUpdates: () => _checkAppUpdates(manual: true),
-            onOpenPalette: _showPaletteModal,
-            onImportJson: (jsonStr) {
-              try {
-                final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
-                final car = (parsed['car'] ?? parsed) as Map<String, dynamic>;
-                final rawEvents = (car['events'] ?? []) as List;
-                final importedEvents = <CarEvent>[];
-                for (final e in rawEvents) {
-                  if (e is Map) importedEvents.add(CarEvent.fromMap(e.cast<String, dynamic>()));
-                }
-                if (importedEvents.isNotEmpty) {
-                  setState(() {
-                    _events = importedEvents;
-                    _events.sort((a, b) {
-                      if (a.odometer != b.odometer) return b.odometer.compareTo(a.odometer);
-                      return b.date.compareTo(a.date);
-                    });
-                  });
-                  _saveLocalState();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${importedEvents.length} abastecimentos importados com sucesso!'),
-                      backgroundColor: AppTheme.economyGreen,
-                    ),
-                  );
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Erro ao importar JSON: $e'),
-                    backgroundColor: Colors.redAccent,
-                  ),
-                );
-              }
-            },
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 6,
-        color: AppTheme.card,
-        elevation: 8,
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildBottomNavItem(Icons.format_list_bulleted, 'Histórico', 0),
-              _buildBottomNavItem(Icons.insert_chart_outlined, 'Relatórios', 1),
-              const SizedBox(width: 48), // FAB center space
-              _buildBottomNavItem(Icons.alarm, 'Lembretes', 2),
-              _buildBottomNavItem(Icons.more_horiz, 'Mais', 3),
+              const SizedBox(width: 2),
+              IconButton(
+                icon: const Icon(Icons.palette_outlined),
+                tooltip: 'Personalização & Cores',
+                onPressed: _showPaletteModal,
+              ),
+              IconButton(
+                icon: _isSyncing
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Icon(Icons.cloud_sync_outlined),
+                tooltip: 'Sincronizar com a Nuvem',
+                onPressed: _isSyncing ? null : _syncWithCloudflare,
+              ),
             ],
           ),
-        ),
-      ),
-            floatingActionButton: FloatingActionButton(
-        onPressed: _showSpeedDialMenu,
-        backgroundColor: AppTheme.isTesla ? Colors.white : const Color(0xFFA855F7),
-        elevation: 6,
-        shape: const CircleBorder(),
-        child: Icon(
-          Icons.add,
-          color: AppTheme.isTesla ? Colors.black : Colors.white,
-          size: 28,
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+          body: IndexedStack(
+            index: _currentIndex,
+            children: [
+              // 0: Histórico (Feed Timeline 100% Drivvo)
+              TimelineFeedTab(
+                vehicle: _activeVehicle,
+                events: _events.where((e) => e.vehicleId == _activeVehicleId).toList(),
+                reminders: _reminders.where((r) => r.vehicleId == _activeVehicleId).toList(),
+                searchQuery: _searchQuery,
+                onEventTap: (event) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FuelingDetailsScreen(
+                        event: event,
+                        allEvents: _events.where((e) => e.vehicleId == _activeVehicleId).toList(),
+                        vehicle: _activeVehicle,
+                        onEdit: () => _openFuelingForm(event: event),
+                        onDelete: () => _deleteEvent(event.id),
+                      ),
+                    ),
+                  );
+                },
+                onReminderTap: (rem) => _openReminderForm(reminder: rem),
+              ),
+              // 1: Relatórios com múltiplos gráficos
+              ReportsTab(
+                vehicle: _activeVehicle,
+                events: _events.where((e) => e.vehicleId == _activeVehicleId).toList(),
+              ),
+              // 2: Lembretes
+              RemindersTab(
+                vehicle: _activeVehicle,
+                reminders: _reminders.where((r) => r.vehicleId == _activeVehicleId).toList(),
+                events: _events.where((e) => e.vehicleId == _activeVehicleId).toList(),
+                onAddReminder: _openReminderForm,
+                onToggleComplete: _toggleReminderComplete,
+                onDeleteReminder: _deleteReminder,
+              ),
+              // 3: Mais
+              MoreTab(
+                vehicle: _activeVehicle,
+                events: _events,
+                totalRecords: _events.length,
+                onSelectStyle: _setDesignStyle,
+                onRestoreBackup: () async {
+                  await _loadAllData(forceReloadBundled: true);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('146 abastecimentos reais restaurados com sucesso!'),
+                        backgroundColor: AppTheme.primary,
+                      ),
+                    );
+                  }
+                },
+                onSyncCloudflare: _syncWithCloudflare,
+                onCheckUpdates: () => _checkAppUpdates(manual: true),
+                onOpenPalette: _showPaletteModal,
+                onImportJson: (jsonStr) {
+                  try {
+                    final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
+                    final car = (parsed['car'] ?? parsed) as Map<String, dynamic>;
+                    final rawEvents = (car['events'] ?? []) as List;
+                    final importedEvents = <CarEvent>[];
+                    for (final e in rawEvents) {
+                      if (e is Map) importedEvents.add(CarEvent.fromMap(e.cast<String, dynamic>()));
+                    }
+                    if (importedEvents.isNotEmpty) {
+                      setState(() {
+                        _events = importedEvents;
+                        _events.sort((a, b) {
+                          if (a.odometer != b.odometer) return b.odometer.compareTo(a.odometer);
+                          return b.date.compareTo(a.date);
+                        });
+                      });
+                      _saveLocalState();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${importedEvents.length} abastecimentos importados com sucesso!'),
+                          backgroundColor: AppTheme.economyGreen,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao importar JSON: $e'),
+                        backgroundColor: Colors.redAccent,
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+          bottomNavigationBar: BottomAppBar(
+            shape: const CircularNotchedRectangle(),
+            notchMargin: 6,
+            color: AppTheme.card,
+            elevation: 8,
+            child: SizedBox(
+              height: 60,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildBottomNavItem(Icons.format_list_bulleted, 'Histórico', 0),
+                  _buildBottomNavItem(Icons.insert_chart_outlined, 'Relatórios', 1),
+                  const SizedBox(width: 48), // FAB center space
+                  _buildBottomNavItem(Icons.alarm, 'Lembretes', 2),
+                  _buildBottomNavItem(Icons.more_horiz, 'Mais', 3),
+                ],
+              ),
+            ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: _showSpeedDialMenu,
+            backgroundColor: AppTheme.isTesla ? Colors.white : const Color(0xFFA855F7),
+            elevation: 6,
+            shape: const CircleBorder(),
+            child: Icon(
+              Icons.add,
+              color: AppTheme.isTesla ? Colors.black : Colors.white,
+              size: 28,
+            ),
+          ),
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        );
+      },
     );
   }
 
@@ -1555,6 +1662,62 @@ class TimelineFeedTab extends StatelessWidget {
     final latestOdo = vehicle.odometer;
     final odoFormatted = NumberFormat('#,###', 'pt_BR').format(latestOdo);
 
+    int minOdo = 99999999;
+    int maxOdo = 0;
+    double totalLiters = 0.0;
+    double totalSpent = 0.0;
+    CarEvent? latestFuel;
+
+    for (final e in events) {
+      if (e.odometer > 0) {
+        if (e.odometer < minOdo) minOdo = e.odometer;
+        if (e.odometer > maxOdo) maxOdo = e.odometer;
+      }
+      totalSpent += e.amount;
+      if (e.type == 'fuel') {
+        totalLiters += e.liters;
+        if (latestFuel == null || e.odometer > latestFuel.odometer) {
+          latestFuel = e;
+        }
+      }
+    }
+
+    final totalKm = (maxOdo > minOdo && minOdo != 99999999) ? (maxOdo - minOdo) : 0;
+    final avgKmL = (totalLiters > 0 && totalKm > 0) ? (totalKm / totalLiters) : 0.0;
+    final costKm = (totalKm > 0 && totalSpent > 0) ? (totalSpent / totalKm) : 0.0;
+
+    final now = DateTime.now();
+    final currentMonthPrefix = DateFormat('yyyy-MM').format(now);
+    double currentMonthSpent = 0.0;
+    for (final e in events) {
+      if (e.date.startsWith(currentMonthPrefix)) {
+        currentMonthSpent += e.amount;
+      }
+    }
+    String monthLabel = DateFormat("MMMM 'de' yyyy", 'pt_BR').format(now);
+    if (monthLabel.isNotEmpty) {
+      monthLabel = monthLabel[0].toUpperCase() + monthLabel.substring(1);
+    }
+    double displayMonthSpent = currentMonthSpent;
+    if (displayMonthSpent == 0 && events.isNotEmpty) {
+      final latestDate = events.map((e) => e.date).reduce((a, b) => a.compareTo(b) > 0 ? a : b);
+      try {
+        final parsed = DateTime.parse(latestDate);
+        final rawMonth = DateFormat("MMMM 'de' yyyy", 'pt_BR').format(parsed);
+        monthLabel = rawMonth.isNotEmpty ? (rawMonth[0].toUpperCase() + rawMonth.substring(1)) : rawMonth;
+        final prefix = DateFormat('yyyy-MM').format(parsed);
+        displayMonthSpent = events.where((e) => e.date.startsWith(prefix)).fold(0.0, (acc, e) => acc + e.amount);
+      } catch (_) {}
+    }
+
+    final String lastStationInfo = (latestFuel != null && latestFuel.station.isNotEmpty)
+        ? ' • Posto ${latestFuel.station}'
+        : '';
+    final String tankSubtitle = 'Tanque ${vehicle.tankCapacity.toInt()}L$lastStationInfo';
+    final String avgKmLFormatted = avgKmL > 0 ? avgKmL.toStringAsFixed(2) : '-';
+    final String costKmFormatted = costKm > 0 ? 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(costKm)}' : '-';
+    final String monthSpentFormatted = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(displayMonthSpent)}';
+
     if (isTesla) {
       // 1. TESLA / APPLE MINIMALIST LUXURY HERO CARD
       return Container(
@@ -1603,12 +1766,12 @@ class TimelineFeedTab extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Chevrolet Astra',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
+            Text(
+              vehicle.model.isNotEmpty ? vehicle.model : vehicle.name,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
             ),
             Text(
-              'Tanque 100% (52L) • Rafaela',
+              tankSubtitle,
               style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
             ),
             const SizedBox(height: 14),
@@ -1645,11 +1808,11 @@ class TimelineFeedTab extends StatelessWidget {
                       children: [
                         Text('Eficiência Média', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
                         const SizedBox(height: 2),
-                        const Row(
+                        Row(
                           children: [
-                            Text('8,42', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                            SizedBox(width: 4),
-                            Text('km/L', style: TextStyle(fontSize: 11, color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
+                            Text(avgKmLFormatted, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                            const SizedBox(width: 4),
+                            const Text('km/L', style: TextStyle(fontSize: 11, color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ],
@@ -1670,7 +1833,7 @@ class TimelineFeedTab extends StatelessWidget {
                       children: [
                         Text('Custo / Km', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
                         const SizedBox(height: 2),
-                        const Text('R\$ 0,58', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text(costKmFormatted, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                       ],
                     ),
                   ),
@@ -1706,20 +1869,20 @@ class TimelineFeedTab extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'CHEVROLET ASTRA',
-                      style: TextStyle(
+                      vehicle.name.toUpperCase(),
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.5,
                         color: Color(0xFFC084FC),
                       ),
                     ),
-                    SizedBox(height: 2),
-                    Text(
+                    const SizedBox(height: 2),
+                    const Text(
                       'Patrimônio Veicular',
                       style: TextStyle(fontSize: 11, color: Color(0xFFE9D5FF)),
                     ),
@@ -1749,14 +1912,14 @@ class TimelineFeedTab extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 18),
-            const Text(
-              'Gasto em Setembro de 2026',
-              style: TextStyle(fontSize: 11, color: Color(0xFFC4B5FD)),
+            Text(
+              'Gasto em $monthLabel',
+              style: const TextStyle(fontSize: 11, color: Color(0xFFC4B5FD)),
             ),
             const SizedBox(height: 2),
-            const Text(
-              'R\$ 294,00',
-              style: TextStyle(
+            Text(
+              monthSpentFormatted,
+              style: const TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
@@ -1780,20 +1943,20 @@ class TimelineFeedTab extends StatelessWidget {
                       Text('$odoFormatted km', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
                     ],
                   ),
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text('MÉDIA', style: TextStyle(fontSize: 9, letterSpacing: 1, color: Color(0xFFA855F7), fontWeight: FontWeight.bold)),
-                      SizedBox(height: 2),
-                      Text('8,42 km/L', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                      const Text('MÉDIA', style: TextStyle(fontSize: 9, letterSpacing: 1, color: Color(0xFFA855F7), fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text('$avgKmLFormatted km/L', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
                     ],
                   ),
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('CUSTO / KM', style: TextStyle(fontSize: 9, letterSpacing: 1, color: Color(0xFFA855F7), fontWeight: FontWeight.bold)),
-                      SizedBox(height: 2),
-                      Text('R\$ 0,58', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFC084FC))),
+                      const Text('CUSTO / KM', style: TextStyle(fontSize: 9, letterSpacing: 1, color: Color(0xFFA855F7), fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text(costKmFormatted, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFC084FC))),
                     ],
                   ),
                 ],
@@ -3259,8 +3422,11 @@ class _ReportsTabState extends State<ReportsTab> {
                 child: ChoiceChip(
                   label: Text(entry.value),
                   selected: isSel,
-                  selectedColor: AppTheme.primary,
-                  labelStyle: TextStyle(color: isSel ? Colors.white : AppTheme.textMain, fontWeight: isSel ? FontWeight.bold : FontWeight.normal),
+                  selectedColor: AppTheme.chipSelectedBg,
+                  labelStyle: TextStyle(
+                    color: isSel ? AppTheme.chipSelectedFg : AppTheme.textMain,
+                    fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                  ),
                   onSelected: (val) {
                     if (val) setState(() => _selectedPeriod = entry.key);
                   },
@@ -3321,20 +3487,20 @@ class _ReportsTabState extends State<ReportsTab> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppTheme.primary : AppTheme.card,
+                      color: isSelected ? AppTheme.chipSelectedBg : AppTheme.card,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: isSelected ? AppTheme.primary : AppTheme.border),
+                      border: Border.all(color: isSelected ? AppTheme.chipSelectedBg : AppTheme.border),
                     ),
                     child: Row(
                       children: [
-                        Icon(ct.icon, size: 16, color: isSelected ? Colors.white : AppTheme.textMuted),
+                        Icon(ct.icon, size: 16, color: isSelected ? AppTheme.chipSelectedFg : AppTheme.textMuted),
                         const SizedBox(width: 6),
                         Text(
                           ct.label,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected ? Colors.white : AppTheme.textMain,
+                            color: isSelected ? AppTheme.chipSelectedFg : AppTheme.textMain,
                           ),
                         ),
                       ],
@@ -3858,6 +4024,7 @@ class MoreTab extends StatelessWidget {
   final CarVehicle vehicle;
   final List<CarEvent> events;
   final int totalRecords;
+  final Function(AppDesignStyle) onSelectStyle;
   final Future<void> Function() onRestoreBackup;
   final Future<void> Function() onSyncCloudflare;
   final VoidCallback onCheckUpdates;
@@ -3869,6 +4036,7 @@ class MoreTab extends StatelessWidget {
     required this.vehicle,
     required this.events,
     required this.totalRecords,
+    required this.onSelectStyle,
     required this.onRestoreBackup,
     required this.onSyncCloudflare,
     required this.onCheckUpdates,
@@ -3910,6 +4078,83 @@ class MoreTab extends StatelessWidget {
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 16),
+
+        // Section: Estilo do Design System
+        _buildSectionHeader('ESTILO VISUAL DO APP (DESIGN SYSTEM)'),
+        Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: () => onSelectStyle(AppDesignStyle.tesla),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.isTesla ? Colors.white.withOpacity(0.12) : AppTheme.card,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.isTesla ? Colors.white : AppTheme.border,
+                      width: AppTheme.isTesla ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Icon(Icons.auto_awesome, color: AppTheme.isTesla ? Colors.white : AppTheme.textMuted, size: 24),
+                          if (AppTheme.isTesla)
+                            const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 18),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text('1. Tesla / Luxury', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.isTesla ? Colors.white : AppTheme.textMuted)),
+                      const SizedBox(height: 4),
+                      Text('Minimalismo Apple/Tesla, Titânio e Branco puro.', style: TextStyle(fontSize: 11, color: AppTheme.textLight)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: InkWell(
+                onTap: () => onSelectStyle(AppDesignStyle.ultravioleta),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: !AppTheme.isTesla ? const Color(0xFFA855F7).withOpacity(0.2) : AppTheme.card,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: !AppTheme.isTesla ? const Color(0xFFA855F7) : AppTheme.border,
+                      width: !AppTheme.isTesla ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Icon(Icons.credit_card, color: !AppTheme.isTesla ? const Color(0xFFC084FC) : AppTheme.textMuted, size: 24),
+                          if (!AppTheme.isTesla)
+                            const Icon(Icons.check_circle, color: Color(0xFFA855F7), size: 18),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text('3. Ultravioleta', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: !AppTheme.isTesla ? const Color(0xFFFAF5FF) : AppTheme.textMuted)),
+                      const SizedBox(height: 4),
+                      Text('Black Metal, roxo neon e chip exclusivo.', style: TextStyle(fontSize: 11, color: AppTheme.textLight)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
 
@@ -4008,7 +4253,7 @@ class MoreTab extends StatelessWidget {
                 actions: [
                   TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: TextStyle(color: AppTheme.textMuted))),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: AppTheme.primaryForeground),
                     onPressed: () {
                       Navigator.pop(ctx);
                       if (ctrl.text.trim().isNotEmpty) {
@@ -4046,7 +4291,7 @@ class MoreTab extends StatelessWidget {
                 actions: [
                   TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: TextStyle(color: AppTheme.textMuted))),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: AppTheme.primaryForeground),
                     onPressed: () async {
                       Navigator.pop(ctx);
                       await onRestoreBackup();
