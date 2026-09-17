@@ -1499,7 +1499,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                     ),
                   );
                 },
-                onReminderTap: (rem) => _openReminderForm(reminder: rem),
+                onReminderTap: () => setState(() => _currentIndex = 2),
               ),
               // 1: Relatórios com múltiplos gráficos
               ReportsTab(
@@ -1510,10 +1510,23 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
               RemindersTab(
                 vehicle: _activeVehicle,
                 reminders: _reminders.where((r) => r.vehicleId == _activeVehicleId).toList(),
-                events: _events.where((e) => e.vehicleId == _activeVehicleId).toList(),
-                onAddReminder: _openReminderForm,
-                onToggleComplete: _toggleReminderComplete,
-                onDeleteReminder: _deleteReminder,
+                latestOdometer: _latestOdometer,
+                onAddReminder: () => _openReminderForm(),
+                onEditReminder: (rem) => _openReminderForm(reminder: rem),
+                onCompleteReminder: (rem) {
+                  setState(() {
+                    rem.isCompleted = true;
+                    if (rem.repeatIntervalKm > 0) {
+                      rem.targetOdometer = _latestOdometer + rem.repeatIntervalKm;
+                      rem.isCompleted = false;
+                    }
+                  });
+                  _saveLocalState();
+                },
+                onDeleteReminder: (rem) {
+                  setState(() => _reminders.removeWhere((r) => r.id == rem.id));
+                  _saveLocalState();
+                },
               ),
               // 3: Mais
               MoreTab(
