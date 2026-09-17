@@ -77,10 +77,15 @@ class UpdaterService {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 8);
 
-      // 1. Tenta pegar de version.json no GitHub raw (sem rate-limit)
+      // 1. Tenta pegar de version.json no GitHub raw (sem rate-limit, com cache-buster)
       try {
-        final request = await client.getUrl(Uri.parse(rawVersionUrl));
-        request.headers.set('User-Agent', 'FinanzaAutoApp');
+        final versionUri = Uri.parse(rawVersionUrl).replace(queryParameters: {
+          't': DateTime.now().millisecondsSinceEpoch.toString(),
+        });
+        final request = await client.getUrl(versionUri);
+        request.headers.set('User-Agent', 'FinanzaAutoApp/$currentVersion');
+        request.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        request.headers.set('Pragma', 'no-cache');
         final response = await request.close();
         if (response.statusCode == 200) {
           final body = await response.transform(utf8.decoder).join();
@@ -143,14 +148,19 @@ class UpdaterService {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 20);
       
-      // Cache-buster na URL caso não seja redirect direto
+      // Cache-buster na URL apenas se não for link assinado de redirecionamento (AWS S3 / Azure)
       final uri = Uri.parse(downloadUrl);
-      final cacheBusterUri = uri.replace(queryParameters: {
-        ...uri.queryParameters,
-        't': DateTime.now().millisecondsSinceEpoch.toString(),
-      });
+      final isAwsOrSigned = downloadUrl.contains('X-Amz-Signature') ||
+          downloadUrl.contains('release-assets.githubusercontent.com') ||
+          downloadUrl.contains('objects.githubusercontent.com');
+      final requestUri = isAwsOrSigned
+          ? uri
+          : uri.replace(queryParameters: {
+              ...uri.queryParameters,
+              't': DateTime.now().millisecondsSinceEpoch.toString(),
+            });
 
-      final request = await client.getUrl(cacheBusterUri);
+      final request = await client.getUrl(requestUri);
       request.headers.set('User-Agent', 'FinanzaAutoApp/${version.isNotEmpty ? version : "latest"}');
       request.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       request.headers.set('Pragma', 'no-cache');
@@ -236,21 +246,31 @@ class UpdaterService {
     }
   }
 
-  static Future<void> downloadAndInstallApk({
+  static Future<bool> downloadAndInstallApk({
     required String downloadUrl,
     String version = '',
     int buildNumber = 0,
+    void Function(double progress)? onProgress,
   }) async {
     final path = await downloadApk(
       downloadUrl,
       version: version,
       buildNumber: buildNumber,
-      onProgress: (_) {},
+      onProgress: onProgress ?? (_) {},
     );
     if (path != null) {
-      await installApk(path);
+      final canInstall = await canRequestPackageInstalls();
+      if (!canInstall) {
+        await openInstallPermissionSettings();
+      }
+      final success = await installApk(path);
+      if (!success) {
+        await openInBrowser(downloadUrl);
+      }
+      return success;
     } else {
       await openInBrowser(downloadUrl);
+      return false;
     }
   }
 

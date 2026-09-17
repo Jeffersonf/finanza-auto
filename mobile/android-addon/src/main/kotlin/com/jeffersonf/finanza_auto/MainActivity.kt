@@ -74,6 +74,15 @@ class MainActivity: FlutterActivity() {
                             result.error("FILE_NOT_FOUND", "Arquivo APK-nao encontrado em $filePath", null)
                             return@setMethodCallHandler
                         }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !packageManager.canRequestPackageInstalls()) {
+                            val settingsIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                                data = Uri.parse("package:$packageName")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(settingsIntent)
+                            result.success(false)
+                            return@setMethodCallHandler
+                        }
                         val contentUri = FileProvider.getUriForFile(
                             this,
                             "$packageName.fileprovider",

@@ -12,8 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'updater_service.dart';
 
 // Version and API Constants
-const String appVersion = '2.3.0';
-const int appBuildNumber = 22;
+const String appVersion = '2.3.1';
+const int appBuildNumber = 23;
 const String cloudflareSyncUrl = 'https://finanza-auto.jeffef.workers.dev/api/sync';
 
 /// Available Design Styles (1. Tesla/Apple Minimalist Luxury, 2. Nubank Ultravioleta)
@@ -107,7 +107,7 @@ class CarVehicle {
     return CarVehicle(
       id: (map['id'] ?? 'drivvo-car').toString(),
       name: (map['name'] ?? 'Astra').toString(),
-      model: (map['model'] ?? 'Chevrolet Astra 2.0').toString(),
+      model: (map['model'] ?? 'Chevrolet Astra').toString(),
       plate: (map['plate'] ?? '').toString(),
       odometer: (map['odometer'] as num?)?.toInt() ?? 164154,
       tankCapacity: (map['tankCapacity'] as num?)?.toDouble() ?? 52.0,
@@ -392,7 +392,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
     final found = _vehicles.where((v) => v.id == _activeVehicleId);
     if (found.isNotEmpty) return found.first;
     if (_vehicles.isNotEmpty) return _vehicles.first;
-    return CarVehicle(id: 'drivvo-car', name: 'Astra', model: 'Chevrolet Astra 2.0', odometer: 164154, tankCapacity: 52.0);
+    return CarVehicle(id: 'drivvo-car', name: 'Astra', model: 'Chevrolet Astra', odometer: 164154, tankCapacity: 52.0);
   }
 
   int get _latestOdometer {
@@ -470,7 +470,10 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
         _showUpdateDialog(info);
       } else if (manual && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Você já está na versão mais recente (v2.3.0).')),
+          SnackBar(
+            content: Text('Você já está na versão mais recente (v$appVersion+b$appBuildNumber).'),
+            backgroundColor: AppTheme.card,
+          ),
         );
       }
     } catch (_) {}
@@ -504,11 +507,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
             onPressed: () {
               Navigator.pop(ctx);
-              UpdaterService.downloadAndInstallApk(
-                downloadUrl: info.downloadUrl,
-                version: info.version,
-                buildNumber: info.buildNumber,
-              );
+              _startUpdateDownload(info);
             },
             child: const Text('Atualizar Agora'),
           ),
@@ -517,12 +516,174 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
     );
   }
 
+  void _startUpdateDownload(AppUpdateInfo info) {
+    double progress = 0.0;
+    String statusText = 'Iniciando download...';
+    bool isDownloading = true;
+    bool hasFailed = false;
+    bool isComplete = false;
+    String? localApkPath;
+    void Function(void Function())? updateDialogState;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setDlgState) {
+            updateDialogState = setDlgState;
+            return AlertDialog(
+              backgroundColor: AppTheme.card,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              title: Row(
+                children: [
+                  Icon(
+                    hasFailed ? Icons.error_outline : (isComplete ? Icons.check_circle_outline : Icons.cloud_download),
+                    color: hasFailed ? Colors.redAccent : (isComplete ? Colors.greenAccent : AppTheme.primary),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    hasFailed ? 'Falha no Download' : (isComplete ? 'Pronto para Instalar' : 'Atualizando Finanza'),
+                    style: TextStyle(color: AppTheme.textMain, fontSize: 17, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Nova Versão: v${info.version} (Build ${info.buildNumber})',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
+                  ),
+                  const SizedBox(height: 12),
+                  if (isDownloading) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: progress > 0 ? progress : null,
+                        backgroundColor: Colors.white12,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                        minHeight: 8,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(statusText, style: TextStyle(color: AppTheme.textMuted, fontSize: 11)),
+                        Text(
+                          '${(progress * 100).toInt()}%',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textMain, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ] else if (hasFailed) ...[
+                    Text(
+                      'Não foi possível finalizar o download automático. Você pode baixar diretamente pelo navegador.',
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    ),
+                  ] else ...[
+                    Text(
+                      'Download concluído! Se o instalador do Android não abrir, permita "Instalar apps desconhecidos" nas configurações do aparelho ou use o navegador.',
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                if (!isDownloading)
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogCtx),
+                    child: Text('Fechar', style: TextStyle(color: AppTheme.textMuted)),
+                  ),
+                if (isDownloading)
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogCtx),
+                    child: Text('Cancelar', style: TextStyle(color: AppTheme.textMuted)),
+                  ),
+                if (isComplete && localApkPath != null)
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+                    onPressed: () async {
+                      final canInstall = await UpdaterService.canRequestPackageInstalls();
+                      if (!canInstall) {
+                        await UpdaterService.openInstallPermissionSettings();
+                      }
+                      final installed = await UpdaterService.installApk(localApkPath!);
+                      if (!installed) {
+                        UpdaterService.openInBrowser(info.downloadUrl);
+                      }
+                    },
+                    child: const Text('Instalar Novamente'),
+                  ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isComplete ? Colors.white12 : AppTheme.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.open_in_browser, size: 16),
+                  label: const Text('Via Navegador'),
+                  onPressed: () {
+                    Navigator.pop(dialogCtx);
+                    UpdaterService.openInBrowser(info.downloadUrl);
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    // Executa o download em background
+    Future.microtask(() async {
+      try {
+        final path = await UpdaterService.downloadApk(
+          info.downloadUrl,
+          version: info.version,
+          buildNumber: info.buildNumber,
+          onProgress: (p) {
+            progress = p;
+            statusText = 'Baixando... ${(p * 100).toInt()}%';
+            updateDialogState?.call(() {});
+          },
+        );
+
+        if (path != null) {
+          localApkPath = path;
+          isDownloading = false;
+          isComplete = true;
+          updateDialogState?.call(() {});
+
+          final canInstall = await UpdaterService.canRequestPackageInstalls();
+          if (canInstall) {
+            final ok = await UpdaterService.installApk(path);
+            if (!ok) {
+              await UpdaterService.openInstallPermissionSettings();
+            }
+          } else {
+            await UpdaterService.openInstallPermissionSettings();
+          }
+        } else {
+          isDownloading = false;
+          hasFailed = true;
+          updateDialogState?.call(() {});
+        }
+      } catch (_) {
+        isDownloading = false;
+        hasFailed = true;
+        updateDialogState?.call(() {});
+      }
+    });
+  }
+
   Future<void> _loadAllData({bool forceReloadBundled = false}) async {
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       
-      // Check version migration to ensure updated pristine data loads on v2.3.0
+      // Check version migration to ensure updated pristine data loads on v$appVersion
       final savedStyle = prefs.getString('finanza_auto_design_style');
       if (savedStyle == 'ultravioleta') {
         currentDesignStyle.value = AppDesignStyle.ultravioleta;
@@ -530,7 +691,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
         currentDesignStyle.value = AppDesignStyle.tesla;
       }
       final lastLoadedVersion = prefs.getString('finanza_auto_loaded_version');
-      final bool isNewRelease = lastLoadedVersion != '2.3.0';
+      final bool isNewRelease = lastLoadedVersion != appVersion;
 
       final savedJson = prefs.getString('finanza_auto_flutter_state');
       Map<String, dynamic>? parsedSaved;
@@ -565,13 +726,19 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
           CarVehicle(
             id: 'drivvo-car',
             name: 'Astra',
-            model: 'Chevrolet Astra 2.0',
+            model: 'Chevrolet Astra',
             plate: '',
             odometer: 164154,
             tankCapacity: 52.0,
             serviceIntervalKm: 10000,
           ),
         );
+      }
+      for (final v in loadedVehicles) {
+        if (v.id == 'drivvo-car' || loadedVehicles.length == 1) {
+          v.name = 'Astra';
+          v.model = 'Chevrolet Astra';
+        }
       }
 
       final rawEvents = (sourceCar['events'] ?? []) as List;
@@ -634,7 +801,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
         _isLoading = false;
       });
 
-      await prefs.setString('finanza_auto_loaded_version', '2.3.0');
+      await prefs.setString('finanza_auto_loaded_version', appVersion);
       _saveLocalState();
     } catch (e) {
       debugPrint('Error loading data: $e');
@@ -1437,7 +1604,7 @@ class TimelineFeedTab extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             const Text(
-              'Chevrolet Astra 2.0',
+              'Chevrolet Astra',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
             ),
             Text(
@@ -1543,7 +1710,7 @@ class TimelineFeedTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'CHEVROLET ASTRA 2.0',
+                      'CHEVROLET ASTRA',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -3905,8 +4072,8 @@ class MoreTab extends StatelessWidget {
         _buildSettingsTile(
           icon: Icons.info_outline,
           color: Colors.grey,
-          title: 'Finanza Auto 2.2 - Drivvo Real Edition',
-          subtitle: 'Interface 100% idêntica ao Drivvo, múltiplos gráficos e temas.',
+          title: 'Finanza Auto v$appVersion',
+          subtitle: 'Estilos Tesla Minimalist & Nubank Ultravioleta com alternador instantâneo.',
           onTap: () {},
         ),
       ],
