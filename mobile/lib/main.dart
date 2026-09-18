@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'updater_service.dart';
@@ -56,6 +57,11 @@ class AppTheme {
   // Dynamic Primary Accent
   static Color get primary => primaryColorNotifier.value.color;
   static Color get primaryHover => primaryColorNotifier.value.color;
+  static Color get primaryDark {
+    final c = primaryColorNotifier.value.color;
+    final hsl = HSLColor.fromColor(c);
+    return hsl.withLightness((hsl.lightness - 0.12).clamp(0.0, 1.0)).toColor();
+  }
   static const Color primaryForeground = Colors.white;
   static Color get primarySoft => isDarkMode.value
       ? primaryColorNotifier.value.color.withValues(alpha: 0.18)
@@ -3082,7 +3088,7 @@ class MonthlyBarsPainter extends CustomPainter {
       );
       final labelPainter = TextPainter(
         text: labelSpan,
-        textDirection: TextDirection.ltr,
+        textDirection: ui.TextDirection.ltr,
       );
       labelPainter.layout();
       labelPainter.paint(canvas, Offset(x + (barWidth - labelPainter.width) / 2, size.height - 15));
@@ -3096,7 +3102,7 @@ class MonthlyBarsPainter extends CustomPainter {
         );
         final valPainter = TextPainter(
           text: valSpan,
-          textDirection: TextDirection.ltr,
+          textDirection: ui.TextDirection.ltr,
         );
         valPainter.layout();
         valPainter.paint(canvas, Offset(x + (barWidth - valPainter.width) / 2, y - 13));
