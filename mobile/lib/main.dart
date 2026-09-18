@@ -12,14 +12,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'updater_service.dart';
 
 // Version and API Constants
-const String appVersion = '2.3.6';
-const int appBuildNumber = 28;
+const String appVersion = '2.3.7';
+const int appBuildNumber = 29;
 const String cloudflareSyncUrl = 'https://finanza-auto.jeffef.workers.dev/api/sync';
 
 /// Dynamic Theme State Notifiers
 final ValueNotifier<bool> isDarkMode = ValueNotifier<bool>(true);
 
-/// App Theme Tokens (AutoLog - Cobalt & Âmbar)
+/// Curated Automotive Primary Palette
+const List<Map<String, dynamic>> appPrimaryColors = [
+  {'name': 'Azul Cobalt', 'color': Color(0xFF2563EB), 'id': 'cobalt'},
+  {'name': 'Vermelho Sport', 'color': Color(0xFFDC2626), 'id': 'red'},
+  {'name': 'Laranja Sunset', 'color': Color(0xFFEA580C), 'id': 'orange'},
+  {'name': 'Âmbar Racing', 'color': Color(0xFFD97706), 'id': 'amber'},
+  {'name': 'Roxo Precision', 'color': Color(0xFF7C3AED), 'id': 'purple'},
+  {'name': 'Ciano Elétrico', 'color': Color(0xFF0891B2), 'id': 'cyan'},
+  {'name': 'Grafite Slate', 'color': Color(0xFF475569), 'id': 'slate'},
+];
+final ValueNotifier<Color> primaryColorNotifier = ValueNotifier<Color>(const Color(0xFF2563EB));
+
+/// App Theme Tokens (AutoLog - Dynamic Primary & Âmbar)
 class AppTheme {
   // Surfaces & Backgrounds
   static Color get background => isDarkMode.value ? const Color(0xFF0A0E14) : const Color(0xFFF8FAFC);
@@ -28,13 +40,17 @@ class AppTheme {
   static Color get border => isDarkMode.value ? const Color(0xFF263248) : const Color(0xFFE2E8F0);
   static Color get trackLine => isDarkMode.value ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
 
-  // Cobalt Blue & Accents
-  static const Color primary = Color(0xFF2563EB); // Cobalt Blue Principal
-  static const Color primaryHover = Color(0xFF1D4ED8);
+  // Dynamic Primary Accent
+  static Color get primary => primaryColorNotifier.value;
+  static Color get primaryHover => primaryColorNotifier.value;
   static const Color primaryForeground = Colors.white;
-  static Color get primarySoft => isDarkMode.value ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF);
-  static Color get primarySoftText => isDarkMode.value ? const Color(0xFF93C5FD) : const Color(0xFF2563EB);
-  static Color get textOnDarkGreen => const Color(0xFFBFDBFE); // Soft cobalt highlight for primary card
+  static Color get primarySoft => isDarkMode.value
+      ? primaryColorNotifier.value.withValues(alpha: 0.18)
+      : primaryColorNotifier.value.withValues(alpha: 0.12);
+  static Color get primarySoftText => isDarkMode.value
+      ? (primaryColorNotifier.value == const Color(0xFF2563EB) ? const Color(0xFF93C5FD) : primaryColorNotifier.value)
+      : primaryColorNotifier.value;
+  static Color get textOnDarkGreen => const Color(0xFFBFDBFE); // Soft highlight for primary card
 
   // Âmbar (Combustível e Tanque Parcial)
   static const Color accentAmber = Color(0xFFF59E0B);
@@ -50,7 +66,7 @@ class AppTheme {
   static const Color servicePurple = Color(0xFF8B5CF6);
   static const Color expenseBlue = Color(0xFF0284C7);
   static const Color reminderAlert = Color(0xFFEF4444);
-  static const Color economyGreen = Color(0xFF2563EB);
+  static Color get economyGreen => primaryColorNotifier.value;
 }
 
 /// Vehicle Model (Preserving Chevrolet Astra specs: 52L tank, ~164.154 km)
@@ -58,6 +74,7 @@ class CarVehicle {
   String id;
   String name;
   String model;
+  String brand;
   String plate;
   int odometer;
   double tankCapacity;
@@ -68,6 +85,7 @@ class CarVehicle {
     required this.id,
     required this.name,
     this.model = '',
+    this.brand = 'Chevrolet',
     this.plate = '',
     this.odometer = 0,
     this.tankCapacity = 52.0,
@@ -76,10 +94,35 @@ class CarVehicle {
   });
 
   factory CarVehicle.fromMap(Map<String, dynamic> map) {
+    final modelStr = (map['model'] ?? 'Chevrolet Astra').toString();
+    var brandStr = (map['brand'] ?? '').toString();
+    if (brandStr.isEmpty) {
+      final lower = modelStr.toLowerCase();
+      if (lower.contains('chevrolet') || lower.contains('astra') || lower.contains('gm') || lower.contains('onix') || lower.contains('corsa') || lower.contains('vectra')) {
+        brandStr = 'Chevrolet';
+      } else if (lower.contains('volkswagen') || lower.contains('vw') || lower.contains('gol') || lower.contains('polo') || lower.contains('golf')) {
+        brandStr = 'Volkswagen';
+      } else if (lower.contains('fiat') || lower.contains('uno') || lower.contains('palio') || lower.contains('strada') || lower.contains('argo')) {
+        brandStr = 'Fiat';
+      } else if (lower.contains('ford') || lower.contains('ka') || lower.contains('fiesta') || lower.contains('ranger')) {
+        brandStr = 'Ford';
+      } else if (lower.contains('toyota') || lower.contains('corolla') || lower.contains('hilux')) {
+        brandStr = 'Toyota';
+      } else if (lower.contains('honda') || lower.contains('civic') || lower.contains('fit')) {
+        brandStr = 'Honda';
+      } else if (lower.contains('hyundai') || lower.contains('hb20') || lower.contains('creta')) {
+        brandStr = 'Hyundai';
+      } else if (lower.contains('renault') || lower.contains('sandero') || lower.contains('duster')) {
+        brandStr = 'Renault';
+      } else {
+        brandStr = 'Chevrolet';
+      }
+    }
     return CarVehicle(
       id: (map['id'] ?? 'drivvo-car').toString(),
       name: (map['name'] ?? 'Astra').toString(),
-      model: (map['model'] ?? 'Chevrolet Astra').toString(),
+      model: modelStr,
+      brand: brandStr,
       plate: (map['plate'] ?? '').toString(),
       odometer: (map['odometer'] as num?)?.toInt() ?? 164154,
       tankCapacity: (map['tankCapacity'] as num?)?.toDouble() ?? 52.0,
@@ -92,12 +135,310 @@ class CarVehicle {
     'id': id,
     'name': name,
     'model': model,
+    'brand': brand,
     'plate': plate,
     'odometer': odometer,
     'tankCapacity': tankCapacity,
     'serviceIntervalKm': serviceIntervalKm,
     'targetConsumption': targetConsumption,
   };
+}
+
+/// Authentic Automotive Brand Logo Badge
+class CarBrandLogo extends StatelessWidget {
+  final String brandOrModel;
+  final double size;
+
+  const CarBrandLogo({
+    super.key,
+    required this.brandOrModel,
+    this.size = 42,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final lower = brandOrModel.toLowerCase();
+
+    Widget logoContent;
+    if (lower.contains('chevrolet') || lower.contains('astra') || lower.contains('gm') || lower.contains('onix') || lower.contains('corsa') || lower.contains('vectra') || lower.contains('tracker') || lower.contains('s10')) {
+      logoContent = CustomPaint(
+        size: Size(size * 0.74, size * 0.44),
+        painter: ChevroletBowtiePainter(),
+      );
+    } else if (lower.contains('volkswagen') || lower.contains('vw') || lower.contains('gol') || lower.contains('polo') || lower.contains('golf') || lower.contains('t-cross')) {
+      logoContent = CustomPaint(
+        size: Size(size * 0.62, size * 0.62),
+        painter: VolkswagenLogoPainter(),
+      );
+    } else if (lower.contains('fiat') || lower.contains('uno') || lower.contains('palio') || lower.contains('strada') || lower.contains('argo') || lower.contains('toro')) {
+      logoContent = CustomPaint(
+        size: Size(size * 0.62, size * 0.62),
+        painter: FiatLogoPainter(),
+      );
+    } else if (lower.contains('ford') || lower.contains('ka') || lower.contains('fiesta') || lower.contains('ranger') || lower.contains('focus')) {
+      logoContent = CustomPaint(
+        size: Size(size * 0.72, size * 0.42),
+        painter: FordLogoPainter(),
+      );
+    } else if (lower.contains('toyota') || lower.contains('corolla') || lower.contains('hilux') || lower.contains('yaris') || lower.contains('etios')) {
+      logoContent = CustomPaint(
+        size: Size(size * 0.68, size * 0.50),
+        painter: ToyotaLogoPainter(),
+      );
+    } else if (lower.contains('honda') || lower.contains('civic') || lower.contains('fit') || lower.contains('hr-v') || lower.contains('city')) {
+      logoContent = CustomPaint(
+        size: Size(size * 0.60, size * 0.56),
+        painter: HondaLogoPainter(),
+      );
+    } else {
+      logoContent = Icon(Icons.directions_car, color: AppTheme.primary, size: size * 0.52);
+    }
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: isDarkMode.value ? const Color(0xFF161F2E) : const Color(0xFFE2E8F0),
+        borderRadius: BorderRadius.circular(size * 0.28),
+        border: Border.all(
+          color: isDarkMode.value ? const Color(0xFF2A3A50) : const Color(0xFFCBD5E1),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(child: logoContent),
+    );
+  }
+}
+
+class ChevroletBowtiePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final path = Path();
+    path.moveTo(w * 0.34, 0);
+    path.lineTo(w * 0.66, 0);
+    path.lineTo(w * 0.66, h * 0.26);
+    path.lineTo(w, h * 0.26);
+    path.lineTo(w * 0.94, h * 0.74);
+    path.lineTo(w * 0.66, h * 0.74);
+    path.lineTo(w * 0.66, h);
+    path.lineTo(w * 0.34, h);
+    path.lineTo(w * 0.34, h * 0.74);
+    path.lineTo(0, h * 0.74);
+    path.lineTo(w * 0.06, h * 0.26);
+    path.lineTo(w * 0.34, h * 0.26);
+    path.close();
+
+    final fillPaint = Paint()
+      ..shader = const LinearGradient(
+        colors: [Color(0xFFFFD54F), Color(0xFFF59E0B), Color(0xFFD97706), Color(0xFF92400E)],
+        stops: [0.0, 0.35, 0.75, 1.0],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(Rect.fromLTWH(0, 0, w, h))
+      ..style = PaintingStyle.fill;
+
+    final strokePaint = Paint()
+      ..color = const Color(0xFFE2E8F0)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(path, fillPaint);
+    canvas.drawPath(path, strokePaint);
+
+    final innerPath = Path();
+    innerPath.moveTo(w * 0.38, h * 0.12);
+    innerPath.lineTo(w * 0.62, h * 0.12);
+    innerPath.lineTo(w * 0.62, h * 0.34);
+    innerPath.lineTo(w * 0.88, h * 0.34);
+    innerPath.lineTo(w * 0.84, h * 0.66);
+    innerPath.lineTo(w * 0.62, h * 0.66);
+    innerPath.lineTo(w * 0.62, h * 0.88);
+    innerPath.lineTo(w * 0.38, h * 0.88);
+    innerPath.lineTo(w * 0.38, h * 0.66);
+    innerPath.lineTo(w * 0.12, h * 0.66);
+    innerPath.lineTo(w * 0.16, h * 0.34);
+    innerPath.lineTo(w * 0.38, h * 0.34);
+    innerPath.close();
+
+    final innerStroke = Paint()
+      ..color = Colors.white.withValues(alpha: 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+    canvas.drawPath(innerPath, innerStroke);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class VolkswagenLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final r = w / 2;
+    final center = Offset(r, r);
+
+    final bgPaint = Paint()..color = const Color(0xFF001E50);
+    canvas.drawCircle(center, r, bgPaint);
+
+    final ringPaint = Paint()
+      ..color = const Color(0xFFE2E8F0)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    canvas.drawCircle(center, r - 1, ringPaint);
+
+    final linePaint = Paint()
+      ..color = const Color(0xFFE2E8F0)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+
+    final vPath = Path()
+      ..moveTo(w * 0.28, w * 0.25)
+      ..lineTo(w * 0.50, w * 0.50)
+      ..lineTo(w * 0.72, w * 0.25);
+    canvas.drawPath(vPath, linePaint);
+
+    final wPath = Path()
+      ..moveTo(w * 0.22, w * 0.46)
+      ..lineTo(w * 0.38, w * 0.78)
+      ..lineTo(w * 0.50, w * 0.56)
+      ..lineTo(w * 0.62, w * 0.78)
+      ..lineTo(w * 0.78, w * 0.46);
+    canvas.drawPath(wPath, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class FiatLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final r = w / 2;
+    final center = Offset(r, r);
+
+    final bgPaint = Paint()..color = const Color(0xFF8B0000);
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, w, w), Radius.circular(w * 0.25)), bgPaint);
+
+    final ringPaint = Paint()
+      ..color = const Color(0xFFE2E8F0)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, w, w), Radius.circular(w * 0.25)), ringPaint);
+
+    final barPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round;
+
+    for (int i = 0; i < 4; i++) {
+      final startX = w * 0.26 + (i * w * 0.16);
+      canvas.drawLine(Offset(startX + w * 0.08, w * 0.30), Offset(startX, w * 0.70), barPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class FordLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final bgPaint = Paint()..color = const Color(0xFF002C6C);
+    canvas.drawOval(Rect.fromLTWH(0, 0, w, h), bgPaint);
+
+    final borderPaint = Paint()
+      ..color = const Color(0xFFE2E8F0)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    canvas.drawOval(Rect.fromLTWH(0, 0, w, h), borderPaint);
+
+    final fPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    final path = Path()
+      ..moveTo(w * 0.30, h * 0.70)
+      ..cubicTo(w * 0.35, h * 0.30, w * 0.45, h * 0.25, w * 0.65, h * 0.30)
+      ..moveTo(w * 0.25, h * 0.48)
+      ..lineTo(w * 0.55, h * 0.48);
+    canvas.drawPath(path, fPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class ToyotaLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final p = Paint()
+      ..color = const Color(0xFFCBD5E1)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6;
+
+    canvas.drawOval(Rect.fromLTWH(1, 1, w - 2, h - 2), p);
+    canvas.drawOval(Rect.fromLTWH(w * 0.20, h * 0.15, w * 0.60, h * 0.38), p);
+    canvas.drawOval(Rect.fromLTWH(w * 0.36, h * 0.15, w * 0.28, h * 0.70), p);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class HondaLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final p = Paint()
+      ..color = const Color(0xFFE2E8F0)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round;
+
+    final outer = Path()
+      ..moveTo(w * 0.15, 0)
+      ..lineTo(w * 0.85, 0)
+      ..lineTo(w * 0.75, h)
+      ..lineTo(w * 0.25, h)
+      ..close();
+    canvas.drawPath(outer, p);
+
+    final hPath = Path()
+      ..moveTo(w * 0.32, h * 0.12)
+      ..lineTo(w * 0.36, h * 0.88)
+      ..moveTo(w * 0.68, h * 0.12)
+      ..lineTo(w * 0.64, h * 0.88)
+      ..moveTo(w * 0.34, h * 0.50)
+      ..lineTo(w * 0.66, h * 0.50);
+    canvas.drawPath(hPath, p);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 /// Event Model (Fueling, Service, Expense)
@@ -285,6 +626,15 @@ void main() async {
       isDarkMode.value = true;
       await prefs.setBool('finanza_auto_is_dark', true);
     }
+
+    final savedColorVal = prefs.getInt('finanza_primary_color');
+    if (savedColorVal != null) {
+      final matched = appPrimaryColors.firstWhere(
+        (c) => c.color.value == savedColorVal,
+        orElse: () => appPrimaryColors.first,
+      );
+      primaryColorNotifier.value = matched;
+    }
   } catch (_) {}
 
   runApp(const FinanzaAutoApp());
@@ -295,11 +645,13 @@ class FinanzaAutoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: isDarkMode,
-      builder: (context, isDark, _) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([isDarkMode, primaryColorNotifier]),
+      builder: (context, _) {
+        final isDark = isDarkMode.value;
+        final pri = primaryColorNotifier.value;
         return MaterialApp(
-          key: ValueKey('autolog_app_$isDark'),
+          key: ValueKey('autolog_app_${isDark}_${pri.color.value}'),
           title: 'AutoLog',
           debugShowCheckedModeBanner: false,
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
@@ -307,9 +659,9 @@ class FinanzaAutoApp extends StatelessWidget {
             useMaterial3: true,
             fontFamily: 'DM Sans',
             brightness: Brightness.light,
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF2563EB),
-              surface: Color(0xFFFFFFFF),
+            colorScheme: ColorScheme.light(
+              primary: pri.color,
+              surface: const Color(0xFFFFFFFF),
             ),
             scaffoldBackgroundColor: const Color(0xFFF8FAFC),
             appBarTheme: const AppBarTheme(
@@ -329,9 +681,9 @@ class FinanzaAutoApp extends StatelessWidget {
             useMaterial3: true,
             fontFamily: 'DM Sans',
             brightness: Brightness.dark,
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF2563EB),
-              surface: Color(0xFF131924),
+            colorScheme: ColorScheme.dark(
+              primary: pri.color,
+              surface: const Color(0xFF131924),
             ),
             scaffoldBackgroundColor: const Color(0xFF0A0E14),
             appBarTheme: const AppBarTheme(
@@ -347,7 +699,7 @@ class FinanzaAutoApp extends StatelessWidget {
               ),
             ),
           ),
-          home: FinanzaAutoHomePage(key: ValueKey('home_$isDark')),
+          home: FinanzaAutoHomePage(key: ValueKey('home_${isDark}_${pri.color.value}')),
         );
       },
     );
@@ -398,6 +750,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
   void initState() {
     super.initState();
     isDarkMode.addListener(_onThemeChanged);
+    primaryColorNotifier.addListener(_onThemeChanged);
     _loadAllData().then((_) => _checkQuickFuelAction());
     _checkAppUpdates();
   }
@@ -409,6 +762,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
   @override
   void dispose() {
     isDarkMode.removeListener(_onThemeChanged);
+    primaryColorNotifier.removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -747,9 +1101,15 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
         ]);
       }
 
+      final savedActiveVId = prefs.getString('finanza_active_vehicle_id');
+      String activeVId = loadedVehicles.first.id;
+      if (savedActiveVId != null && loadedVehicles.any((v) => v.id == savedActiveVId)) {
+        activeVId = savedActiveVId;
+      }
+
       setState(() {
         _vehicles = loadedVehicles;
-        _activeVehicleId = loadedVehicles.first.id;
+        _activeVehicleId = activeVId;
         _events = loadedEvents;
         _reminders = loadedReminders;
         _isLoading = false;
@@ -1019,6 +1379,393 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
     );
   }
 
+  void _selectVehicle(String vehicleId) async {
+    setState(() {
+      _activeVehicleId = vehicleId;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('finanza_active_vehicle_id', vehicleId);
+    } catch (_) {}
+  }
+
+  void _addNewVehicle(CarVehicle v) async {
+    setState(() {
+      _vehicles.add(v);
+      _activeVehicleId = v.id;
+    });
+    _saveLocalState();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('finanza_active_vehicle_id', v.id);
+    } catch (_) {}
+  }
+
+  void _showAddVehicleDialog() {
+    final nameCtrl = TextEditingController();
+    final modelCtrl = TextEditingController();
+    final plateCtrl = TextEditingController();
+    final odoCtrl = TextEditingController();
+    final tankCtrl = TextEditingController(text: '50.0');
+    final targetCtrl = TextEditingController(text: '8.5');
+    String selectedBrand = 'Chevrolet';
+
+    final brandOptions = [
+      'Chevrolet',
+      'Volkswagen',
+      'Fiat',
+      'Ford',
+      'Toyota',
+      'Honda',
+      'Hyundai',
+      'Renault',
+      'Nissan',
+      'Jeep',
+      'Outro',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (modalCtx, setModalState) {
+          return Container(
+            decoration: BoxDecoration(
+              color: AppTheme.card,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: AppTheme.border),
+            ),
+            padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(modalCtx).viewInsets.bottom + 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppTheme.border,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primarySoft,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.add_circle_outline, color: AppTheme.primary, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Novo Veículo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.textMain)),
+                          Text('Adicione à sua garagem', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text('MARCA DO VEÍCULO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textMuted)),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardSubtle,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedBrand,
+                        isExpanded: true,
+                        dropdownColor: AppTheme.card,
+                        items: brandOptions.map((b) {
+                          return DropdownMenuItem<String>(
+                            value: b,
+                            child: Row(
+                              children: [
+                                CarBrandLogo(brandOrModel: b, size: 24),
+                                const SizedBox(width: 10),
+                                Text(b, style: TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.bold, fontSize: 14)),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setModalState(() {
+                              selectedBrand = val;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: modelCtrl,
+                    style: TextStyle(color: AppTheme.textMain),
+                    decoration: InputDecoration(
+                      labelText: 'Modelo (ex: Civic EXR 2.0, Gol 1.6)',
+                      labelStyle: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                      filled: true,
+                      fillColor: AppTheme.cardSubtle,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppTheme.border)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppTheme.border)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: nameCtrl,
+                          style: TextStyle(color: AppTheme.textMain),
+                          decoration: InputDecoration(
+                            labelText: 'Apelido (ex: Civic)',
+                            labelStyle: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                            filled: true,
+                            fillColor: AppTheme.cardSubtle,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppTheme.border)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppTheme.border)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: plateCtrl,
+                          style: TextStyle(color: AppTheme.textMain),
+                          textCapitalization: TextCapitalization.characters,
+                          decoration: InputDecoration(
+                            labelText: 'Placa (ex: BRA2E19)',
+                            labelStyle: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                            filled: true,
+                            fillColor: AppTheme.cardSubtle,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppTheme.border)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppTheme.border)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: odoCtrl,
+                          keyboardType: TextInputType.number,
+                          style: TextStyle(color: AppTheme.textMain),
+                          decoration: InputDecoration(
+                            labelText: 'Km Inicial',
+                            labelStyle: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                            filled: true,
+                            fillColor: AppTheme.cardSubtle,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppTheme.border)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppTheme.border)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: tankCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          style: TextStyle(color: AppTheme.textMain),
+                          decoration: InputDecoration(
+                            labelText: 'Tanque (Litros)',
+                            labelStyle: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                            filled: true,
+                            fillColor: AppTheme.cardSubtle,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppTheme.border)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppTheme.border)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: () {
+                        final modelText = modelCtrl.text.trim().isNotEmpty ? modelCtrl.text.trim() : '$selectedBrand Carro';
+                        final nameText = nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : modelText.split(' ').first;
+                        final odoVal = int.tryParse(odoCtrl.text.replaceAll('.', '').trim()) ?? 0;
+                        final tankVal = double.tryParse(tankCtrl.text.replaceAll(',', '.').trim()) ?? 50.0;
+                        final targetVal = double.tryParse(targetCtrl.text.replaceAll(',', '.').trim()) ?? 8.5;
+
+                        final newV = CarVehicle(
+                          id: 'car-${DateTime.now().millisecondsSinceEpoch}',
+                          name: nameText,
+                          model: modelText,
+                          brand: selectedBrand,
+                          plate: plateCtrl.text.trim().toUpperCase(),
+                          odometer: odoVal,
+                          tankCapacity: tankVal,
+                          targetConsumption: targetVal,
+                        );
+
+                        _addNewVehicle(newV);
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('$nameText adicionado e ativado!'),
+                            backgroundColor: AppTheme.primary,
+                          ),
+                        );
+                      },
+                      child: const Text('Salvar Veículo', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showGarageModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (modalCtx, setModalState) {
+          return Container(
+            decoration: BoxDecoration(
+              color: AppTheme.card,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: AppTheme.border),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Minha Garagem', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+                        Text('${_vehicles.length} veículo${_vehicles.length > 1 ? "s" : ""} cadastrado${_vehicles.length > 1 ? "s" : ""}', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      color: AppTheme.textMuted,
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ..._vehicles.map((v) {
+                  final isCurrent = v.id == _activeVehicleId;
+                  final vOdo = v.odometer.toString().replaceAllMapped(
+                    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                    (m) => '${m[1]}.',
+                  );
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      color: isCurrent ? AppTheme.primarySoft : AppTheme.cardSubtle,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isCurrent ? AppTheme.primary : AppTheme.border,
+                        width: isCurrent ? 1.5 : 1,
+                      ),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      leading: CarBrandLogo(brandOrModel: v.brand.isNotEmpty ? v.brand : v.model, size: 40),
+                      title: Text(
+                        v.name.isNotEmpty ? v.name : v.model,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: isCurrent ? AppTheme.primary : AppTheme.textMain,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${v.model} · $vOdo km${v.plate.isNotEmpty ? " · ${v.plate}" : ""}',
+                        style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                      ),
+                      trailing: isCurrent
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Text('ATIVO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
+                            )
+                          : const Icon(Icons.radio_button_off, color: Colors.grey, size: 20),
+                      onTap: () {
+                        _selectVehicle(v.id);
+                        Navigator.pop(ctx);
+                      },
+                    ),
+                  );
+                }),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primary,
+                      side: const BorderSide(color: AppTheme.primary, width: 1.2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Adicionar Novo Veículo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showAddVehicleDialog();
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -1049,6 +1796,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
               events: _events,
               latestOdometer: _latestOdometer,
               onOpenFueling: () => _openFuelingForm(),
+              onOpenGarage: _showGarageModal,
               onNavigateToHistory: () => setState(() => _currentIndex = 1),
               onNavigateToVehicle: () => setState(() => _currentIndex = 3),
             ),
@@ -1070,6 +1818,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
               events: _events,
               reminders: _reminders,
               latestOdometer: _latestOdometer,
+              onOpenGarage: _showGarageModal,
               onRestoreBackup: () async {
                 await _loadAllData(forceReloadBundled: true);
                 if (mounted) {
@@ -1104,27 +1853,45 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
           child: SizedBox(
             height: 64,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(Icons.home_outlined, Icons.home, 'Início', 0),
-                _buildNavItem(Icons.history_outlined, Icons.history, 'Histórico', 1),
-                _buildNavItem(Icons.insights_outlined, Icons.insights, 'Análise', 2),
-                _buildNavItem(Icons.directions_car_outlined, Icons.directions_car, 'Veículo', 3),
+                Expanded(child: _buildNavItem(Icons.home_outlined, Icons.home, 'Início', 0)),
+                Expanded(child: _buildNavItem(Icons.history_outlined, Icons.history, 'Histórico', 1)),
+                // Central Action Button (+ Registrar)
+                GestureDetector(
+                  onTap: _showSpeedDialMenu,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.primary,
+                          AppTheme.primaryDark,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primary.withValues(alpha: 0.35),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.add, color: Colors.white, size: 26),
+                  ),
+                ),
+                Expanded(child: _buildNavItem(Icons.insights_outlined, Icons.insights, 'Análise', 2)),
+                Expanded(child: _buildNavItem(Icons.directions_car_outlined, Icons.directions_car, 'Veículo', 3)),
               ],
             ),
           ),
         ),
       ),
-      floatingActionButton: (_currentIndex == 0 || _currentIndex == 1)
-          ? FloatingActionButton(
-              onPressed: _showSpeedDialMenu,
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.add, size: 28),
-            )
-          : null,
+      floatingActionButton: null,
     );
   }
 
@@ -1135,12 +1902,13 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
       onTap: () => setState(() => _currentIndex = index),
       borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(isSel ? filledIcon : outlineIcon, color: color, size: 22),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
@@ -1328,6 +2096,7 @@ class HomeOverviewTab extends StatelessWidget {
   final List<CarEvent> events;
   final int latestOdometer;
   final VoidCallback onOpenFueling;
+  final VoidCallback onOpenGarage;
   final VoidCallback onNavigateToHistory;
   final VoidCallback onNavigateToVehicle;
 
@@ -1337,6 +2106,7 @@ class HomeOverviewTab extends StatelessWidget {
     required this.events,
     required this.latestOdometer,
     required this.onOpenFueling,
+    required this.onOpenGarage,
     required this.onNavigateToHistory,
     required this.onNavigateToVehicle,
   });
@@ -1394,7 +2164,7 @@ class HomeOverviewTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       children: [
-        // App Brand Header
+        // App Brand Header (sem botões conforme solicitação)
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -1421,68 +2191,13 @@ class HomeOverviewTab extends StatelessWidget {
                 ),
               ],
             ),
-            Row(
-              children: [
-                IconButton(
-                  tooltip: isDarkMode.value ? 'Mudar para Modo Claro' : 'Mudar para Modo Escuro',
-                  onPressed: () async {
-                    isDarkMode.value = !isDarkMode.value;
-                    try {
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setBool('finanza_auto_is_dark', isDarkMode.value);
-                    } catch (_) {}
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          duration: const Duration(seconds: 1),
-                          backgroundColor: AppTheme.card,
-                          content: Text(
-                            isDarkMode.value ? 'Modo Escuro (Cockpit) ativado' : 'Modo Claro ativado',
-                            style: TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  icon: Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: AppTheme.card,
-                      borderRadius: BorderRadius.circular(19),
-                      border: Border.all(color: AppTheme.border),
-                    ),
-                    child: Icon(
-                      isDarkMode.value ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                      color: AppTheme.accentAmber,
-                      size: 20,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: onNavigateToVehicle,
-                  icon: Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: AppTheme.card,
-                      borderRadius: BorderRadius.circular(19),
-                      border: Border.all(color: AppTheme.border),
-                    ),
-                    child: Icon(Icons.settings_outlined, color: AppTheme.textMuted, size: 20),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
         const SizedBox(height: 16),
 
-        // Seletor de Veículo (Card Branco)
+        // Seletor de Veículo (Card com Logo OEM)
         InkWell(
-          onTap: onNavigateToVehicle,
+          onTap: onOpenGarage,
           borderRadius: BorderRadius.circular(20),
           child: Container(
             padding: const EdgeInsets.all(14),
@@ -1493,14 +2208,9 @@ class HomeOverviewTab extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: AppTheme.cardSubtle,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.directions_car, color: AppTheme.primary, size: 22),
+                CarBrandLogo(
+                  brandOrModel: vehicle.brand.isNotEmpty ? vehicle.brand : vehicle.model,
+                  size: 42,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1513,13 +2223,30 @@ class HomeOverviewTab extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Meu carro · $odoFormatted km',
+                        '${vehicle.name.isNotEmpty ? vehicle.name : "Carro"} · $odoFormatted km',
                         style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
                       ),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: AppTheme.textMuted, size: 20),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primarySoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Garagem',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.keyboard_arrow_down, size: 16, color: AppTheme.primary),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -2207,9 +2934,168 @@ class _HistoryTabState extends State<HistoryTab> {
 }
 
 // ==========================================
-// 3. ANÁLISE (ANALYTICS TAB)
+// 3. ANÁLISE (ANALYTICS TAB) & GRÁFICOS
 // ==========================================
-class AnalyticsTab extends StatelessWidget {
+
+/// Custom painter for fuel price trend over time
+class PriceTrendPainter extends CustomPainter {
+  final List<CarEvent> events;
+  final Color color;
+
+  PriceTrendPainter({required this.events, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final valid = events.where((e) => e.pricePerLiter > 0).toList();
+    if (valid.isEmpty) return;
+
+    final prices = valid.map((e) => e.pricePerLiter).toList();
+    final minP = prices.reduce(math.min);
+    final maxP = prices.reduce(math.max);
+    final range = (maxP - minP) > 0 ? (maxP - minP) : 0.5;
+
+    final path = Path();
+    final fillPath = Path();
+    final stepX = prices.length > 1 ? size.width / (prices.length - 1) : size.width;
+    final points = <Offset>[];
+
+    for (int i = 0; i < prices.length; i++) {
+      final x = i * stepX;
+      final normY = (prices[i] - minP) / range;
+      final y = size.height - (normY * (size.height - 24) + 12);
+      points.add(Offset(x, y));
+    }
+
+    if (points.length == 1) {
+      canvas.drawCircle(Offset(size.width / 2, size.height / 2), 5, Paint()..color = color);
+      return;
+    }
+
+    path.moveTo(points[0].dx, points[0].dy);
+    fillPath.moveTo(points[0].dx, size.height);
+    fillPath.lineTo(points[0].dx, points[0].dy);
+
+    for (int i = 0; i < points.length - 1; i++) {
+      final p0 = points[i];
+      final p1 = points[i + 1];
+      final cx = (p0.dx + p1.dx) / 2;
+      path.cubicTo(cx, p0.dy, cx, p1.dy, p1.dx, p1.dy);
+      fillPath.cubicTo(cx, p0.dy, cx, p1.dy, p1.dx, p1.dy);
+    }
+
+    fillPath.lineTo(points.last.dx, size.height);
+    fillPath.close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          color.withValues(alpha: 0.22),
+          color.withValues(alpha: 0.0),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(fillPath, fillPaint);
+
+    final strokePaint = Paint()
+      ..color = color
+      ..strokeWidth = 2.4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(path, strokePaint);
+
+    for (final pt in points) {
+      canvas.drawCircle(pt, 3.5, Paint()..color = color);
+      canvas.drawCircle(pt, 1.8, Paint()..color = Colors.white);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+/// Custom painter for monthly spending bar chart
+class MonthlyBarsPainter extends CustomPainter {
+  final List<MapEntry<String, double>> monthlyData;
+  final Color barColor;
+  final Color textColor;
+
+  MonthlyBarsPainter({
+    required this.monthlyData,
+    required this.barColor,
+    required this.textColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (monthlyData.isEmpty) return;
+
+    final maxVal = monthlyData.map((e) => e.value).fold(0.0, math.max);
+    final ceiling = maxVal > 0 ? maxVal * 1.18 : 100.0;
+
+    final count = monthlyData.length;
+    final slotWidth = size.width / count;
+    final barWidth = slotWidth * 0.52;
+
+    for (int i = 0; i < count; i++) {
+      final item = monthlyData[i];
+      final x = (i * slotWidth) + (slotWidth - barWidth) / 2;
+      final barHeight = item.value > 0 ? (item.value / ceiling) * (size.height - 36) : 4.0;
+      final y = size.height - 20 - barHeight;
+
+      final rrect = RRect.fromRectAndCorners(
+        Rect.fromLTWH(x, y, barWidth, barHeight),
+        topLeft: const Radius.circular(6),
+        topRight: const Radius.circular(6),
+      );
+
+      final paint = Paint()
+        ..shader = LinearGradient(
+          colors: [
+            barColor,
+            barColor.withValues(alpha: 0.60),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ).createShader(Rect.fromLTWH(x, y, barWidth, barHeight));
+
+      canvas.drawRRect(rrect, paint);
+
+      // Month Label
+      final labelSpan = TextSpan(
+        text: item.key,
+        style: TextStyle(color: textColor, fontSize: 9.5, fontWeight: FontWeight.w600),
+      );
+      final labelPainter = TextPainter(
+        text: labelSpan,
+        textDirection: TextDirection.ltr,
+      );
+      labelPainter.layout();
+      labelPainter.paint(canvas, Offset(x + (barWidth - labelPainter.width) / 2, size.height - 15));
+
+      // Value on top (R$)
+      if (item.value > 0) {
+        final valText = item.value >= 1000 ? '${(item.value / 1000).toStringAsFixed(1)}k' : item.value.toStringAsFixed(0);
+        final valSpan = TextSpan(
+          text: valText,
+          style: TextStyle(color: barColor, fontSize: 9, fontWeight: FontWeight.bold),
+        );
+        final valPainter = TextPainter(
+          text: valSpan,
+          textDirection: TextDirection.ltr,
+        );
+        valPainter.layout();
+        valPainter.paint(canvas, Offset(x + (barWidth - valPainter.width) / 2, y - 13));
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class AnalyticsTab extends StatefulWidget {
   final CarVehicle vehicle;
   final List<CarEvent> events;
 
@@ -2220,9 +3106,47 @@ class AnalyticsTab extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final fuelEvents = events.where((e) => e.type == 'fuel').toList();
+  State<AnalyticsTab> createState() => _AnalyticsTabState();
+}
 
+class _AnalyticsTabState extends State<AnalyticsTab> {
+  String _selectedPeriod = 'Todos';
+  String _selectedType = 'Todos';
+
+  @override
+  Widget build(BuildContext context) {
+    final vEvents = widget.events.where((e) => e.vehicleId == widget.vehicle.id).toList();
+    final baseEvents = vEvents.isNotEmpty ? vEvents : widget.events;
+
+    // Filter by period
+    final now = DateTime.now();
+    final periodEvents = baseEvents.where((e) {
+      final d = e.parsedDate;
+      if (_selectedPeriod == '30 dias') {
+        return now.difference(d).inDays <= 30;
+      } else if (_selectedPeriod == '3 meses') {
+        return now.difference(d).inDays <= 90;
+      } else if (_selectedPeriod == '6 meses') {
+        return now.difference(d).inDays <= 180;
+      } else if (_selectedPeriod == 'Este Ano') {
+        return d.year == now.year;
+      }
+      return true;
+    }).toList();
+
+    // Type subsets
+    final fuelEvents = periodEvents.where((e) => e.type == 'fuel').toList();
+    final serviceEvents = periodEvents.where((e) => e.type == 'service').toList();
+    final expenseEvents = periodEvents.where((e) => e.type == 'expense').toList();
+
+    // Totals
+    final totalSpentPeriod = periodEvents.fold(0.0, (sum, e) => sum + e.amount);
+    final fuelSpent = fuelEvents.fold(0.0, (sum, e) => sum + e.amount);
+    final serviceSpent = serviceEvents.fold(0.0, (sum, e) => sum + e.amount);
+    final expenseSpent = expenseEvents.fold(0.0, (sum, e) => sum + e.amount);
+    final totalLiters = fuelEvents.fold(0.0, (sum, e) => sum + e.liters);
+
+    // Consumption calculation
     double avgConsumption = 0.0;
     final fullTanks = fuelEvents.where((e) => e.isFullTank && e.liters > 0 && e.odometer > 0).toList();
     if (fullTanks.length >= 2) {
@@ -2235,49 +3159,128 @@ class AnalyticsTab extends StatelessWidget {
         avgConsumption = totalKm / totalL;
       }
     }
-    if (avgConsumption <= 0 || avgConsumption > 25) avgConsumption = 8.4;
+    if (avgConsumption <= 0 || avgConsumption > 25) {
+      // Fallback to vehicle's target consumption or realistic default
+      avgConsumption = widget.vehicle.targetConsumption > 0 ? widget.vehicle.targetConsumption : 8.4;
+    }
 
+    // Cost per km
     double costPerKm = 0.0;
     if (fuelEvents.length >= 2) {
       final odoDelta = fuelEvents.first.odometer - fuelEvents.last.odometer;
-      final totalSpent = fuelEvents.fold(0.0, (sum, e) => sum + e.amount);
-      if (odoDelta > 0) costPerKm = totalSpent / odoDelta;
+      if (odoDelta > 0) {
+        costPerKm = fuelSpent / odoDelta;
+      }
     }
     if (costPerKm <= 0 || costPerKm > 5) costPerKm = 0.68;
 
+    // Average price per liter
     double avgPricePerLiter = 0.0;
     final validPpl = fuelEvents.where((e) => e.pricePerLiter > 0).toList();
     if (validPpl.isNotEmpty) {
       avgPricePerLiter = validPpl.fold(0.0, (sum, e) => sum + e.pricePerLiter) / validPpl.length;
+    } else {
+      avgPricePerLiter = 5.75;
     }
-    if (avgPricePerLiter <= 0) avgPricePerLiter = 5.75;
 
-    final totalSpentOverall = events.fold(0.0, (sum, e) => sum + e.amount);
+    // Range with full tank
+    final estimatedRange = (widget.vehicle.tankCapacity * avgConsumption).round();
+
+    // Prepare Monthly Bars Data (last 6 distinct months)
+    final monthlyMap = <String, double>{};
+    for (final e in periodEvents) {
+      final key = DateFormat('MMM/yy', 'pt_BR').format(e.parsedDate);
+      monthlyMap[key] = (monthlyMap[key] ?? 0.0) + e.amount;
+    }
+    final monthlyEntries = monthlyMap.entries.toList().reversed.take(6).toList().reversed.toList();
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       children: [
-        Text('Análise', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
-        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Análise & Estatísticas', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: AppTheme.primarySoft, borderRadius: BorderRadius.circular(12)),
+              child: Text(
+                widget.vehicle.name,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primary),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
 
-        // Grid com 4 KPIs Principais
+        // Filtro de Período
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: ['Todos', '30 dias', '3 meses', '6 meses', 'Este Ano'].map((p) {
+              final isSel = _selectedPeriod == p;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(p),
+                  selected: isSel,
+                  onSelected: (_) => setState(() => _selectedPeriod = p),
+                  selectedColor: AppTheme.primary,
+                  backgroundColor: AppTheme.card,
+                  labelStyle: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                    color: isSel ? Colors.white : AppTheme.textMain,
+                  ),
+                  side: BorderSide(color: isSel ? AppTheme.primary : AppTheme.border),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  showCheckmark: false,
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // 4 KPIs Principais
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 1.4,
+          childAspectRatio: 1.45,
           children: [
             _buildMetricTile('Consumo Médio', '${avgConsumption.toStringAsFixed(1).replaceAll('.', ',')} km/L', Icons.speed, AppTheme.primary),
             _buildMetricTile('Custo por Km', 'R\$ ${costPerKm.toStringAsFixed(2).replaceAll('.', ',')}', Icons.route, AppTheme.primary),
             _buildMetricTile('Preço Médio / L', 'R\$ ${avgPricePerLiter.toStringAsFixed(2).replaceAll('.', ',')}', Icons.local_gas_station, AppTheme.accentAmber),
-            _buildMetricTile('Gasto Acumulado', 'R\$ ${totalSpentOverall.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}', Icons.account_balance_wallet, AppTheme.servicePurple),
+            _buildMetricTile('Gasto no Período', 'R\$ ${totalSpentPeriod.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}', Icons.account_balance_wallet, AppTheme.servicePurple),
           ],
+        ),
+        const SizedBox(height: 14),
+
+        // Faixa de Resumo Rápido (Autonomia + Volume + Registros)
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppTheme.cardSubtle,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildMiniStat('Autonomia Est.', '$estimatedRange km', Icons.local_gas_station_outlined),
+              Container(width: 1, height: 24, color: AppTheme.border),
+              _buildMiniStat('Volume Comb.', '${totalLiters.toStringAsFixed(0)} L', Icons.water_drop_outlined),
+              Container(width: 1, height: 24, color: AppTheme.border),
+              _buildMiniStat('Registros', '${periodEvents.length}', Icons.format_list_bulleted),
+            ],
+          ),
         ),
         const SizedBox(height: 18),
 
-        // Card Evolução do Preço do Litro
+        // Gráfico 1: Evolução do Consumo (km/L)
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
@@ -2288,13 +3291,69 @@ class AnalyticsTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Evolução do Preço do Combustível', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
-              Text('Histórico de valor pago por litro (R\$/L)', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Evolução do Consumo', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+                      Text('Histórico de eficiência (km/L)', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                    ],
+                  ),
+                  Text(
+                    '${avgConsumption.toStringAsFixed(1).replaceAll('.', ',')} km/L',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                  ),
+                ],
+              ),
               const SizedBox(height: 16),
               SizedBox(
                 height: 110,
                 child: CustomPaint(
                   painter: ConsumptionCurvePainter(
+                    events: fuelEvents.take(12).toList().reversed.toList(),
+                    color: AppTheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Gráfico 2: Tendência do Preço por Litro (R$/L)
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppTheme.card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Tendência do Preço do Combustível', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+                      Text('Valor pago por litro no período (R\$/L)', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                    ],
+                  ),
+                  Text(
+                    'R\$ ${avgPricePerLiter.toStringAsFixed(2).replaceAll('.', ',')}',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.accentAmber),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 110,
+                child: CustomPaint(
+                  painter: PriceTrendPainter(
                     events: fuelEvents.take(12).toList().reversed.toList(),
                     color: AppTheme.accentAmber,
                   ),
@@ -2303,7 +3362,95 @@ class AnalyticsTab extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
+
+        // Gráfico 3: Comparativo Mensal de Gastos (Barras)
+        if (monthlyEntries.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppTheme.card,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Gastos Mensais', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+                        Text('Comparativo entre os últimos meses (R\$)', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                      ],
+                    ),
+                    Text(
+                      'Total R\$ ${totalSpentPeriod.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  height: 120,
+                  width: double.infinity,
+                  child: CustomPaint(
+                    painter: MonthlyBarsPainter(
+                      monthlyData: monthlyEntries,
+                      barColor: AppTheme.primary,
+                      textColor: AppTheme.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // Gráfico 4: Distribuição por Categoria
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppTheme.card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Distribuição de Despesas', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+              Text('Proporção de gastos por tipo', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+              const SizedBox(height: 14),
+              _buildCategoryBar(
+                label: 'Combustível',
+                amount: fuelSpent,
+                total: totalSpentPeriod,
+                color: AppTheme.accentAmber,
+                icon: Icons.local_gas_station,
+              ),
+              const SizedBox(height: 10),
+              _buildCategoryBar(
+                label: 'Serviços & Peças',
+                amount: serviceSpent,
+                total: totalSpentPeriod,
+                color: AppTheme.servicePurple,
+                icon: Icons.build,
+              ),
+              const SizedBox(height: 10),
+              _buildCategoryBar(
+                label: 'Outras Despesas',
+                amount: expenseSpent,
+                total: totalSpentPeriod,
+                color: AppTheme.expenseBlue,
+                icon: Icons.receipt_long,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
 
         // Dica de Eficiência
         Container(
@@ -2314,17 +3461,75 @@ class AnalyticsTab extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.info_outline, color: AppTheme.primary, size: 22),
+              const Icon(Icons.insights, color: AppTheme.primary, size: 22),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Abasteça com tanque completo para cálculos mais precisos de consumo e autonomia do Astra.',
+                  'Com base na meta de ${widget.vehicle.targetConsumption.toStringAsFixed(1)} km/L, o tanque de ${widget.vehicle.tankCapacity.toStringAsFixed(0)}L garante autonomia de ~$estimatedRange km por abastecimento.',
                   style: TextStyle(fontSize: 12, color: AppTheme.textMain),
                 ),
               ),
             ],
           ),
         ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Widget _buildCategoryBar({
+    required String label,
+    required double amount,
+    required double total,
+    required Color color,
+    required IconData icon,
+  }) {
+    final pct = total > 0 ? (amount / total) : 0.0;
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 14, color: color),
+                const SizedBox(width: 6),
+                Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textMain)),
+              ],
+            ),
+            Text(
+              '${(pct * 100).toStringAsFixed(0)}% · R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textMain),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: pct,
+            backgroundColor: AppTheme.cardSubtle,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+            minHeight: 8,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMiniStat(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: AppTheme.primary),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+          ],
+        ),
+        const SizedBox(height: 3),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
       ],
     );
   }
@@ -2348,7 +3553,7 @@ class AnalyticsTab extends StatelessWidget {
               Icon(icon, size: 16, color: color),
             ],
           ),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+          Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
         ],
       ),
     );
@@ -2363,6 +3568,7 @@ class VehicleTab extends StatelessWidget {
   final List<CarEvent> events;
   final List<CarReminder> reminders;
   final int latestOdometer;
+  final VoidCallback onOpenGarage;
   final VoidCallback onRestoreBackup;
   final VoidCallback onSyncCloudflare;
   final VoidCallback onCheckUpdates;
@@ -2375,6 +3581,7 @@ class VehicleTab extends StatelessWidget {
     required this.events,
     required this.reminders,
     required this.latestOdometer,
+    required this.onOpenGarage,
     required this.onRestoreBackup,
     required this.onSyncCloudflare,
     required this.onCheckUpdates,
@@ -2392,10 +3599,10 @@ class VehicleTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       children: [
-        Text('Veículo', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+        Text('Veículo & Garagem', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
         const SizedBox(height: 16),
 
-        // Cartão do Chevrolet Astra
+        // Cartão do Veículo com Logo da Marca OEM
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -2409,21 +3616,51 @@ class VehicleTab extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      Text('Chevrolet Astra', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
-                      Text('Tanque 52L · ${vehicle.plate.isNotEmpty ? vehicle.plate : "Sem placa"}', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                      CarBrandLogo(
+                        brandOrModel: vehicle.brand.isNotEmpty ? vehicle.brand : vehicle.model,
+                        size: 46,
+                      ),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            vehicle.name.isNotEmpty ? vehicle.name : vehicle.model,
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain),
+                          ),
+                          Text(
+                            '${vehicle.model} · Tanque ${vehicle.tankCapacity.toStringAsFixed(0)}L',
+                            style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: AppTheme.cardSubtle, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: AppTheme.primarySoft, borderRadius: BorderRadius.circular(12)),
                     child: const Text('ATIVO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.primary)),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.primary,
+                    side: const BorderSide(color: AppTheme.primary, width: 1.2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  icon: const Icon(Icons.garage_outlined, size: 16),
+                  label: const Text('Minha Garagem / Trocar Veículo', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: onOpenGarage,
+                ),
+              ),
+              const SizedBox(height: 14),
               Divider(color: AppTheme.border, height: 1),
               const SizedBox(height: 16),
               Row(
@@ -2450,6 +3687,111 @@ class VehicleTab extends StatelessWidget {
                     },
                   ),
                 ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Aparência & Personalização
+        Text('APARÊNCIA & PERSONALIZAÇÃO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: AppTheme.textMuted)),
+        const SizedBox(height: 10),
+
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.card,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        isDarkMode.value ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                        color: AppTheme.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        isDarkMode.value ? 'Modo Escuro (Cockpit)' : 'Modo Claro',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textMain),
+                      ),
+                    ],
+                  ),
+                  Switch(
+                    value: isDarkMode.value,
+                    activeColor: AppTheme.primary,
+                    onChanged: (val) async {
+                      isDarkMode.value = val;
+                      try {
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setBool('finanza_auto_is_dark', val);
+                      } catch (_) {}
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Divider(color: AppTheme.border, height: 1),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Cor de Destaque',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textMain),
+                  ),
+                  Text(
+                    primaryColorNotifier.value.name,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: appPrimaryColors.map((themeColor) {
+                  final isSelected = primaryColorNotifier.value.color.value == themeColor.color.value;
+                  return GestureDetector(
+                    onTap: () async {
+                      primaryColorNotifier.value = themeColor;
+                      try {
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setInt('finanza_primary_color', themeColor.color.value);
+                      } catch (_) {}
+                    },
+                    child: Tooltip(
+                      message: themeColor.name,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: themeColor.color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? Colors.white : Colors.transparent,
+                            width: 2.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: themeColor.color.withValues(alpha: isSelected ? 0.5 : 0.2),
+                              blurRadius: isSelected ? 8 : 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
             ],
           ),
@@ -2492,55 +3834,6 @@ class VehicleTab extends StatelessWidget {
           title: 'Verificar Atualizações',
           subtitle: 'Versão atual v$appVersion (Build $appBuildNumber)',
           onTap: onCheckUpdates,
-        ),
-        _buildActionTile(
-          icon: isDarkMode.value ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-          title: 'Tema: ${isDarkMode.value ? "Modo Escuro (Cockpit)" : "Modo Claro"}',
-          subtitle: isDarkMode.value ? 'Toque para alternar para o Modo Claro' : 'Toque para alternar para o Modo Escuro',
-          trailing: Switch(
-            value: isDarkMode.value,
-            activeColor: AppTheme.primary,
-            onChanged: (val) async {
-              isDarkMode.value = val;
-              try {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setBool('finanza_auto_is_dark', val);
-              } catch (_) {}
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    duration: const Duration(seconds: 1),
-                    backgroundColor: AppTheme.card,
-                    content: Text(
-                      val ? 'Modo Escuro (Cockpit) ativado' : 'Modo Claro ativado',
-                      style: TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                );
-              }
-            },
-          ),
-          onTap: () async {
-            isDarkMode.value = !isDarkMode.value;
-            try {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('finanza_auto_is_dark', isDarkMode.value);
-            } catch (_) {}
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  duration: const Duration(seconds: 1),
-                  backgroundColor: AppTheme.card,
-                  content: Text(
-                    isDarkMode.value ? 'Modo Escuro (Cockpit) ativado' : 'Modo Claro ativado',
-                    style: TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              );
-            }
-          },
         ),
         const SizedBox(height: 40),
       ],

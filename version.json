@@ -1,8 +1,8 @@
 {
-  "version": "2.3.6",
-  "buildNumber": 28,
-  "releaseTag": "v2.3.6",
-  "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/download/v2.3.6/app-release.apk",
-  "releaseNotes": "AutoLog 2.3.6: Correção definitiva do Modo Escuro (themeMode explícito, alternância instantânea no cabeçalho e na aba Veículo com switch dinâmico, sincronização com SharedPreferences e reconstrução reativa de tela).",
+  "version": "2.3.7",
+  "buildNumber": 29,
+  "releaseTag": "v2.3.7",
+  "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/download/v2.3.7/app-release.apk",
+  "releaseNotes": "AutoLog 2.3.7: Redesign com botão central 'Registrar' na barra inferior, cabeçalho limpo sem engrenagem, suporte a múltiplos veículos na garagem, logotipo OEM da Chevrolet/marcas, aba de Análise avançada com 4 gráficos e filtros por período, e seletor de 7 cores automotivas de destaque.",
   "releasedAt": "2026-09-18"
 }
