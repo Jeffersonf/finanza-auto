@@ -110,6 +110,6 @@ jobs:
           echo "Publishing GitHub Release $TAG..."
           gh release create "$TAG" mobile/build/app/outputs/flutter-apk/app-release.apk version.json \
             --title "AutoLog $TAG" \
-            --notes "AutoLog $TAG: Nova identidade visual Cobalt Blue & Âmbar automotivo (zero verde), novo ícone de precisão e persistência de tema." \
+            --notes "AutoLog $TAG: Correção definitiva do Modo Escuro (themeMode explícito, alternância reativa instantânea na home e veículo com switch) e contraste aprimorado." \
             --latest || \
           gh release upload "$TAG" mobile/build/app/outputs/flutter-apk/app-release.apk version.json --clobber

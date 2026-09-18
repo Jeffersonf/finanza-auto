@@ -1,8 +1,8 @@
 {
-  "version": "2.3.5",
-  "buildNumber": 27,
-  "releaseTag": "v2.3.5",
-  "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/download/v2.3.5/app-release.apk",
-  "releaseNotes": "AutoLog 2.3.5: Redesign completo com nova identidade Cobalt Blue & Âmbar automotivo (zero verde), novo ícone de alta precisão e persistência confiável de tema escuro/claro.",
+  "version": "2.3.6",
+  "buildNumber": 28,
+  "releaseTag": "v2.3.6",
+  "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/download/v2.3.6/app-release.apk",
+  "releaseNotes": "AutoLog 2.3.6: Correção definitiva do Modo Escuro (themeMode explícito, alternância instantânea no cabeçalho e na aba Veículo com switch dinâmico, sincronização com SharedPreferences e reconstrução reativa de tela).",
   "releasedAt": "2026-09-18"
 }

@@ -12,8 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'updater_service.dart';
 
 // Version and API Constants
-const String appVersion = '2.3.5';
-const int appBuildNumber = 27;
+const String appVersion = '2.3.6';
+const int appBuildNumber = 28;
 const String cloudflareSyncUrl = 'https://finanza-auto.jeffef.workers.dev/api/sync';
 
 /// Dynamic Theme State Notifiers
@@ -33,7 +33,7 @@ class AppTheme {
   static const Color primaryHover = Color(0xFF1D4ED8);
   static const Color primaryForeground = Colors.white;
   static Color get primarySoft => isDarkMode.value ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF);
-  static Color get primarySoftText => const Color(0xFF2563EB);
+  static Color get primarySoftText => isDarkMode.value ? const Color(0xFF93C5FD) : const Color(0xFF2563EB);
   static Color get textOnDarkGreen => const Color(0xFFBFDBFE); // Soft cobalt highlight for primary card
 
   // Âmbar (Combustível e Tanque Parcial)
@@ -281,6 +281,9 @@ void main() async {
     final savedIsDark = prefs.getBool('finanza_auto_is_dark');
     if (savedIsDark != null) {
       isDarkMode.value = savedIsDark;
+    } else {
+      isDarkMode.value = true;
+      await prefs.setBool('finanza_auto_is_dark', true);
     }
   } catch (_) {}
 
@@ -296,36 +299,55 @@ class FinanzaAutoApp extends StatelessWidget {
       valueListenable: isDarkMode,
       builder: (context, isDark, _) {
         return MaterialApp(
+          key: ValueKey('autolog_app_$isDark'),
           title: 'AutoLog',
           debugShowCheckedModeBanner: false,
+          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
           theme: ThemeData(
             useMaterial3: true,
             fontFamily: 'DM Sans',
-            brightness: isDark ? Brightness.dark : Brightness.light,
-            colorScheme: isDark
-                ? ColorScheme.dark(
-                    primary: AppTheme.primary,
-                    surface: AppTheme.card,
-                  )
-                : ColorScheme.light(
-                    primary: AppTheme.primary,
-                    surface: AppTheme.card,
-                  ),
-            scaffoldBackgroundColor: AppTheme.background,
-            appBarTheme: AppBarTheme(
-              backgroundColor: AppTheme.background,
-              foregroundColor: AppTheme.textMain,
+            brightness: Brightness.light,
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF2563EB),
+              surface: Color(0xFFFFFFFF),
+            ),
+            scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color(0xFFF8FAFC),
+              foregroundColor: Color(0xFF0F172A),
               elevation: 0,
               centerTitle: false,
               titleTextStyle: TextStyle(
                 fontFamily: 'DM Sans',
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.textMain,
+                color: Color(0xFF0F172A),
               ),
             ),
           ),
-          home: const FinanzaAutoHomePage(),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            fontFamily: 'DM Sans',
+            brightness: Brightness.dark,
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF2563EB),
+              surface: Color(0xFF131924),
+            ),
+            scaffoldBackgroundColor: const Color(0xFF0A0E14),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color(0xFF0A0E14),
+              foregroundColor: Color(0xFFF8FAFC),
+              elevation: 0,
+              centerTitle: false,
+              titleTextStyle: TextStyle(
+                fontFamily: 'DM Sans',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFF8FAFC),
+              ),
+            ),
+          ),
+          home: FinanzaAutoHomePage(key: ValueKey('home_$isDark')),
         );
       },
     );
@@ -375,8 +397,19 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
   @override
   void initState() {
     super.initState();
+    isDarkMode.addListener(_onThemeChanged);
     _loadAllData().then((_) => _checkQuickFuelAction());
     _checkAppUpdates();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    isDarkMode.removeListener(_onThemeChanged);
+    super.dispose();
   }
 
   Future<void> _checkQuickFuelAction() async {
@@ -1388,18 +1421,60 @@ class HomeOverviewTab extends StatelessWidget {
                 ),
               ],
             ),
-            IconButton(
-              onPressed: onNavigateToVehicle,
-              icon: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppTheme.card,
-                  borderRadius: BorderRadius.circular(19),
-                  border: Border.all(color: AppTheme.border),
+            Row(
+              children: [
+                IconButton(
+                  tooltip: isDarkMode.value ? 'Mudar para Modo Claro' : 'Mudar para Modo Escuro',
+                  onPressed: () async {
+                    isDarkMode.value = !isDarkMode.value;
+                    try {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setBool('finanza_auto_is_dark', isDarkMode.value);
+                    } catch (_) {}
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          duration: const Duration(seconds: 1),
+                          backgroundColor: AppTheme.card,
+                          content: Text(
+                            isDarkMode.value ? 'Modo Escuro (Cockpit) ativado' : 'Modo Claro ativado',
+                            style: TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  icon: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppTheme.card,
+                      borderRadius: BorderRadius.circular(19),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: Icon(
+                      isDarkMode.value ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                      color: AppTheme.accentAmber,
+                      size: 20,
+                    ),
+                  ),
                 ),
-                child: Icon(Icons.settings_outlined, color: AppTheme.textMuted, size: 20),
-              ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: onNavigateToVehicle,
+                  icon: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppTheme.card,
+                      borderRadius: BorderRadius.circular(19),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: Icon(Icons.settings_outlined, color: AppTheme.textMuted, size: 20),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -2419,15 +2494,52 @@ class VehicleTab extends StatelessWidget {
           onTap: onCheckUpdates,
         ),
         _buildActionTile(
-          icon: Icons.dark_mode_outlined,
-          title: 'Modo Escuro / Claro',
-          subtitle: 'Alternar contraste visual',
+          icon: isDarkMode.value ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+          title: 'Tema: ${isDarkMode.value ? "Modo Escuro (Cockpit)" : "Modo Claro"}',
+          subtitle: isDarkMode.value ? 'Toque para alternar para o Modo Claro' : 'Toque para alternar para o Modo Escuro',
+          trailing: Switch(
+            value: isDarkMode.value,
+            activeColor: AppTheme.primary,
+            onChanged: (val) async {
+              isDarkMode.value = val;
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('finanza_auto_is_dark', val);
+              } catch (_) {}
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    duration: const Duration(seconds: 1),
+                    backgroundColor: AppTheme.card,
+                    content: Text(
+                      val ? 'Modo Escuro (Cockpit) ativado' : 'Modo Claro ativado',
+                      style: TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
           onTap: () async {
             isDarkMode.value = !isDarkMode.value;
             try {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('finanza_auto_is_dark', isDarkMode.value);
             } catch (_) {}
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  duration: const Duration(seconds: 1),
+                  backgroundColor: AppTheme.card,
+                  content: Text(
+                    isDarkMode.value ? 'Modo Escuro (Cockpit) ativado' : 'Modo Claro ativado',
+                    style: TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              );
+            }
           },
         ),
         const SizedBox(height: 40),
@@ -2484,6 +2596,7 @@ class VehicleTab extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    Widget? trailing,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -2496,7 +2609,7 @@ class VehicleTab extends StatelessWidget {
         leading: Icon(icon, color: AppTheme.primary, size: 22),
         title: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
         subtitle: Text(subtitle, style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-        trailing: Icon(Icons.chevron_right, color: AppTheme.textMuted, size: 18),
+        trailing: trailing ?? Icon(Icons.chevron_right, color: AppTheme.textMuted, size: 18),
         onTap: onTap,
       ),
     );
