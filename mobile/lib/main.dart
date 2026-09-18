@@ -804,7 +804,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            const Icon(Icons.system_update, color: AppTheme.primary),
+            Icon(Icons.system_update, color: AppTheme.primary),
             const SizedBox(width: 10),
             Text('Atualização Disponível', style: TextStyle(color: AppTheme.textMain, fontSize: 18, fontWeight: FontWeight.bold)),
           ],
@@ -813,7 +813,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Nova versão v${info.version} (Build ${info.buildNumber})', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
+            Text('Nova versão v${info.version} (Build ${info.buildNumber})', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
             const SizedBox(height: 8),
             Text(info.releaseNotes, style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
           ],
@@ -875,7 +875,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                 children: [
                   Text(
                     'Instalador v${info.version} (${info.buildNumber})',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
                   ),
                   const SizedBox(height: 12),
                   if (isDownloading) ...[
@@ -884,7 +884,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                       child: LinearProgressIndicator(
                         value: progress > 0 ? progress : null,
                         backgroundColor: AppTheme.border,
-                        valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
                         minHeight: 8,
                       ),
                     ),
@@ -1166,8 +1166,8 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
       if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Row(
+            SnackBar(
+              content: const Row(
                 children: [
                   Icon(Icons.check_circle, color: Colors.white, size: 20),
                   SizedBox(width: 10),
@@ -1195,8 +1195,8 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
       debugPrint('Cloudflare sync error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
+          SnackBar(
+              content: const Row(
               children: [
                 Icon(Icons.cloud_done, color: Colors.white, size: 20),
                 SizedBox(width: 10),
@@ -1334,7 +1334,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(color: AppTheme.primarySoft, borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.local_gas_station, color: AppTheme.primary, size: 22),
+                child: Icon(Icons.local_gas_station, color: AppTheme.primary, size: 22),
               ),
               title: Text('Abastecimento', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textMain)),
               subtitle: Text('Registrar combustível, odômetro e valor', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
@@ -1462,7 +1462,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                           color: AppTheme.primarySoft,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.add_circle_outline, color: AppTheme.primary, size: 22),
+                        child: Icon(Icons.add_circle_outline, color: AppTheme.primary, size: 22),
                       ),
                       const SizedBox(width: 12),
                       Column(
@@ -1746,7 +1746,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.primary,
-                      side: const BorderSide(color: AppTheme.primary, width: 1.2),
+                      side: BorderSide(color: AppTheme.primary, width: 1.2),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     icon: const Icon(Icons.add, size: 18),
@@ -1775,7 +1775,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(color: AppTheme.primary),
+              CircularProgressIndicator(color: AppTheme.primary),
               const SizedBox(height: 16),
               Text('Carregando AutoLog...', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
             ],
@@ -1823,8 +1823,8 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
                 await _loadAllData(forceReloadBundled: true);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('146 abastecimentos reais restaurados com sucesso!'),
+                    SnackBar(
+                      content: const Text('146 abastecimentos reais restaurados com sucesso!'),
                       backgroundColor: AppTheme.primary,
                     ),
                   );
@@ -2171,7 +2171,7 @@ class HomeOverviewTab extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'AUTOLOG',
                   style: TextStyle(
                     fontSize: 11,
@@ -2377,9 +2377,9 @@ class HomeOverviewTab extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle)),
+                        Container(width: 6, height: 6, decoration: BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle)),
                         const SizedBox(width: 5),
-                        const Text('Etanol / Cidade', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppTheme.primary)),
+                        Text('Etanol / Cidade', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppTheme.primary)),
                       ],
                     ),
                   ],
@@ -2458,7 +2458,7 @@ class HomeOverviewTab extends StatelessWidget {
                   ),
                   Text(
                     '${avgConsumption.toStringAsFixed(1).replaceAll('.', ',')} km/L',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primary),
                   ),
                 ],
               ),
@@ -2507,7 +2507,7 @@ class HomeOverviewTab extends StatelessWidget {
               ),
               InkWell(
                 onTap: onNavigateToHistory,
-                child: const Text('Ver histórico', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                child: Text('Ver histórico', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary)),
               ),
             ],
           ),
@@ -3206,7 +3206,7 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
               decoration: BoxDecoration(color: AppTheme.primarySoft, borderRadius: BorderRadius.circular(12)),
               child: Text(
                 widget.vehicle.name,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primary),
               ),
             ),
           ],
@@ -3303,7 +3303,7 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
                   ),
                   Text(
                     '${avgConsumption.toStringAsFixed(1).replaceAll('.', ',')} km/L',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primary),
                   ),
                 ],
               ),
@@ -3388,7 +3388,7 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
                     ),
                     Text(
                       'Total R\$ ${totalSpentPeriod.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary),
                     ),
                   ],
                 ),
@@ -3461,7 +3461,7 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.insights, color: AppTheme.primary, size: 22),
+              Icon(Icons.insights, color: AppTheme.primary, size: 22),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -3641,7 +3641,7 @@ class VehicleTab extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(color: AppTheme.primarySoft, borderRadius: BorderRadius.circular(12)),
-                    child: const Text('ATIVO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                    child: Text('ATIVO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.primary)),
                   ),
                 ],
               ),
@@ -3651,7 +3651,7 @@ class VehicleTab extends StatelessWidget {
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.primary,
-                    side: const BorderSide(color: AppTheme.primary, width: 1.2),
+                    side: BorderSide(color: AppTheme.primary, width: 1.2),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
@@ -3749,7 +3749,7 @@ class VehicleTab extends StatelessWidget {
                   ),
                   Text(
                     primaryColorNotifier.value.name,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary),
                   ),
                 ],
               ),
@@ -3805,7 +3805,7 @@ class VehicleTab extends StatelessWidget {
             Text('REVISÕES & LEMBRETES', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: AppTheme.textMuted)),
             InkWell(
               onTap: onAddReminder,
-              child: const Text('+ Novo lembrete', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+              child: Text('+ Novo lembrete', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary)),
             ),
           ],
         ),
@@ -4061,7 +4061,8 @@ class _FuelingFormScreenState extends State<FuelingFormScreen> {
 
     if (odo <= 0 || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Informe ao menos o Odômetro e o Valor Total.')),
+        SnackBar(
+                      content: const Text('Informe ao menos o Odômetro e o Valor Total.')),
       );
       return;
     }
@@ -4131,7 +4132,7 @@ class _FuelingFormScreenState extends State<FuelingFormScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'R\$ $displayTotal',
-                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.primary),
                   ),
                 ],
               ),
@@ -4147,7 +4148,7 @@ class _FuelingFormScreenState extends State<FuelingFormScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textMain),
               decoration: InputDecoration(
                 hintText: 'Ex: 164154',
-                prefixIcon: const Icon(Icons.speed, color: AppTheme.primary, size: 20),
+                prefixIcon: Icon(Icons.speed, color: AppTheme.primary, size: 20),
                 filled: true,
                 fillColor: AppTheme.card,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppTheme.border)),
@@ -4352,7 +4353,7 @@ class _FuelingFormScreenState extends State<FuelingFormScreen> {
                   children: [
                     Icon(_showMoreOptions ? Icons.expand_less : Icons.expand_more, color: AppTheme.primary, size: 20),
                     const SizedBox(width: 6),
-                    const Text(
+                    Text(
                       'Mais opções (Posto, Motorista, Notas)',
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primary),
                     ),
@@ -4478,7 +4479,8 @@ class _ServiceExpenseFormScreenState extends State<ServiceExpenseFormScreen> {
 
     if (amount <= 0 || title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Informe a descrição e o valor.')),
+        SnackBar(
+                      content: const Text('Informe a descrição e o valor.')),
       );
       return;
     }
@@ -4628,7 +4630,8 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
 
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Informe o título do lembrete.')),
+        SnackBar(
+                      content: const Text('Informe o título do lembrete.')),
       );
       return;
     }
