@@ -19,17 +19,30 @@ const String cloudflareSyncUrl = 'https://finanza-auto.jeffef.workers.dev/api/sy
 /// Dynamic Theme State Notifiers
 final ValueNotifier<bool> isDarkMode = ValueNotifier<bool>(true);
 
+/// Strongly-typed automotive accent color definition
+class AppPrimaryColor {
+  final String name;
+  final Color color;
+  final String id;
+
+  const AppPrimaryColor({
+    required this.name,
+    required this.color,
+    required this.id,
+  });
+}
+
 /// Curated Automotive Primary Palette
-const List<Map<String, dynamic>> appPrimaryColors = [
-  {'name': 'Azul Cobalt', 'color': Color(0xFF2563EB), 'id': 'cobalt'},
-  {'name': 'Vermelho Sport', 'color': Color(0xFFDC2626), 'id': 'red'},
-  {'name': 'Laranja Sunset', 'color': Color(0xFFEA580C), 'id': 'orange'},
-  {'name': 'Âmbar Racing', 'color': Color(0xFFD97706), 'id': 'amber'},
-  {'name': 'Roxo Precision', 'color': Color(0xFF7C3AED), 'id': 'purple'},
-  {'name': 'Ciano Elétrico', 'color': Color(0xFF0891B2), 'id': 'cyan'},
-  {'name': 'Grafite Slate', 'color': Color(0xFF475569), 'id': 'slate'},
+const List<AppPrimaryColor> appPrimaryColors = [
+  AppPrimaryColor(name: 'Azul Cobalt', color: Color(0xFF2563EB), id: 'cobalt'),
+  AppPrimaryColor(name: 'Vermelho Sport', color: Color(0xFFDC2626), id: 'red'),
+  AppPrimaryColor(name: 'Laranja Sunset', color: Color(0xFFEA580C), id: 'orange'),
+  AppPrimaryColor(name: 'Âmbar Racing', color: Color(0xFFD97706), id: 'amber'),
+  AppPrimaryColor(name: 'Roxo Precision', color: Color(0xFF7C3AED), id: 'purple'),
+  AppPrimaryColor(name: 'Ciano Elétrico', color: Color(0xFF0891B2), id: 'cyan'),
+  AppPrimaryColor(name: 'Grafite Slate', color: Color(0xFF475569), id: 'slate'),
 ];
-final ValueNotifier<Color> primaryColorNotifier = ValueNotifier<Color>(const Color(0xFF2563EB));
+final ValueNotifier<AppPrimaryColor> primaryColorNotifier = ValueNotifier<AppPrimaryColor>(appPrimaryColors.first);
 
 /// App Theme Tokens (AutoLog - Dynamic Primary & Âmbar)
 class AppTheme {
@@ -41,15 +54,15 @@ class AppTheme {
   static Color get trackLine => isDarkMode.value ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
 
   // Dynamic Primary Accent
-  static Color get primary => primaryColorNotifier.value;
-  static Color get primaryHover => primaryColorNotifier.value;
+  static Color get primary => primaryColorNotifier.value.color;
+  static Color get primaryHover => primaryColorNotifier.value.color;
   static const Color primaryForeground = Colors.white;
   static Color get primarySoft => isDarkMode.value
-      ? primaryColorNotifier.value.withValues(alpha: 0.18)
-      : primaryColorNotifier.value.withValues(alpha: 0.12);
+      ? primaryColorNotifier.value.color.withValues(alpha: 0.18)
+      : primaryColorNotifier.value.color.withValues(alpha: 0.12);
   static Color get primarySoftText => isDarkMode.value
-      ? (primaryColorNotifier.value == const Color(0xFF2563EB) ? const Color(0xFF93C5FD) : primaryColorNotifier.value)
-      : primaryColorNotifier.value;
+      ? (primaryColorNotifier.value.color == const Color(0xFF2563EB) ? const Color(0xFF93C5FD) : primaryColorNotifier.value.color)
+      : primaryColorNotifier.value.color;
   static Color get textOnDarkGreen => const Color(0xFFBFDBFE); // Soft highlight for primary card
 
   // Âmbar (Combustível e Tanque Parcial)
@@ -66,7 +79,7 @@ class AppTheme {
   static const Color servicePurple = Color(0xFF8B5CF6);
   static const Color expenseBlue = Color(0xFF0284C7);
   static const Color reminderAlert = Color(0xFFEF4444);
-  static Color get economyGreen => primaryColorNotifier.value;
+  static Color get economyGreen => primaryColorNotifier.value.color;
 }
 
 /// Vehicle Model (Preserving Chevrolet Astra specs: 52L tank, ~164.154 km)
