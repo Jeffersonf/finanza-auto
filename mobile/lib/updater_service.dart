@@ -66,6 +66,7 @@ class AppUpdateInfo {
 
 class UpdaterService {
   static const _channel = MethodChannel('com.jeffersonf.finanza_auto/updater');
+  static const cloudflareVersionUrl = 'https://finanza-auto.jeffef.workers.dev/version.json';
   static const rawVersionUrl = 'https://raw.githubusercontent.com/Jeffersonf/finanza-auto/main/version.json';
   static const releasesApiUrl = 'https://api.github.com/repos/Jeffersonf/finanza-auto/releases/latest';
 
@@ -77,7 +78,28 @@ class UpdaterService {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 8);
 
-      // 1. Tenta pegar de version.json no GitHub raw (sem rate-limit, com cache-buster)
+      // 1. Tenta pegar primeiro do Cloudflare Worker (Instantâneo, zero delay de CDN)
+      try {
+        final cfUri = Uri.parse(cloudflareVersionUrl).replace(queryParameters: {
+          't': DateTime.now().millisecondsSinceEpoch.toString(),
+        });
+        final request = await client.getUrl(cfUri);
+        request.headers.set('User-Agent', 'FinanzaAutoApp/$currentVersion');
+        request.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        request.headers.set('Pragma', 'no-cache');
+        final response = await request.close();
+        if (response.statusCode == 200) {
+          final body = await response.transform(utf8.decoder).join();
+          final data = json.decode(body) as Map<String, dynamic>;
+          return AppUpdateInfo.fromJson(
+            data,
+            currentVersion: currentVersion,
+            currentBuild: currentBuild,
+          );
+        }
+      } catch (_) {}
+
+      // 2. Tenta pegar de version.json no GitHub raw (sem rate-limit, com cache-buster)
       try {
         final versionUri = Uri.parse(rawVersionUrl).replace(queryParameters: {
           't': DateTime.now().millisecondsSinceEpoch.toString(),
@@ -98,7 +120,7 @@ class UpdaterService {
         }
       } catch (_) {}
 
-      // 2. Fallback para a API de Releases do GitHub
+      // 3. Fallback para a API de Releases do GitHub
       try {
         final request = await client.getUrl(Uri.parse(releasesApiUrl));
         request.headers.set('User-Agent', 'FinanzaAutoApp');
@@ -148,11 +170,13 @@ class UpdaterService {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 20);
       
-      // Cache-buster na URL apenas se não for link assinado de redirecionamento (AWS S3 / Azure)
+      // Cache-buster na URL apenas se não for link assinado de redirecionamento (AWS S3 / Azure Blob)
       final uri = Uri.parse(downloadUrl);
       final isAwsOrSigned = downloadUrl.contains('X-Amz-Signature') ||
           downloadUrl.contains('release-assets.githubusercontent.com') ||
-          downloadUrl.contains('objects.githubusercontent.com');
+          downloadUrl.contains('objects.githubusercontent.com') ||
+          downloadUrl.contains('sig=') ||
+          downloadUrl.contains('jwt=');
       final requestUri = isAwsOrSigned
           ? uri
           : uri.replace(queryParameters: {
@@ -215,6 +239,16 @@ class UpdaterService {
       await sink.flush();
       await sink.close();
       client.close();
+
+      // Validação de integridade: se contentLength foi informado e os bytes recebidos forem menores, arquivo está corrompido/incompleto
+      if (contentLength > 0 && received < contentLength) {
+        try {
+          if (await targetFile.exists()) {
+            await targetFile.delete();
+          }
+        } catch (_) {}
+        return null;
+      }
 
       return targetFile.path;
     } catch (e) {
