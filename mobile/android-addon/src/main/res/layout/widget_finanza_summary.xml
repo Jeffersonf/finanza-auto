@@ -18,8 +18,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="finanza. VEICULO"
-            android:textColor="#C8F55A"
+            android:text="AUTOLOG"
+            android:textColor="#3B82F6"
             android:textSize="11sp"
             android:textStyle="bold" />
         <TextView
@@ -59,8 +59,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:text="Finanza Next OLED"
-        android:textColor="#5AF5C8"
+        android:text="AutoLog Cockpit"
+        android:textColor="#F59E0B"
         android:textSize="10sp"
 
         android:textStyle="bold" />

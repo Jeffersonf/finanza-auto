@@ -28,7 +28,7 @@ jobs:
 
       - name: Set Android app label
         working-directory: mobile
-        run: sed -i 's/android:label="finanza_auto"/android:label="Finanza Auto"/' android/app/src/main/AndroidManifest.xml
+        run: sed -i 's/android:label="finanza_auto"/android:label="AutoLog"/' android/app/src/main/AndroidManifest.xml
 
       - name: Configure Android native integration & updater
         working-directory: mobile
@@ -109,7 +109,7 @@ jobs:
           TAG="v$VERSION"
           echo "Publishing GitHub Release $TAG..."
           gh release create "$TAG" mobile/build/app/outputs/flutter-apk/app-release.apk version.json \
-            --title "Finanza Auto $TAG" \
-            --notes "Versão $TAG do Finanza Auto com auto-updater integrado e redesign visual Finanza Next OLED." \
+            --title "AutoLog $TAG" \
+            --notes "AutoLog $TAG: Nova identidade visual Cobalt Blue & Âmbar automotivo (zero verde), novo ícone de precisão e persistência de tema." \
             --latest || \
           gh release upload "$TAG" mobile/build/app/outputs/flutter-apk/app-release.apk version.json --clobber

@@ -12,45 +12,45 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'updater_service.dart';
 
 // Version and API Constants
-const String appVersion = '2.3.4';
-const int appBuildNumber = 26;
+const String appVersion = '2.3.5';
+const int appBuildNumber = 27;
 const String cloudflareSyncUrl = 'https://finanza-auto.jeffef.workers.dev/api/sync';
 
 /// Dynamic Theme State Notifiers
-final ValueNotifier<bool> isDarkMode = ValueNotifier<bool>(false);
+final ValueNotifier<bool> isDarkMode = ValueNotifier<bool>(true);
 
-/// App Theme Tokens (Strictly adhering to official redesign briefing)
+/// App Theme Tokens (AutoLog - Cobalt & Âmbar)
 class AppTheme {
   // Surfaces & Backgrounds
-  static Color get background => isDarkMode.value ? const Color(0xFF101715) : const Color(0xFFF5F6F8);
-  static Color get card => isDarkMode.value ? const Color(0xFF18221F) : const Color(0xFFFFFFFF);
-  static Color get cardSubtle => isDarkMode.value ? const Color(0xFF202D29) : const Color(0xFFEAF0ED);
-  static Color get border => isDarkMode.value ? const Color(0xFF2A3A35) : const Color(0xFFDDE5E1);
-  static Color get trackLine => isDarkMode.value ? const Color(0xFF2A3A35) : const Color(0xFFE2E8F0);
+  static Color get background => isDarkMode.value ? const Color(0xFF0A0E14) : const Color(0xFFF8FAFC);
+  static Color get card => isDarkMode.value ? const Color(0xFF131924) : const Color(0xFFFFFFFF);
+  static Color get cardSubtle => isDarkMode.value ? const Color(0xFF1A2232) : const Color(0xFFF1F5F9);
+  static Color get border => isDarkMode.value ? const Color(0xFF263248) : const Color(0xFFE2E8F0);
+  static Color get trackLine => isDarkMode.value ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
 
-  // Verde Petróleo & Accents
-  static const Color primary = Color(0xFF176B51); // Verde Petróleo Principal
-  static const Color primaryHover = Color(0xFF135943);
+  // Cobalt Blue & Accents
+  static const Color primary = Color(0xFF2563EB); // Cobalt Blue Principal
+  static const Color primaryHover = Color(0xFF1D4ED8);
   static const Color primaryForeground = Colors.white;
-  static Color get primarySoft => isDarkMode.value ? const Color(0xFF1C3A31) : const Color(0xFFDDEDE5);
-  static Color get primarySoftText => const Color(0xFF176B51);
-  static Color get textOnDarkGreen => const Color(0xFFD0E6DB);
+  static Color get primarySoft => isDarkMode.value ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF);
+  static Color get primarySoftText => const Color(0xFF2563EB);
+  static Color get textOnDarkGreen => const Color(0xFFBFDBFE); // Soft cobalt highlight for primary card
 
   // Âmbar (Combustível e Tanque Parcial)
-  static const Color accentAmber = Color(0xFFA66A13);
+  static const Color accentAmber = Color(0xFFF59E0B);
   static const Color amberSoft = Color(0xFFFEF3C7);
 
-  // Typography Colors
-  static Color get textMain => isDarkMode.value ? const Color(0xFFF1F5F3) : const Color(0xFF172E28);
-  static Color get textMuted => isDarkMode.value ? const Color(0xFF8B9D95) : const Color(0xFF667970);
-  static Color get textLight => isDarkMode.value ? const Color(0xFF667970) : const Color(0xFF94A3B8);
+  // Typography Colors (Slate Neutrals - Zero Green)
+  static Color get textMain => isDarkMode.value ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+  static Color get textMuted => isDarkMode.value ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+  static Color get textLight => isDarkMode.value ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
 
   // Status Colors
-  static const Color fuelOrange = Color(0xFFA66A13);
-  static const Color servicePurple = Color(0xFF6366F1);
+  static const Color fuelOrange = Color(0xFFF59E0B);
+  static const Color servicePurple = Color(0xFF8B5CF6);
   static const Color expenseBlue = Color(0xFF0284C7);
-  static const Color reminderAlert = Color(0xFFDC2626);
-  static const Color economyGreen = Color(0xFF176B51);
+  static const Color reminderAlert = Color(0xFFEF4444);
+  static const Color economyGreen = Color(0xFF2563EB);
 }
 
 /// Vehicle Model (Preserving Chevrolet Astra specs: 52L tank, ~164.154 km)
@@ -296,7 +296,7 @@ class FinanzaAutoApp extends StatelessWidget {
       valueListenable: isDarkMode,
       builder: (context, isDark, _) {
         return MaterialApp(
-          title: 'Finanza Auto',
+          title: 'AutoLog',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             useMaterial3: true,
@@ -997,7 +997,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
             children: [
               const CircularProgressIndicator(color: AppTheme.primary),
               const SizedBox(height: 16),
-              Text('Carregando Finanza Auto...', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+              Text('Carregando AutoLog...', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
             ],
           ),
         ),
@@ -1369,7 +1369,7 @@ class HomeOverviewTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'FINANZA AUTO',
+                  'AUTOLOG',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -2422,8 +2422,12 @@ class VehicleTab extends StatelessWidget {
           icon: Icons.dark_mode_outlined,
           title: 'Modo Escuro / Claro',
           subtitle: 'Alternar contraste visual',
-          onTap: () {
+          onTap: () async {
             isDarkMode.value = !isDarkMode.value;
+            try {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('finanza_auto_is_dark', isDarkMode.value);
+            } catch (_) {}
           },
         ),
         const SizedBox(height: 40),
