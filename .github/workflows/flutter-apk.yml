@@ -41,6 +41,7 @@ jobs:
           cp android-addon/src/main/res/drawable/finanza_widget_background.xml android/app/src/main/res/drawable/
           cp android-addon/src/main/res/xml/finanza_summary_widget_info.xml android/app/src/main/res/xml/
           cp android-addon/src/main/res/xml/file_provider_paths.xml android/app/src/main/res/xml/
+          cp -r android-addon/src/main/res/mipmap-* android/app/src/main/res/
           cp assets/finanza-auto-backup.json android/app/src/main/assets/
           cp finanza-release.jks android/app/finanza-release.jks
 

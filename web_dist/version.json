@@ -1,8 +1,8 @@
 {
-  "version": "2.3.3",
-  "buildNumber": 25,
-  "releaseTag": "v2.3.3",
-  "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/download/v2.3.3/app-release.apk",
-  "releaseNotes": "Finanza Auto 2.3.3: Tema automotivo oficial Cockpit Dark (Zinc-950 + Vermelho Esportivo) conforme Design System oficial, eliminação total de estilos experimentais, card hero do Chevrolet Astra com métricas reais, odômetro preciso e seletor de paletas automotivas.",
+  "version": "2.3.4",
+  "buildNumber": 26,
+  "releaseTag": "v2.3.4",
+  "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/download/v2.3.4/app-release.apk",
+  "releaseNotes": "Finanza Auto 2.3.4: Redesign completo contemporâneo inspirado no Drivvo e Figma oficial (Verde Petróleo #176B51, Fundo Claro #F5F6F8, Cartões Brancos, 4 abas de navegação, formulário ágil de abastecimento com cálculo recíproco e novo ícone Android).",
   "releasedAt": "2026-09-17"
 }
