@@ -28,7 +28,9 @@ jobs:
 
       - name: Set Android app label
         working-directory: mobile
-        run: sed -i 's/android:label="finanza_auto"/android:label="AutoLog"/' android/app/src/main/AndroidManifest.xml
+        run: |
+          sed -i 's/android:label="finanza_auto"/android:label="Torq"/' android/app/src/main/AndroidManifest.xml
+          sed -i 's/android:icon="@mipmap\/ic_launcher"/android:icon="@mipmap\/ic_launcher" android:roundIcon="@mipmap\/ic_launcher_round"/' android/app/src/main/AndroidManifest.xml
 
       - name: Configure Android native integration & updater
         working-directory: mobile
@@ -109,7 +111,7 @@ jobs:
           TAG="v$VERSION"
           echo "Publishing GitHub Release $TAG..."
           gh release create "$TAG" mobile/build/app/outputs/flutter-apk/app-release.apk version.json \
-            --title "AutoLog $TAG" \
-            --notes "AutoLog $TAG: Redesign com botão central 'Registrar' na barra inferior, cabeçalho limpo sem engrenagem, suporte a múltiplos veículos na garagem, logotipo OEM da Chevrolet/marcas, aba de Análise avançada com 4 gráficos e filtros por período, e seletor de 7 cores automotivas de destaque." \
+            --title "Torq $TAG" \
+            --notes "Torq $TAG: Nova identidade oficial Torq com ícone premium iOS Dark Mode, botão central 'Registrar' na barra inferior, cabeçalho limpo, suporte a múltiplos veículos na garagem, logotipo OEM da Chevrolet, aba de Análise avançada com 4 gráficos e filtros por período, e seletor de 7 cores automotivas de destaque." \
             --latest || \
           gh release upload "$TAG" mobile/build/app/outputs/flutter-apk/app-release.apk version.json --clobber

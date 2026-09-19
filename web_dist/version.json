@@ -1,8 +1,8 @@
 {
-  "version": "2.3.7",
-  "buildNumber": 29,
-  "releaseTag": "v2.3.7",
-  "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/download/v2.3.7/app-release.apk",
-  "releaseNotes": "AutoLog 2.3.7: Redesign com botão central 'Registrar' na barra inferior, cabeçalho limpo sem engrenagem, suporte a múltiplos veículos na garagem, logotipo OEM da Chevrolet/marcas, aba de Análise avançada com 4 gráficos e filtros por período, e seletor de 7 cores automotivas de destaque.",
-  "releasedAt": "2026-09-18"
+  "version": "2.3.8",
+  "buildNumber": 30,
+  "releaseTag": "v2.3.8",
+  "downloadUrl": "https://github.com/Jeffersonf/finanza-auto/releases/download/v2.3.8/app-release.apk",
+  "releaseNotes": "Torq 2.3.8: Nova identidade visual oficial Torq com ícone premium iOS Dark Mode (tacômetro e nível em titânio escovado com chanfro cromado e neon azul), botão central Registrar, garagem com novos veículos, logotipo OEM da Chevrolet, 4 gráficos em Análise e seletor de cores.",
+  "releasedAt": "2026-09-19"
 }

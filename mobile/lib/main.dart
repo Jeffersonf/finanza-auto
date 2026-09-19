@@ -13,8 +13,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'updater_service.dart';
 
 // Version and API Constants
-const String appVersion = '2.3.7';
-const int appBuildNumber = 29;
+const String appVersion = '2.3.8';
+const int appBuildNumber = 30;
 const String cloudflareSyncUrl = 'https://finanza-auto.jeffef.workers.dev/api/sync';
 
 /// Dynamic Theme State Notifiers
@@ -45,7 +45,7 @@ const List<AppPrimaryColor> appPrimaryColors = [
 ];
 final ValueNotifier<AppPrimaryColor> primaryColorNotifier = ValueNotifier<AppPrimaryColor>(appPrimaryColors.first);
 
-/// App Theme Tokens (AutoLog - Dynamic Primary & Âmbar)
+/// App Theme Tokens (Torq - Dynamic Primary & Âmbar)
 class AppTheme {
   // Surfaces & Backgrounds
   static Color get background => isDarkMode.value ? const Color(0xFF0A0E14) : const Color(0xFFF8FAFC);
@@ -670,8 +670,8 @@ class FinanzaAutoApp extends StatelessWidget {
         final isDark = isDarkMode.value;
         final pri = primaryColorNotifier.value;
         return MaterialApp(
-          key: ValueKey('autolog_app_${isDark}_${pri.color.value}'),
-          title: 'AutoLog',
+          key: ValueKey('torq_app_${isDark}_${pri.color.value}'),
+          title: 'Torq',
           debugShowCheckedModeBanner: false,
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
           theme: ThemeData(
@@ -1796,7 +1796,7 @@ class _FinanzaAutoHomePageState extends State<FinanzaAutoHomePage> {
             children: [
               CircularProgressIndicator(color: AppTheme.primary),
               const SizedBox(height: 16),
-              Text('Carregando AutoLog...', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+              Text('Carregando Torq...', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
             ],
           ),
         ),
@@ -2191,7 +2191,7 @@ class HomeOverviewTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'AUTOLOG',
+                  'TORQ',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
